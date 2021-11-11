@@ -127,7 +127,7 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
     let cycle_block_width = 5;
     let cycle_block_heigth = 3;
     let period_block_width = 42;
-    let period_block_height = 8;
+    let period_block_height = cycle_block_heigth + 3;
 
     for container in periods_left_right {
         let periods_container = Layout::default()
@@ -177,7 +177,7 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
             let period_chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .vertical_margin(1)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .constraints([Constraint::Length(1), Constraint::Length(3)])
                 .split(period);
             
             let period_name = Paragraph::new(Spans::from(" Proposal")).alignment(Alignment::Left).block(Block::default());
@@ -195,9 +195,9 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
                 let inside_block_line = " ".repeat(cycle_block_width - 2);
                 let pad_line_num = cycle_block_heigth - 3;  // TODO
                 let text = std::iter::repeat(pad_line.clone())
-                    .take(pad_line_num / 2)
+                    .take((pad_line_num / 2).into())
                     .chain(std::iter::once(inside_block_line.clone()))
-                    .chain(std::iter::repeat(pad_line).take(pad_line_num / 2))
+                    .chain(std::iter::repeat(pad_line).take((pad_line_num / 2).into()))
                     .collect::<Vec<_>>()
                     .join("\n");
                 let cycle_block_text = Paragraph::new(text)
