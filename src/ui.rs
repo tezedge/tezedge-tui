@@ -191,23 +191,19 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
                 .split(period_chunks[1]);
             
             for cycle in cycles {
-                let cycle_block = Block::default().borders(Borders::ALL);
-                let single_row_text = format!(
-                    "{:^length$}",
-                    " ",
-                    length = (cycle_block_width - 2)
-                );
                 let pad_line = " ".repeat(cycle_block_width);
-                let pad_line_num = cycle_block_heigth - 3;
+                let inside_block_line = " ".repeat(cycle_block_width - 2);
+                let pad_line_num = cycle_block_heigth - 3;  // TODO
                 let text = std::iter::repeat(pad_line.clone())
                     .take(pad_line_num / 2)
-                    .chain(std::iter::once(single_row_text.clone()))
+                    .chain(std::iter::once(inside_block_line.clone()))
                     .chain(std::iter::repeat(pad_line).take(pad_line_num / 2))
                     .collect::<Vec<_>>()
                     .join("\n");
                 let cycle_block_text = Paragraph::new(text)
-                    .block(cycle_block.clone())
-                    .style(Style::default().fg(Color::Cyan).bg(Color::Black));
+                    .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).style(Style::default().bg(Color::Black).fg(Color::White)))
+                    .alignment(Alignment::Center)
+                    .style(Style::default().bg(Color::Cyan).fg(Color::Black));
                 // render cycle blocks
                 // f.render_widget(cycle_block, cycle);
                 // render the "text" (padded background)
