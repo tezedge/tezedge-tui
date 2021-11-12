@@ -11,3 +11,9 @@ edition = "2018"
 tui = { version = "0.16", features = ["crossterm"]}
 clap = "2.33"
 crossterm ="0.22"
+warp = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.12", features = ["full"] }
+tokio-tungstenite = "0.15"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }

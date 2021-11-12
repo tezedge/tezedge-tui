@@ -6,10 +6,20 @@ use crossterm::{
 use std::{error::Error, io};
 use tui::backend::{Backend, CrosstermBackend};
 use tui::Terminal;
+use tokio::time::Duration;
+
+use crate::{model::State, ui::Ui};
 
 pub mod ui;
+pub mod model;
+pub mod websocket;
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+
+    let ui = Ui::default();
+    let handle = websocket::spawn_ws_reader(ui.state.clone()).await;
+
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -19,8 +29,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create the tui app
-    let res = ui::run_tui(&mut terminal);
+    let res = ui.run_tui(&mut terminal, Duration::from_secs(1)).await;
 
+    drop(handle);
     // restore the terminal after exit
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
