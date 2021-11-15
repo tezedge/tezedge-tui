@@ -1,4 +1,6 @@
-use std::io;
+use std::{convert::TryInto, io};
+use std::convert::TryFrom;
+use conv::ValueFrom;
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -39,12 +41,17 @@ impl Ui {
             .title("Syncing headers and operations")
             .borders(Borders::ALL);
         // f.render_widget(headers_and_operations_block, top_chunks[0]);
-    
-        // TODO: replace mocked data
+
+        let syncing_eta = if let Some(eta) = state.incoming_transfer.eta {
+            eta
+        } else {
+            0.0
+        };
+
         let paragraph = Paragraph::new(vec![
-            Spans::from("59%  ETA  18m 50s"),
+            Spans::from(format!("{:.2}% {}", calculate_percentage(state.incoming_transfer.current_block_count, state.incoming_transfer.downloaded_blocks), convert_eta(syncing_eta))),
             Spans::from(format!("{} level", state.incoming_transfer.current_block_count)),
-            Spans::from("16 blocks / s"),
+            Spans::from(format!("{:.2} blocks / s", state.incoming_transfer.download_rate / 60.0)),
         ])
         .style(Style::default())
         .block(headers_and_operations_block)
@@ -58,16 +65,16 @@ impl Ui {
             .borders(Borders::ALL);
         // f.render_widget(applying, top_chunks[1]);
 
-        let last_applied_level = if let Some(last) = &state.aplication_status.last_applied_block {
-            last.level
+        let application_eta = if state.aplication_status.current_application_speed != 0.0 {
+            (state.incoming_transfer.current_block_count - state.last_applied_level as usize) as f32 / state.aplication_status.current_application_speed * 60.0
         } else {
-            0
+            0.0
         };
     
         let paragraph = Paragraph::new(vec![
-            Spans::from("2%  ETA  1d 18h 18m 50s"),
-            Spans::from(format!("{} level", last_applied_level)),
-            Spans::from("3 blocks / s"),
+            Spans::from(format!("{:.2}% {}", calculate_percentage(state.incoming_transfer.current_block_count, state.last_applied_level as usize), convert_eta(application_eta))),
+            Spans::from(format!("{} level", state.last_applied_level)),
+            Spans::from(format!("{:.2} blocks / s", state.aplication_status.current_application_speed / 60.0)),
         ])
         .style(Style::default())
         .block(applying)
@@ -229,7 +236,8 @@ impl Ui {
                     }
                 },
                 Some(TuiEvent::Tick) => {}
-                None => return Ok(())
+                None => return Ok(()),
+                _ => ()
             }
         }
     }
@@ -241,6 +249,8 @@ impl Ui {
 
 enum TuiEvent {
     Input(KeyCode),
+    Resize,
+    Mouse,
     Tick
 }
 
@@ -259,7 +269,18 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
             Err(e) => {
                 eprintln!("{}", e);
             }
-            _ => (),
+            Ok(Event::Resize(_, _)) =>  {
+                if let Err(err) = keys_tx.send(TuiEvent::Resize).await {
+                    eprintln!("{}", err);
+                    return;
+                }
+            },
+            Ok(Event::Mouse(_)) =>  {
+                if let Err(err) = keys_tx.send(TuiEvent::Mouse).await {
+                    eprintln!("{}", err);
+                    return;
+                }
+            },
         }
     });
 
@@ -274,4 +295,24 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
     });
 
     rx
+}
+
+fn convert_eta(eta: f32) -> String {
+    let days = (eta / 86400.0).floor();
+    let hours = ((eta / 3600.0) % 24.0).floor();
+    let minutes = ((eta / 60.0) % 60.0).floor();
+    let seconds = (eta % 60.0).floor();
+
+    format!("ETA {}d {}h {}m {}s", days, hours, minutes, seconds)
+}
+
+fn calculate_percentage(total: usize, current: usize) -> f32 {
+    if total == 0 {
+        return 0.0
+    }
+
+    let total = f32::value_from(total).unwrap();
+    let current = f32::value_from(current).unwrap();
+
+    current / total * 100.0
 }

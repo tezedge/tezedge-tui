@@ -9,6 +9,7 @@ pub type StateRef = Arc<RwLock<State>>;
 pub struct State {
     pub incoming_transfer: IncomingTransferMetrics,
     pub aplication_status: BlockApplicationStatus,
+    pub last_applied_level: i32,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -45,6 +46,9 @@ impl State {
     }
 
     pub fn update_application_status(&mut self, application_status: BlockApplicationStatus) {
+        if let Some(last_appliead_block) = &application_status.last_applied_block {
+            self.last_applied_level = last_appliead_block.level;
+        }
         self.aplication_status = application_status;
     }
 }
