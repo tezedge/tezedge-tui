@@ -17,8 +17,8 @@ pub mod websocket;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
-    let ui = Ui::default();
-    let handle = websocket::spawn_ws_reader(ui.state.clone()).await;
+    let mut ui = Ui::default();
+    let ws_handle = websocket::spawn_ws_reader(ui.state.clone()).await;
 
     // Setup terminal
     enable_raw_mode()?;
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // create the tui app
     let res = ui.run_tui(&mut terminal, Duration::from_secs(1)).await;
 
-    drop(handle);
+    drop(ws_handle);
     // restore the terminal after exit
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;

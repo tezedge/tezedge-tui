@@ -22,7 +22,7 @@ pub async fn spawn_ws_reader(state: StateRef) -> JoinHandle<()>{
                                     state.update_incoming_transfer(serde_json::from_value(message["payload"].clone()).unwrap())
                                 },
                                 "peersMetrics" => {
-                                    // TODO
+                                    state.update_peer_metrics(serde_json::from_value(message["payload"].clone()).unwrap())
                                 }
                                 "blockApplicationStatus" => {
                                     state.update_application_status(serde_json::from_value(message["payload"].clone()).unwrap())

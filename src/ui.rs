@@ -7,16 +7,18 @@ use crossterm::{
 };
 use tokio::sync::mpsc;
 use tokio::time::Duration;
+use tui::style::Modifier;
 use tui::{Frame, Terminal, backend::Backend, layout::{Alignment, Constraint, Direction, Layout}, style::{Color, Style}, text::Spans, widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table}};
 
-use crate::model::StateRef;
+use crate::model::{StateRef, UiState};
 #[derive(Default)]
 pub struct Ui {
     pub state: StateRef,
+    pub ui_state: UiState,
 }
 
 impl Ui {
-    fn ui<B: Backend>(&self, f: &mut Frame<B>) {
+    fn ui<B: Backend>(&mut self, f: &mut Frame<B>) {
         let state = self.state.read().unwrap();
 
         let size = f.size();
@@ -50,7 +52,7 @@ impl Ui {
 
         let paragraph = Paragraph::new(vec![
             Spans::from(format!("{:.2}% {}", calculate_percentage(state.incoming_transfer.current_block_count, state.incoming_transfer.downloaded_blocks), convert_eta(syncing_eta))),
-            Spans::from(format!("{} level", state.incoming_transfer.current_block_count)),
+            Spans::from(format!("{} level", state.incoming_transfer.downloaded_blocks)),
             Spans::from(format!("{:.2} blocks / s", state.incoming_transfer.download_rate / 60.0)),
         ])
         .style(Style::default())
@@ -187,63 +189,99 @@ impl Ui {
         let connected_peers = Block::default()
             .borders(Borders::ALL);
         // table
-        let items = vec![
-            vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
-            vec!["138.201.74.178:9733", "12.01 kB", "91 B/s", "91 B/s"],
-            vec!["66.70.178.32:9732", "282.64 kB", "0 B/s", "0 B/s"],
-            vec!["162.55.163.248:9732", "64.35 kB", "0 B/s", "0 B/s"],
-            vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
-            vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
-            vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
-        ];
+        // let items = vec![
+        //     vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
+        //     vec!["138.201.74.178:9733", "12.01 kB", "91 B/s", "91 B/s"],
+        //     vec!["66.70.178.32:9732", "282.64 kB", "0 B/s", "0 B/s"],
+        //     vec!["162.55.163.248:9732", "64.35 kB", "0 B/s", "0 B/s"],
+        //     vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
+        //     vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
+        //     vec!["88.213.174.203:9732", "468.23 kB", "2.61 KB/s", "2.61 KB/s"],
+        // ];
+
+        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
+        let normal_style = Style::default().bg(Color::Blue);
     
         let header_cells = ["Address", "Total", "Average", "Current"]
             .iter()
             .map(|h| Cell::from(*h).style(Style::default()));
-        let header = Row::new(header_cells).height(1).bottom_margin(1);
-        let rows = items.iter().map(|item| {
+        let header = Row::new(header_cells).style(normal_style).height(1).bottom_margin(1);
+        let rows = state.peer_metrics.iter().map(|item| {
             let height = item
                 .iter()
                 .map(|content| content.chars().filter(|c| *c == '\n').count())
                 .max()
                 .unwrap_or(0)
                 + 1;
-            let cells = item.iter().map(|c| Cell::from(*c));
+            let cells = item.iter().map(|c| Cell::from(c.clone()));
             Row::new(cells).height(height as u16)
         });
         let table = Table::new(rows)
             .header(header)
             .block(connected_peers)
+            .highlight_style(selected_style)
+            .highlight_symbol(">>")
             .widths(&[
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
                 Constraint::Percentage(25)
             ]);
-        f.render_widget(table, chunks[2]);
-        
+        // f.render_widget(table, chunks[2]);
+        f.render_stateful_widget(table, chunks[2], &mut self.ui_state.peer_table_state);
     }
 
-    pub async fn run_tui<B: Backend>(&self, terminal: &mut Terminal<B>, tick_rate: Duration) -> io::Result<()> {
+    pub async fn run_tui<B: Backend>(&mut self, terminal: &mut Terminal<B>, tick_rate: Duration) -> io::Result<()> {
         let mut events = events(tick_rate);
         loop {
             terminal.draw(|f| self.ui(f))?;
     
             match events.recv().await {
                 Some(TuiEvent::Input(key)) => {
-                    if key == KeyCode::Char('q') {
-                        return Ok(());
+                    match key {
+                        KeyCode::Char('q') => return Ok(()),
+                        KeyCode::Down => self.peer_table_next(),
+                        KeyCode::Up => self.peer_table_previous(),
+                        _ => {}
                     }
                 },
                 Some(TuiEvent::Tick) => {}
                 None => return Ok(()),
-                _ => ()
+                _ => {}
             }
         }
     }
 
-    pub fn update_state(&mut self, ) {
+    // TODO: trait?
+    pub fn peer_table_next(&mut self) {
+        let state = self.state.read().unwrap();
+        let i = match self.ui_state.peer_table_state.selected() {
+            Some(i) => {
+                if i >= state.peer_metrics.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.ui_state.peer_table_state.select(Some(i));
+    }
 
+    // TODO: trait?
+    pub fn peer_table_previous(&mut self) {
+        let state = self.state.read().unwrap();
+        let i = match self.ui_state.peer_table_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    state.peer_metrics.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.ui_state.peer_table_state.select(Some(i));
     }
 }
 
@@ -259,28 +297,33 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
     let keys_tx = tx.clone();
 
     tokio::spawn(async move {
-        match event::read() {
-            Ok(Event::Key(key)) => {
-                if let Err(err) = keys_tx.send(TuiEvent::Input(key.code)).await {
-                    eprintln!("{}", err);
-                    return;
+        loop {
+            match event::read() {
+                Ok(Event::Key(key)) => {
+                    if let Err(err) = keys_tx.send(TuiEvent::Input(key.code)).await {
+                        eprintln!("{}", err);
+                        break;
+                    }
+                    if key.code == KeyCode::Char('q') {
+                        break;
+                    }
                 }
+                Err(e) => {
+                    eprintln!("{}", e);
+                }
+                Ok(Event::Resize(_, _)) =>  {
+                    if let Err(err) = keys_tx.send(TuiEvent::Resize).await {
+                        eprintln!("{}", err);
+                        break;
+                    }
+                },
+                Ok(Event::Mouse(_)) =>  {
+                    if let Err(err) = keys_tx.send(TuiEvent::Mouse).await {
+                        eprintln!("{}", err);
+                        break;
+                    }
+                },
             }
-            Err(e) => {
-                eprintln!("{}", e);
-            }
-            Ok(Event::Resize(_, _)) =>  {
-                if let Err(err) = keys_tx.send(TuiEvent::Resize).await {
-                    eprintln!("{}", err);
-                    return;
-                }
-            },
-            Ok(Event::Mouse(_)) =>  {
-                if let Err(err) = keys_tx.send(TuiEvent::Mouse).await {
-                    eprintln!("{}", err);
-                    return;
-                }
-            },
         }
     });
 
