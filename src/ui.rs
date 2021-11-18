@@ -89,23 +89,42 @@ impl Ui {
         let chain_status = Block::default()
             .borders(Borders::ALL);
         // f.render_widget(chain_status, chunks[1]);
-    
-        let periods_left_right = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(chunks[1]);
-    
+
         let cycle_block_width = 5;
         let cycle_block_heigth = 3;
         let period_block_width = 42;
         let period_block_height = cycle_block_heigth + 3;
 
         let cycle_per_period = 8;
-    
-        let period_count_per_page = periods_left_right[0].height / period_block_height;
-        let vertical_padding = (periods_left_right[0].height - (period_count_per_page * period_block_height)) / 2;
+        let period_count_per_page_on_heigth = chunks[1].height / period_block_height;
+        let period_count_per_page_on_width = chunks[1].width / period_block_width;
+
+        let vertical_padding = (chunks[1].height - (period_count_per_page_on_heigth * period_block_height)) / 2;
+        let horizontal_padding = (chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
 
         let period_count = state.cycle_data.len() / cycle_per_period;
+
+        // let period_containers_row_constraints = std::iter::once(Constraint::Min(vertical_padding)).chain(std::iter::repeat(Constraint::Length(period_block_height))
+        //     .take(period_count_per_page_on_heigth.into())).chain(std::iter::once(Constraint::Min(vertical_padding)))
+        //     .collect::<Vec<_>>();
+    
+        let period_containers_row_constraints = std::iter::repeat(Constraint::Length(period_block_height))
+            .take(period_count_per_page_on_heigth.into())
+            .collect::<Vec<_>>();
+
+        let periods_containers_chunk = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(vertical_padding),
+                Constraint::Length(period_block_height * period_count_per_page_on_heigth),
+                Constraint::Min(vertical_padding),
+            ])
+            .split(chunks[1])[1];
+
+        let periods_containers = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(period_containers_row_constraints)
+            .split(periods_containers_chunk);
 
         let applied_style = Style::default().bg(Color::Cyan).fg(Color::Black);
         let dowloaded_style = Style::default().bg(Color::Gray).fg(Color::Black);
@@ -117,47 +136,33 @@ impl Ui {
             return;
         }
 
-        for (container_index, container) in periods_left_right.into_iter().enumerate() {
+        for (container_index, container) in periods_containers.into_iter().enumerate() {
             let periods_container = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Min((container.width - period_block_width) / 2),
-                Constraint::Length(period_block_width),
-                Constraint::Min((container.width - period_block_width) / 2),
+                Constraint::Min(horizontal_padding),
+                Constraint::Length(period_block_width * period_count_per_page_on_width),
+                Constraint::Min(horizontal_padding),
             ])
-            .split(container);
+            .split(container)[1];
         
             // test render
             // let dummy_block = Block::default().borders(Borders::ALL);
-            // f.render_widget(dummy_block, periods_container[1]);
+            // f.render_widget(dummy_block, periods_container);
     
-            let row_constraints = std::iter::repeat(Constraint::Length(period_block_height))
-                .take(period_count_per_page.into())
+            let row_constraints = std::iter::repeat(Constraint::Length(period_block_width))
+                .take(period_count_per_page_on_width.into())
                 .collect::<Vec<_>>();
     
             let column_constraints = std::iter::repeat(Constraint::Length(5))
-                .take(8)
+                .take(cycle_per_period)
                 .collect::<Vec<_>>();
     
-            let periods_container_exact = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Min(vertical_padding),
-                    Constraint::Length(period_count_per_page * period_block_height),
-                    Constraint::Min(vertical_padding),
-                ])
-                .split(periods_container[1]);
-            
-            // test render
-            // let dummy_block = Block::default().borders(Borders::ALL);
-            // f.render_widget(dummy_block, periods_container_exact[1]);
-    
             let periods = Layout::default()
-                .direction(Direction::Vertical)
+                .direction(Direction::Horizontal)
                 .constraints(row_constraints)
-                .split(periods_container_exact[1]);
+                .split(periods_container);
     
-            // test render
             for (period_index, period) in periods.into_iter().enumerate() {
                 let period_chunks = Layout::default()
                     .direction(Direction::Vertical)
@@ -176,10 +181,7 @@ impl Ui {
                     .split(period_chunks[1]);
                 
                 for (cycle_index, cycle) in cycles.into_iter().enumerate() {
-                    // Note: read order: up -> down, left -> right
-                    let cycle_data_index = (container_index * period_count_per_page as usize * 8) + (period_index * 8 + cycle_index);
-
-
+                    let cycle_data_index = (container_index * period_count_per_page_on_width as usize * cycle_per_period) + (period_index * cycle_per_period) + cycle_index;
 
                     let pad_line = " ".repeat(cycle_block_width);
                     // let inside_block_line = " ".repeat(cycle_block_width - 2);
@@ -207,8 +209,6 @@ impl Ui {
                         } else {
                             default_style
                         });
-                    // render cycle blocks
-                    // f.render_widget(cycle_block, cycle);
                     // render the "text" (padded background)
                     f.render_widget(cycle_block_text, cycle);
                 }
