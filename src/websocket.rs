@@ -12,31 +12,33 @@ pub async fn spawn_ws_reader(state: StateRef) -> JoinHandle<()> {
         let state = state.clone();
 
         read.for_each(|raw_message| async {
-            raw_message.and_then(|message| {
-                Ok(serde_json::from_str(&message.to_string()).and_then(|data: serde_json::Value| {
-                    Ok(data.as_array().and_then(|message_array| {
-                        Some(for message in message_array {
-                            message.clone().as_object().and_then(|message_obj| {
-                                message_obj["type"].as_str().and_then(|type_str| {
+            raw_message.map(|message| serde_json::from_str(&message.to_string()).map(|data: serde_json::Value| data.as_array().map(|message_array| {
+                        for message in message_array {
+                            message.clone().as_object().map(|message_obj| {
+                                message_obj["type"].as_str().map(|type_str| {
                                     let mut state = state.write().unwrap();
                                     match type_str {
                                         "incomingTransfer" => {
-                                            Some(state.update_incoming_transfer(serde_json::from_value(message["payload"].clone()).unwrap()))
+                                            state.update_incoming_transfer(serde_json::from_value(message["payload"].clone()).unwrap())
                                         },
                                         "peersMetrics" => {
-                                            Some(state.update_peer_metrics(serde_json::from_value(message["payload"].clone()).unwrap()))
+                                            state.update_peer_metrics(serde_json::from_value(message["payload"].clone()).unwrap())
                                         }
                                         "blockApplicationStatus" => {
-                                            Some(state.update_application_status(serde_json::from_value(message["payload"].clone()).unwrap()))
+                                            state.update_application_status(serde_json::from_value(message["payload"].clone()).unwrap())
                                         }
-                                        _ => None,
+                                        "blockStatus" => {
+                                            state.update_block_metrics(serde_json::from_value(message["payload"].clone()).unwrap())
+                                        }
+                                        "chainStatus" => {
+                                            state.update_cycle_data(serde_json::from_value(message["payload"].clone()).unwrap())
+                                        }
+                                        _ => {},
                                     }
                                 })
                             });
-                        })
-                    }))
-                }))
-            }).ok();
+                        }
+                    }))).ok();
         }).await
     })
 }
