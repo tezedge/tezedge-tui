@@ -227,7 +227,30 @@ impl State {
 
 #[derive(Debug, Clone, Default)]
 pub struct PeriodInfoState {
-    pub period_count: usize,
+    pub container_count: usize,
+    pub displayable_container_count: usize,
     pub selected: Option<usize>,
+    offset: usize,
 }
 
+impl PeriodInfoState {
+    pub fn select(&mut self, selected: Option<usize>) {
+        self.selected = selected;
+    }
+
+    pub fn selected(&self) -> Option<usize> {
+        self.selected
+    }
+
+    pub fn offset(&self) -> usize {
+        if let Some(selected) = self.selected {
+            if selected >= self.displayable_container_count {
+                selected - self.displayable_container_count
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    }
+}

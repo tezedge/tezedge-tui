@@ -102,12 +102,21 @@ impl Ui {
         let vertical_padding = (chunks[1].height - (period_count_per_page_on_heigth * period_block_height)) / 2;
         let horizontal_padding = (chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
 
-        let period_count = state.cycle_data.len() / cycle_per_period;
+        let cycle_count = state.cycle_data.len();
+        let period_count = cycle_count / cycle_per_period;
+        // let period_count = divide_round_up(cycle_count, cycle_per_period);
 
-        // let period_containers_row_constraints = std::iter::once(Constraint::Min(vertical_padding)).chain(std::iter::repeat(Constraint::Length(period_block_height))
-        //     .take(period_count_per_page_on_heigth.into())).chain(std::iter::once(Constraint::Min(vertical_padding)))
-        //     .collect::<Vec<_>>();
-    
+        // selected period container state
+        self.ui_state.period_info_state.displayable_container_count = period_count_per_page_on_heigth.into();
+        self.ui_state.period_info_state.container_count = period_count / period_count_per_page_on_width as usize;
+        // self.ui_state.period_info_state.container_count = divide_round_up(period_count, period_count_per_page_on_width as usize);
+
+        // if let Some(selected_container) = self.ui_state.period_info_state.selected {
+        //     if selected_container >= self.ui_state.period_info_state.displayable_container_count {
+        //         self.ui_state.period_info_state.selected = Some(self.ui_state.period_info_state.displayable_container_count - 1)
+        //     }
+        // }
+
         let period_containers_row_constraints = std::iter::repeat(Constraint::Length(period_block_height))
             .take(period_count_per_page_on_heigth.into())
             .collect::<Vec<_>>();
@@ -140,11 +149,17 @@ impl Ui {
             let periods_container = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Min(horizontal_padding),
                 Constraint::Length(period_block_width * period_count_per_page_on_width),
-                Constraint::Min(horizontal_padding),
+                Constraint::Min(horizontal_padding * 2),
             ])
-            .split(container)[1];
+            .split(container)[0];
+
+            if let Some(selected_container) = self.ui_state.period_info_state.selected {
+                if self.ui_state.pages.widget_state[0].in_focus(0) && selected_container == container_index + self.ui_state.period_info_state.offset() {
+                    let block = Block::default().borders(Borders::ALL).style(Style::default().fg(Color::Blue));
+                    f.render_widget(block, container);
+                }
+            }
         
             // test render
             // let dummy_block = Block::default().borders(Borders::ALL);
@@ -164,6 +179,10 @@ impl Ui {
                 .split(periods_container);
     
             for (period_index, period) in periods.into_iter().enumerate() {
+                // only render periods that are present on the netrwork
+                if (container_index + self.ui_state.period_info_state.offset()) * period_count_per_page_on_width as usize + period_index > period_count {
+                    break;
+                }
                 let period_chunks = Layout::default()
                     .direction(Direction::Vertical)
                     .vertical_margin(1)
@@ -181,7 +200,12 @@ impl Ui {
                     .split(period_chunks[1]);
                 
                 for (cycle_index, cycle) in cycles.into_iter().enumerate() {
-                    let cycle_data_index = (container_index * period_count_per_page_on_width as usize * cycle_per_period) + (period_index * cycle_per_period) + cycle_index;
+                    let cycle_data_index = ((container_index + self.ui_state.period_info_state.offset()) * period_count_per_page_on_width as usize * cycle_per_period) + (period_index * cycle_per_period) + cycle_index;
+
+                    // do not render cycles that are not present on the chain
+                    if cycle_data_index > cycle_count {
+                        break;
+                    }
 
                     let pad_line = " ".repeat(cycle_block_width);
                     // let inside_block_line = " ".repeat(cycle_block_width - 2);
@@ -221,7 +245,12 @@ impl Ui {
         
         // ======================== CONNECTED PEERS ========================
         let connected_peers = Block::default()
-            .borders(Borders::ALL);
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(if self.ui_state.pages.widget_state[0].in_focus(1) {
+                Color::Blue
+            } else {
+                Color::White
+            }));
         // table
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
@@ -285,41 +314,85 @@ impl Ui {
     }
 
     pub fn next(&mut self) {
-        let state = self.state.read().unwrap();
-        if state.peer_metrics.is_empty() {
-            return
-        }
+        match self.ui_state.pages.index {
+            0 => {
+                if self.ui_state.pages.widget_state[0].in_focus(1) {
+                    let state = self.state.read().unwrap();
+                    if state.peer_metrics.is_empty() {
+                        return
+                    }
 
-        let i = match self.ui_state.peer_table_state.selected() {
-            Some(i) => {
-                if i >= state.peer_metrics.len() - 1 {
-                    0
-                } else {
-                    i + 1
+                    let i = match self.ui_state.peer_table_state.selected() {
+                        Some(i) => {
+                            if i >= state.peer_metrics.len() - 1 {
+                                0
+                            } else {
+                                i + 1
+                            }
+                        }
+                        None => 0,
+                    };
+                    self.ui_state.peer_table_state.select(Some(i));
+                } else if self.ui_state.pages.widget_state[0].in_focus(0) {
+                    let to_select = match self.ui_state.period_info_state.selected() {
+                        Some(to_select) => {
+                            if to_select >= self.ui_state.period_info_state.container_count - 1 {
+                                0
+                            } else {
+                                to_select + 1
+                            }
+                        }
+                        None => 0,
+                    };
+                    self.ui_state.period_info_state.select(Some(to_select));
                 }
             }
-            None => 0,
-        };
-        self.ui_state.peer_table_state.select(Some(i));
+            1 => {
+                todo!()
+            }
+            _ => {}
+        }
     }
 
     pub fn previous(&mut self) {
-        let state = self.state.read().unwrap();
-        if state.peer_metrics.is_empty() {
-            return
-        }
+        match self.ui_state.pages.index {
+            0 => {
+                if self.ui_state.pages.widget_state[0].in_focus(1) {
+                    let state = self.state.read().unwrap();
+                    if state.peer_metrics.is_empty() {
+                        return
+                    }
 
-        let i = match self.ui_state.peer_table_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    state.peer_metrics.len() - 1
-                } else {
-                    i - 1
+                    let i = match self.ui_state.peer_table_state.selected() {
+                        Some(i) => {
+                            if i == 0 {
+                                state.peer_metrics.len() - 1
+                            } else {
+                                i - 1
+                            }
+                        }
+                        None => 0,
+                    };
+                    self.ui_state.peer_table_state.select(Some(i));
+                } else if self.ui_state.pages.widget_state[0].in_focus(0) {
+                    let to_select = match self.ui_state.period_info_state.selected() {
+                        Some(to_select) => {
+                            if to_select == 0 {
+                                self.ui_state.period_info_state.container_count - 1
+                            } else {
+                                to_select - 1
+                            }
+                        }
+                        None => 0,
+                    };
+                    self.ui_state.period_info_state.select(Some(to_select));
                 }
             }
-            None => 0,
-        };
-        self.ui_state.peer_table_state.select(Some(i));
+            1 => {
+                todo!()
+            }
+            _ => {}
+        }
     }
 }
 
@@ -396,4 +469,8 @@ fn calculate_percentage(total: usize, current: usize) -> f32 {
     let current = f32::value_from(current).unwrap();
 
     current / total * 100.0
+}
+
+fn divide_round_up(dividend: usize, divisor: usize) -> usize {
+    (dividend + (divisor - 1)) / divisor
 }
