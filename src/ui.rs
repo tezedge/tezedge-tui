@@ -1,4 +1,5 @@
 use std::io::SeekFrom;
+use std::ops::Add;
 use std::{convert::TryInto, io};
 use std::convert::TryFrom;
 use conv::{ConvUtil, ValueFrom};
@@ -22,6 +23,8 @@ pub struct Ui {
 impl Ui {
     fn syncing_screen<B: Backend>(&mut self, f: &mut Frame<B>) {
         let state = self.state.read().unwrap();
+        let page_in_focus = self.ui_state.pages.in_focus();
+        let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
 
         let size = f.size();
     
@@ -155,7 +158,7 @@ impl Ui {
             .split(container)[0];
 
             if let Some(selected_container) = self.ui_state.period_info_state.selected {
-                if self.ui_state.pages.widget_state[0].in_focus(0) && selected_container == container_index + self.ui_state.period_info_state.offset() {
+                if widget_in_focus == 0 && selected_container == container_index + self.ui_state.period_info_state.offset() {
                     let block = Block::default().borders(Borders::ALL).style(Style::default().fg(Color::Blue));
                     f.render_widget(block, container);
                 }
@@ -246,7 +249,7 @@ impl Ui {
         // ======================== CONNECTED PEERS ========================
         let connected_peers = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(if self.ui_state.pages.widget_state[0].in_focus(1) {
+            .border_style(Style::default().fg(if widget_in_focus == 1 {
                 Color::Blue
             } else {
                 Color::White
@@ -280,7 +283,7 @@ impl Ui {
                 Constraint::Percentage(25),
                 Constraint::Percentage(25)
             ]);
-        if self.ui_state.pages.index == 0 && self.ui_state.pages.widget_state[0].in_focus(1) {
+        if self.ui_state.pages.index == 0 && widget_in_focus == 1 {
             f.render_stateful_widget(table, chunks[2], &mut self.ui_state.peer_table_state);
         } else {
             f.render_widget(table, chunks[2]);
@@ -314,37 +317,43 @@ impl Ui {
     }
 
     pub fn next(&mut self) {
-        match self.ui_state.pages.index {
+        let page_in_focus = self.ui_state.pages.in_focus();
+        match page_in_focus {
             0 => {
-                if self.ui_state.pages.widget_state[0].in_focus(1) {
-                    let state = self.state.read().unwrap();
-                    if state.peer_metrics.is_empty() {
-                        return
-                    }
+                let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
+                match widget_in_focus {
+                    1 => {
+                        let state = self.state.read().unwrap();
+                        if state.peer_metrics.is_empty() {
+                            return
+                        }
 
-                    let i = match self.ui_state.peer_table_state.selected() {
-                        Some(i) => {
-                            if i >= state.peer_metrics.len() - 1 {
-                                0
-                            } else {
-                                i + 1
+                        let i = match self.ui_state.peer_table_state.selected() {
+                            Some(i) => {
+                                if i >= state.peer_metrics.len() - 1 {
+                                    0
+                                } else {
+                                    i + 1
+                                }
                             }
-                        }
-                        None => 0,
-                    };
-                    self.ui_state.peer_table_state.select(Some(i));
-                } else if self.ui_state.pages.widget_state[0].in_focus(0) {
-                    let to_select = match self.ui_state.period_info_state.selected() {
-                        Some(to_select) => {
-                            if to_select >= self.ui_state.period_info_state.container_count - 1 {
-                                0
-                            } else {
-                                to_select + 1
+                            None => 0,
+                        };
+                        self.ui_state.peer_table_state.select(Some(i));
+                    }
+                    0 => {
+                        let to_select = match self.ui_state.period_info_state.selected() {
+                            Some(to_select) => {
+                                if to_select >= self.ui_state.period_info_state.container_count - 1 {
+                                    0
+                                } else {
+                                    to_select + 1
+                                }
                             }
-                        }
-                        None => 0,
-                    };
-                    self.ui_state.period_info_state.select(Some(to_select));
+                            None => 0,
+                        };
+                        self.ui_state.period_info_state.select(Some(to_select));
+                    }
+                    _ => {}
                 }
             }
             1 => {
@@ -355,37 +364,43 @@ impl Ui {
     }
 
     pub fn previous(&mut self) {
-        match self.ui_state.pages.index {
+        let page_in_focus = self.ui_state.pages.in_focus();
+        match page_in_focus {
             0 => {
-                if self.ui_state.pages.widget_state[0].in_focus(1) {
-                    let state = self.state.read().unwrap();
-                    if state.peer_metrics.is_empty() {
-                        return
+                let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
+                match widget_in_focus {
+                    1 => {
+                        let state = self.state.read().unwrap();
+                        if state.peer_metrics.is_empty() {
+                            return
+                        }
+    
+                        let i = match self.ui_state.peer_table_state.selected() {
+                            Some(i) => {
+                                if i == 0 {
+                                    state.peer_metrics.len() - 1
+                                } else {
+                                    i - 1
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.ui_state.peer_table_state.select(Some(i));
                     }
-
-                    let i = match self.ui_state.peer_table_state.selected() {
-                        Some(i) => {
-                            if i == 0 {
-                                state.peer_metrics.len() - 1
-                            } else {
-                                i - 1
+                    0 => {
+                        let to_select = match self.ui_state.period_info_state.selected() {
+                            Some(to_select) => {
+                                if to_select == 0 {
+                                    self.ui_state.period_info_state.container_count - 1
+                                } else {
+                                    to_select - 1
+                                }
                             }
-                        }
-                        None => 0,
-                    };
-                    self.ui_state.peer_table_state.select(Some(i));
-                } else if self.ui_state.pages.widget_state[0].in_focus(0) {
-                    let to_select = match self.ui_state.period_info_state.selected() {
-                        Some(to_select) => {
-                            if to_select == 0 {
-                                self.ui_state.period_info_state.container_count - 1
-                            } else {
-                                to_select - 1
-                            }
-                        }
-                        None => 0,
-                    };
-                    self.ui_state.period_info_state.select(Some(to_select));
+                            None => 0,
+                        };
+                        self.ui_state.period_info_state.select(Some(to_select));
+                    }
+                    _ => {}
                 }
             }
             1 => {

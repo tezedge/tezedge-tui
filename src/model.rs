@@ -46,10 +46,16 @@ impl Default for PageState {
     }
 }
 
+impl PageState {
+    pub fn in_focus(&self) -> usize {
+        self.index
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct WidgetState {
     pub titles: Vec<String>,
-    pub index: usize,
+    index: usize,
 }
 
 impl WidgetState {
@@ -60,8 +66,8 @@ impl WidgetState {
         }
     }
 
-    pub fn in_focus(&self, index: usize) -> bool {
-        index == self.index
+    pub fn in_focus(&self) -> usize {
+        self.index
     }
 }
 
