@@ -3,12 +3,14 @@ use std::convert::TryFrom;
 use std::io::SeekFrom;
 use std::ops::Add;
 use std::{convert::TryInto, io};
+use tui::layout::Rect;
+use tui::text::Span;
 
 use crossterm::event::{self, Event, KeyCode};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 use tui::style::Modifier;
-use tui::widgets::TableState;
+use tui::widgets::{TableState, Tabs};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -36,7 +38,7 @@ impl Ui {
         let block = Block::default().borders(Borders::NONE);
         f.render_widget(block, size);
 
-        // split the screen to 3 parts vertically
+        // split the screen to 4 parts vertically
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
@@ -45,6 +47,7 @@ impl Ui {
                     Constraint::Length(5),
                     Constraint::Min(2),
                     Constraint::Length(10),
+                    Constraint::Length(3),
                 ]
                 .as_ref(),
             )
@@ -353,13 +356,44 @@ impl Ui {
         } else {
             f.render_widget(table, chunks[2]);
         }
+
+        // ======================== PAGES TABS ========================
+        let tabs = self.create_pages_tabs();
+        f.render_widget(tabs, chunks[3]);
     }
 
     fn mempool_screen<B: Backend>(&mut self, f: &mut Frame<B>) {
         let size = f.size();
 
+        // TODO: placeholder for mempool page
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints([Constraint::Min(1), Constraint::Length(3)])
+            .split(size);
+
+        // dummy
         let block = Block::default().borders(Borders::ALL);
-        f.render_widget(block, size);
+        f.render_widget(block, chunks[0]);
+
+        // ======================== PAGES TABS ========================
+        let tabs = self.create_pages_tabs();
+        f.render_widget(tabs, chunks[1]);
+    }
+
+    fn create_pages_tabs(&self) -> Tabs {
+        let titles = self
+            .ui_state
+            .pages
+            .titles
+            .iter()
+            .map(|t| Spans::from(Span::styled(t, Style::default().fg(Color::White))))
+            .collect();
+        let page_in_focus = self.ui_state.pages.in_focus();
+        Tabs::new(titles)
+            .block(Block::default().borders(Borders::ALL))
+            .highlight_style(Style::default().fg(Color::Blue))
+            .select(page_in_focus)
     }
 
     pub async fn run_tui<B: Backend>(
@@ -398,9 +432,11 @@ impl Ui {
     pub fn next(&mut self) {
         let page_in_focus = self.ui_state.pages.in_focus();
         match page_in_focus {
+            // syncing page
             0 => {
                 let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
                 match widget_in_focus {
+                    // peer table widget
                     1 => {
                         let state = self.state.read().unwrap();
                         if state.peer_metrics.is_empty() {
@@ -419,6 +455,7 @@ impl Ui {
                         };
                         self.ui_state.peer_table_state.select(Some(i));
                     }
+                    // period blocks
                     0 => {
                         let to_select = match self.ui_state.period_info_state.selected() {
                             Some(to_select) => {
@@ -436,8 +473,9 @@ impl Ui {
                     _ => {}
                 }
             }
+            // mempool page
             1 => {
-                todo!()
+                // control widgets on mempool page
             }
             _ => {}
         }
@@ -446,9 +484,11 @@ impl Ui {
     pub fn previous(&mut self) {
         let page_in_focus = self.ui_state.pages.in_focus();
         match page_in_focus {
+            // syncing page
             0 => {
                 let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
                 match widget_in_focus {
+                    // peer table widget
                     1 => {
                         let state = self.state.read().unwrap();
                         if state.peer_metrics.is_empty() {
@@ -467,6 +507,7 @@ impl Ui {
                         };
                         self.ui_state.peer_table_state.select(Some(i));
                     }
+                    // period blocks
                     0 => {
                         let to_select = match self.ui_state.period_info_state.selected() {
                             Some(to_select) => {
@@ -483,8 +524,9 @@ impl Ui {
                     _ => {}
                 }
             }
+            // mempool page
             1 => {
-                todo!()
+                // control widgets on mempool page
             }
             _ => {}
         }

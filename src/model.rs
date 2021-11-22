@@ -43,11 +43,12 @@ pub struct PageState {
 impl Default for PageState {
     fn default() -> Self {
         let syncing_widgets =
-            WidgetState::new(["periods".to_string(), "peers".to_string()].to_vec());
+            WidgetState::new(["periods".to_string(), "peers".to_string(),].to_vec());
+        let mempool_widgets = WidgetState::new(["w1".to_string()].to_vec());
         Self {
-            titles: ["syncing".to_string(), "mempool".to_string()].to_vec(),
+            titles: ["Synchronization".to_string(), "Mempool".to_string()].to_vec(),
             index: 0,
-            widget_state: vec![syncing_widgets],
+            widget_state: vec![syncing_widgets, mempool_widgets],
         }
     }
 }
@@ -110,6 +111,9 @@ pub trait RollingList {
 
     fn next(&mut self) {
         let titles = self.get_titles().clone();
+        if titles.len() <= 1 {
+            return;
+        }
 
         let index = self.get_mutable_index();
         *index = (*index + 1) % titles.len();
@@ -118,6 +122,10 @@ pub trait RollingList {
     fn previous(&mut self) {
         let titles = self.get_titles().clone();
         let index = self.get_mutable_index();
+
+        if titles.len() <= 1 {
+            return;
+        }
 
         if *index > 0 {
             *index -= 1;
