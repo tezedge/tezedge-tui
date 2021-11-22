@@ -291,7 +291,7 @@ impl Ui {
                         .alignment(Alignment::Center)
                         .style(if state.block_metrics.len() <= cycle_data_index {
                             default_style
-                        } else if state.block_metrics[cycle_data_index].all_applied() {
+                        } else if state.cycle_data[cycle_data_index].all_applied() {
                             applied_style
                         } else if state.block_metrics[cycle_data_index].all_downloaded() {
                             dowloaded_style
@@ -355,6 +355,13 @@ impl Ui {
         }
     }
 
+    fn mempool_screen<B: Backend>(&mut self, f: &mut Frame<B>) {
+        let size = f.size();
+
+        let block = Block::default().borders(Borders::ALL);
+        f.render_widget(block, size);
+    }
+
     pub async fn run_tui<B: Backend>(
         &mut self,
         terminal: &mut Terminal<B>,
@@ -363,7 +370,11 @@ impl Ui {
         let mut events = events(tick_rate);
         loop {
             // Note: here we decide what screen to draw
-            terminal.draw(|f| self.syncing_screen(f))?;
+            terminal.draw(|f| match self.ui_state.pages.in_focus() {
+                0 => self.syncing_screen(f),
+                1 => self.mempool_screen(f),
+                _ => {}
+            })?;
 
             match events.recv().await {
                 Some(TuiEvent::Input(key)) => match key {

@@ -187,10 +187,6 @@ pub struct BlockMetrics {
 }
 
 impl BlockMetrics {
-    pub fn all_applied(&self) -> bool {
-        self.applied_blocks >= self.numbers_of_blocks
-    }
-
     pub fn all_downloaded(&self) -> bool {
         self.finished_blocks >= self.numbers_of_blocks
     }
@@ -209,6 +205,18 @@ pub struct Cycle {
     pub applications: usize,
     // time to download headers and operations for cycle
     pub duration: Option<f32>,
+}
+
+impl Cycle {
+    pub fn all_applied(&self) -> bool {
+        // when we see Some(duration) instead of None, all the headers are downloaded
+        if self.duration.is_some() {
+            // if the number of headers is the same as the number of applications, all blocks in the cycle are appliead
+            self.applications == self.headers
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
