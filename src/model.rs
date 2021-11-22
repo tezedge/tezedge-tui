@@ -30,107 +30,130 @@ pub struct State {
 pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
-    pub pages: PageState,
+    pub page_state: PageState,
 }
 
 #[derive(Debug, Clone)]
 pub struct PageState {
-    pub titles: Vec<String>,
-    pub index: usize,
-    pub widget_state: Vec<WidgetState>,
+    pub pages: Vec<Page>,
+    pub in_focus: usize,
+} 
+
+#[derive(Debug, Clone)]
+pub struct Page {
+    pub title: String,
+    pub widgets: WidgetState,
+}
+
+impl Page {
+    fn new(title: String, widgets: WidgetState) -> Self {
+        Self {
+            title,
+            widgets
+        }
+    }
 }
 
 impl Default for PageState {
     fn default() -> Self {
-        let syncing_widgets =
-            WidgetState::new(["periods".to_string(), "peers".to_string(),].to_vec());
-        let mempool_widgets = WidgetState::new(["w1".to_string()].to_vec());
         Self {
-            titles: ["Synchronization".to_string(), "Mempool".to_string()].to_vec(),
-            index: 0,
-            widget_state: vec![syncing_widgets, mempool_widgets],
+            pages: vec![
+                Page::new("Synchronization".to_string(), WidgetState::new(vec![
+                    "Periods".to_string(),
+                    "Connected peers".to_string(),
+                ])),
+                Page::new("Mempool".to_string(), WidgetState::new(vec![
+                    "TODOWidget".to_string()
+                ]))
+            ],
+            in_focus: 0,
         }
     }
 }
 
 impl PageState {
     pub fn in_focus(&self) -> usize {
-        self.index
+        self.in_focus
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct WidgetState {
-    pub titles: Vec<String>,
-    index: usize,
+    widgets: Vec<PageWidget>,
+    in_focus: usize,
 }
 
+pub type PageWidget = String;
+
 impl WidgetState {
-    pub fn new(titles: Vec<String>) -> Self {
-        Self { titles, index: 0 }
+    fn new(widgets: Vec<PageWidget>) -> Self {
+        Self {
+            widgets,
+            in_focus: 0,
+        }
     }
 
     pub fn in_focus(&self) -> usize {
-        self.index
+        self.in_focus
     }
 }
 
 impl RollingList for WidgetState {
-    fn get_mutable_index(&mut self) -> &mut usize {
-        &mut self.index
+    fn get_mutable_in_focus(&mut self) -> &mut usize {
+        &mut self.in_focus
     }
 
-    fn get_titles(&self) -> &Vec<String> {
-        &self.titles
+    fn get_count(&self) -> usize {
+        self.widgets.len()
     }
 }
 
-impl PageState {
-    pub fn new(titles: Vec<String>, widget_state: Vec<WidgetState>) -> Self {
-        Self {
-            titles,
-            index: 0,
-            widget_state,
-        }
-    }
-}
+// impl PageState {
+//     pub fn new(titles: Vec<String>, widget_state: Vec<WidgetState>) -> Self {
+//         Self {
+//             titles,
+//             index: 0,
+//             widget_state,
+//         }
+//     }
+// }
 
 impl RollingList for PageState {
-    fn get_mutable_index(&mut self) -> &mut usize {
-        &mut self.index
+    fn get_mutable_in_focus(&mut self) -> &mut usize {
+        &mut self.in_focus
     }
 
-    fn get_titles(&self) -> &Vec<String> {
-        &self.titles
+    fn get_count(&self) -> usize {
+        self.pages.len()
     }
 }
 
 pub trait RollingList {
-    fn get_mutable_index(&mut self) -> &mut usize;
-    fn get_titles(&self) -> &Vec<String>;
+    fn get_mutable_in_focus(&mut self) -> &mut usize;
+    fn get_count(&self) -> usize;
 
     fn next(&mut self) {
-        let titles = self.get_titles().clone();
-        if titles.len() <= 1 {
+        let count = self.get_count();
+        if count <= 1 {
             return;
         }
 
-        let index = self.get_mutable_index();
-        *index = (*index + 1) % titles.len();
+        let in_focus = self.get_mutable_in_focus();
+        *in_focus = (*in_focus + 1) % count;
     }
 
     fn previous(&mut self) {
-        let titles = self.get_titles().clone();
-        let index = self.get_mutable_index();
+        let count = self.get_count();
+        let in_focus = self.get_mutable_in_focus();
 
-        if titles.len() <= 1 {
+        if count <= 1 {
             return;
         }
 
-        if *index > 0 {
-            *index -= 1;
+        if *in_focus > 0 {
+            *in_focus -= 1;
         } else {
-            *index = titles.len() - 1;
+            *in_focus = count - 1;
         }
     }
 }

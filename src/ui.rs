@@ -30,8 +30,8 @@ pub struct Ui {
 impl Ui {
     fn syncing_screen<B: Backend>(&mut self, f: &mut Frame<B>) {
         let state = self.state.read().unwrap();
-        let page_in_focus = self.ui_state.pages.in_focus();
-        let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
+        let page_in_focus = self.ui_state.page_state.in_focus();
+        let widget_in_focus = self.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
 
         let size = f.size();
 
@@ -351,7 +351,7 @@ impl Ui {
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
             ]);
-        if self.ui_state.pages.index == 0 && widget_in_focus == 1 {
+        if widget_in_focus == 1 {
             f.render_stateful_widget(table, chunks[2], &mut self.ui_state.peer_table_state);
         } else {
             f.render_widget(table, chunks[2]);
@@ -384,12 +384,12 @@ impl Ui {
     fn create_pages_tabs(&self) -> Tabs {
         let titles = self
             .ui_state
+            .page_state
             .pages
-            .titles
             .iter()
-            .map(|t| Spans::from(Span::styled(t, Style::default().fg(Color::White))))
+            .map(|t| Spans::from(Span::styled(t.title.clone(), Style::default().fg(Color::White))))
             .collect();
-        let page_in_focus = self.ui_state.pages.in_focus();
+        let page_in_focus = self.ui_state.page_state.in_focus();
         Tabs::new(titles)
             .block(Block::default().borders(Borders::ALL))
             .highlight_style(Style::default().fg(Color::Blue))
@@ -403,8 +403,9 @@ impl Ui {
     ) -> io::Result<()> {
         let mut events = events(tick_rate);
         loop {
+            let page_in_focus = self.ui_state.page_state.in_focus();
             // Note: here we decide what screen to draw
-            terminal.draw(|f| match self.ui_state.pages.in_focus() {
+            terminal.draw(|f| match page_in_focus {
                 0 => self.syncing_screen(f),
                 1 => self.mempool_screen(f),
                 _ => {}
@@ -415,10 +416,10 @@ impl Ui {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Down => self.next(),
                     KeyCode::Up => self.previous(),
-                    KeyCode::Right => self.ui_state.pages.next(),
-                    KeyCode::Left => self.ui_state.pages.previous(),
+                    KeyCode::Right => self.ui_state.page_state.next(),
+                    KeyCode::Left => self.ui_state.page_state.previous(),
                     KeyCode::Tab => {
-                        self.ui_state.pages.widget_state[self.ui_state.pages.index].next()
+                        self.ui_state.page_state.pages[page_in_focus].widgets.next();
                     }
                     _ => {}
                 },
@@ -430,11 +431,11 @@ impl Ui {
     }
 
     pub fn next(&mut self) {
-        let page_in_focus = self.ui_state.pages.in_focus();
+        let page_in_focus = self.ui_state.page_state.in_focus();
         match page_in_focus {
             // syncing page
             0 => {
-                let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
                 match widget_in_focus {
                     // peer table widget
                     1 => {
@@ -482,11 +483,11 @@ impl Ui {
     }
 
     pub fn previous(&mut self) {
-        let page_in_focus = self.ui_state.pages.in_focus();
+        let page_in_focus = self.ui_state.page_state.in_focus();
         match page_in_focus {
             // syncing page
             0 => {
-                let widget_in_focus = self.ui_state.pages.widget_state[page_in_focus].in_focus();
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
                 match widget_in_focus {
                     // peer table widget
                     1 => {
