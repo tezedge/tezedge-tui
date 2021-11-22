@@ -1,8 +1,11 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use serde::Deserialize;
-use tui::widgets::{Paragraph, TableState};
 use std::sync::RwLock;
+use tui::widgets::{Paragraph, TableState};
 
 pub type StateRef = Arc<RwLock<State>>;
 pub type PeerTableData = Vec<[String; 4]>;
@@ -34,15 +37,18 @@ pub struct UiState {
 pub struct PageState {
     pub titles: Vec<String>,
     pub index: usize,
-    pub widget_state: Vec<WidgetState>
+    pub widget_state: Vec<WidgetState>,
 }
 
 impl Default for PageState {
     fn default() -> Self {
-        let syncing_widgets = WidgetState::new([
-            "periods".to_string(), "peers".to_string()
-        ].to_vec());
-        Self { titles: ["syncing".to_string(), "mempool".to_string()].to_vec(), index: 0, widget_state: vec![syncing_widgets] }
+        let syncing_widgets =
+            WidgetState::new(["periods".to_string(), "peers".to_string()].to_vec());
+        Self {
+            titles: ["syncing".to_string(), "mempool".to_string()].to_vec(),
+            index: 0,
+            widget_state: vec![syncing_widgets],
+        }
     }
 }
 
@@ -60,10 +66,7 @@ pub struct WidgetState {
 
 impl WidgetState {
     pub fn new(titles: Vec<String>) -> Self {
-        Self {
-            titles,
-            index: 0,
-        }
+        Self { titles, index: 0 }
     }
 
     pub fn in_focus(&self) -> usize {
@@ -83,7 +86,11 @@ impl RollingList for WidgetState {
 
 impl PageState {
     pub fn new(titles: Vec<String>, widget_state: Vec<WidgetState>) -> Self {
-        Self { titles, index: 0, widget_state }
+        Self {
+            titles,
+            index: 0,
+            widget_state,
+        }
     }
 }
 
@@ -160,7 +167,12 @@ pub struct PeerMetrics {
 
 impl PeerMetrics {
     pub fn to_table_representation(&self) -> [String; 4] {
-        [self.ip_address.to_string(), self.transferred_bytes.to_string(), self.average_transfer_speed.to_string(), self.current_transfer_speed.to_string()]
+        [
+            self.ip_address.to_string(),
+            self.transferred_bytes.to_string(),
+            self.average_transfer_speed.to_string(),
+            self.current_transfer_speed.to_string(),
+        ]
     }
 }
 
@@ -182,7 +194,7 @@ impl BlockMetrics {
     pub fn all_downloaded(&self) -> bool {
         self.finished_blocks >= self.numbers_of_blocks
     }
- }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -202,7 +214,7 @@ pub struct Cycle {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainStatus {
-    pub chain: Vec<Cycle>
+    pub chain: Vec<Cycle>,
 }
 
 impl State {
@@ -218,7 +230,10 @@ impl State {
     }
 
     pub fn update_peer_metrics(&mut self, peer_metrics: Vec<PeerMetrics>) {
-        let table_data: PeerTableData = peer_metrics.into_iter().map(|metrics| metrics.to_table_representation()).collect();
+        let table_data: PeerTableData = peer_metrics
+            .into_iter()
+            .map(|metrics| metrics.to_table_representation())
+            .collect();
         self.peer_metrics = table_data;
     }
 

@@ -4,19 +4,18 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::{error::Error, io};
+use tokio::time::Duration;
 use tui::backend::{Backend, CrosstermBackend};
 use tui::Terminal;
-use tokio::time::Duration;
 
 use crate::{model::State, ui::Ui};
 
-pub mod ui;
 pub mod model;
+pub mod ui;
 pub mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
     let mut ui = Ui::default();
     let ws_handle = websocket::spawn_ws_reader(ui.state.clone()).await;
 
@@ -34,7 +33,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     drop(ws_handle);
     // restore the terminal after exit
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
     terminal.show_cursor()?;
 
     if let Err(err) = res {
