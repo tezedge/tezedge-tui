@@ -1,11 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use serde::Deserialize;
 use std::sync::RwLock;
-use tui::widgets::{Paragraph, TableState};
+use tui::widgets::TableState;
 
 pub type StateRef = Arc<RwLock<State>>;
 pub type PeerTableData = Vec<[String; 4]>;

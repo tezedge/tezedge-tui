@@ -1,18 +1,19 @@
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::{error::Error, io};
 use tokio::time::Duration;
-use tui::backend::{Backend, CrosstermBackend};
+use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-use crate::{model::State, ui::Ui};
+use crate::ui::Ui;
 
 pub mod model;
 pub mod ui;
 pub mod websocket;
+pub mod layout;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

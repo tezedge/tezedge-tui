@@ -1,11 +1,20 @@
 use futures_util::stream::StreamExt;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::connect_async;
+use thiserror::Error;
 
 use crate::model::StateRef;
 
-pub async fn spawn_ws_reader(state: StateRef) -> JoinHandle<()> {
-    tokio::spawn(async move {
+#[derive(Debug, Error)]
+pub enum WebsocketError {
+    #[error("Failed to connect to: {url}")]
+    ConnectionError { url: &'static str },
+    #[error("Failed to deserialize websocket message")]
+    DeserializeError,
+}
+
+pub async fn spawn_ws_reader(state: StateRef) -> Result<JoinHandle<()>, WebsocketError> {
+    let handle = tokio::spawn(async move {
         let (ws_stream, _) = connect_async("ws://116.202.128.230:4927")
             .await
             .expect("Failed to connect");
@@ -22,10 +31,13 @@ pub async fn spawn_ws_reader(state: StateRef) -> JoinHandle<()> {
                                     message_obj["type"].as_str().map(|type_str| {
                                         let mut state = state.write().unwrap();
                                         match type_str {
-                                            "incomingTransfer" => state.update_incoming_transfer(
-                                                serde_json::from_value(message["payload"].clone())
-                                                    .unwrap(),
-                                            ),
+                                            "incomingTransfer" => {
+                                                if let Ok(data) = serde_json::from_value(message["payload"].clone()) {
+                                                    state.update_incoming_transfer(data);
+                                                } else {
+                                                    // Error
+                                                }
+                                            },
                                             "peersMetrics" => state.update_peer_metrics(
                                                 serde_json::from_value(message["payload"].clone())
                                                     .unwrap(),
@@ -55,6 +67,8 @@ pub async fn spawn_ws_reader(state: StateRef) -> JoinHandle<()> {
                 })
                 .ok();
         })
-        .await
-    })
+        .await;
+    });
+
+    Ok(handle)
 }

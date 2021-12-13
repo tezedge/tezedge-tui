@@ -18,3 +18,4 @@ tokio = { version = "1.12", features = ["full"] }
 tokio-tungstenite = "0.15"
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 conv = "0.3"
+thiserror = "1.0"
