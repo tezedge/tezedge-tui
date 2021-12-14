@@ -3,17 +3,20 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io};
+use std::{error::Error, io, str::FromStr};
 use tokio::time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 use crate::ui::Ui;
 
+use crate::node_rpc::RpcCall;
+
+pub mod layout;
 pub mod model;
+pub mod node_rpc;
 pub mod ui;
 pub mod websocket;
-pub mod layout;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

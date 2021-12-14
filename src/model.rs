@@ -1,11 +1,17 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 use serde::Deserialize;
 use std::sync::RwLock;
 use tui::widgets::TableState;
 
+use crate::node_rpc::{Node, RpcCall, RpcResponse};
+
 pub type StateRef = Arc<RwLock<State>>;
 pub type PeerTableData = Vec<[String; 4]>;
+pub type EndorsementRights = HashMap<String, Vec<i32>>;
+
+// TODO: update accordingly
+pub type EndorsementRightsTableData = Vec<[String; 4]>;
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
@@ -20,6 +26,26 @@ pub struct State {
     // info for the period blocks
     pub block_metrics: Vec<BlockMetrics>,
     pub cycle_data: Vec<Cycle>,
+    pub current_head_header: CurrentHeadHeader,
+    pub current_head_endorsement_rights: EndorsementRightsTableData,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct CurrentHeadHeader {
+    pub level: i32,
+    pub hash: String,
+    pub timestamp: String,
+    pub chain_id: String,
+    pub predecessor: String,
+    pub validation_pass: u8,
+    pub operations_hash: String,
+    pub fitness: Vec<String>,
+    pub context: String,
+    pub protocol: String,
+    pub signature: String,
+    pub priority: i32,
+    pub proof_of_work_nonce: String,
+    pub liquidity_baking_escape_vote: bool,
 }
 
 /// TUI statefull widget states
@@ -34,7 +60,7 @@ pub struct UiState {
 pub struct PageState {
     pub pages: Vec<Page>,
     pub in_focus: usize,
-} 
+}
 
 #[derive(Debug, Clone)]
 pub struct Page {
@@ -44,10 +70,7 @@ pub struct Page {
 
 impl Page {
     fn new(title: String, widgets: WidgetState) -> Self {
-        Self {
-            title,
-            widgets
-        }
+        Self { title, widgets }
     }
 }
 
@@ -55,13 +78,14 @@ impl Default for PageState {
     fn default() -> Self {
         Self {
             pages: vec![
-                Page::new("Synchronization".to_string(), WidgetState::new(vec![
-                    "Periods".to_string(),
-                    "Connected peers".to_string(),
-                ])),
-                Page::new("Mempool".to_string(), WidgetState::new(vec![
-                    "TODOWidget".to_string()
-                ]))
+                Page::new(
+                    "Synchronization".to_string(),
+                    WidgetState::new(vec!["Periods".to_string(), "Connected peers".to_string()]),
+                ),
+                Page::new(
+                    "Mempool".to_string(),
+                    WidgetState::new(vec!["TODOWidget".to_string()]),
+                ),
             ],
             in_focus: 0,
         }
@@ -279,6 +303,34 @@ impl State {
 
     pub fn update_cycle_data(&mut self, chain_status: ChainStatus) {
         self.cycle_data = chain_status.chain;
+    }
+
+    pub async fn update_current_head_header(&mut self, node: &Node) {
+        self.current_head_header = if let Ok(RpcResponse::CurrentHeadHeader(header)) =
+            node.call_rpc(RpcCall::CurrentHeadHeader, None).await
+        {
+            header
+        } else {
+            CurrentHeadHeader::default()
+        }
+    }
+
+    pub async fn update_endorsers(&mut self, node: &Node) {
+        let block_hash = &self.current_head_header.hash;
+        let block_level = self.current_head_header.level;
+
+        let rights = if let Ok(RpcResponse::EndorsementRights(rights)) = node.call_rpc(RpcCall::EndorsementRights, Some(&format!("?block={}&level={}", block_hash, block_level))).await {
+            rights
+        } else {
+            EndorsementRights::default()
+        };
+
+        let table_data: EndorsementRightsTableData = rights.into_iter().map(|(k, v)| {
+            // TODO: replace mocked data
+            [k, v.len().to_string(), "missing".to_string(), "0".to_string()]
+        }).collect();
+
+        self.current_head_endorsement_rights = table_data;
     }
 }
 

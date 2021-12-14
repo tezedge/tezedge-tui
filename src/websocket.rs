@@ -1,7 +1,7 @@
 use futures_util::stream::StreamExt;
+use thiserror::Error;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::connect_async;
-use thiserror::Error;
 
 use crate::model::StateRef;
 
@@ -32,12 +32,14 @@ pub async fn spawn_ws_reader(state: StateRef) -> Result<JoinHandle<()>, Websocke
                                         let mut state = state.write().unwrap();
                                         match type_str {
                                             "incomingTransfer" => {
-                                                if let Ok(data) = serde_json::from_value(message["payload"].clone()) {
+                                                if let Ok(data) = serde_json::from_value(
+                                                    message["payload"].clone(),
+                                                ) {
                                                     state.update_incoming_transfer(data);
                                                 } else {
                                                     // Error
                                                 }
-                                            },
+                                            }
                                             "peersMetrics" => state.update_peer_metrics(
                                                 serde_json::from_value(message["payload"].clone())
                                                     .unwrap(),

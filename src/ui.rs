@@ -16,34 +16,19 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::layout::SyncingScreen;
+use crate::layout::{MempoolScreen, SyncingScreen};
+use crate::node_rpc::Node;
 
 use crate::model::{RollingList, StateRef, UiState};
 #[derive(Default)]
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
+    pub node: Node,
 }
 
 impl Ui {
-    fn mempool_screen<B: Backend>(&mut self, f: &mut Frame<B>) {
-        let size = f.size();
-
-        // TODO: placeholder for mempool page
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([Constraint::Min(1), Constraint::Length(3)])
-            .split(size);
-
-        // dummy
-        let block = Block::default().borders(Borders::ALL);
-        f.render_widget(block, chunks[0]);
-
-        // ======================== PAGES TABS ========================
-        let tabs = self.create_pages_tabs();
-        f.render_widget(tabs, chunks[1]);
-    }
+    // TODO: add constructor function, rework the url..
 
     pub fn create_pages_tabs(&self) -> Tabs {
         let titles = self
@@ -51,7 +36,12 @@ impl Ui {
             .page_state
             .pages
             .iter()
-            .map(|t| Spans::from(Span::styled(t.title.clone(), Style::default().fg(Color::White))))
+            .map(|t| {
+                Spans::from(Span::styled(
+                    t.title.clone(),
+                    Style::default().fg(Color::White),
+                ))
+            })
             .collect();
         let page_in_focus = self.ui_state.page_state.in_focus();
         Tabs::new(titles)
@@ -71,7 +61,7 @@ impl Ui {
             // Note: here we decide what screen to draw
             terminal.draw(|f| match page_in_focus {
                 0 => SyncingScreen::draw_syncing_screen::<B>(self, f),
-                1 => self.mempool_screen(f),
+                1 => MempoolScreen::draw_mempool_screen::<B>(self, f),
                 _ => {}
             })?;
 
@@ -87,7 +77,11 @@ impl Ui {
                     }
                     _ => {}
                 },
-                Some(TuiEvent::Tick) => {}
+                Some(TuiEvent::Tick) => {
+                    let mut state = self.state.write().unwrap();
+                    state.update_current_head_header(&self.node).await;
+                    state.update_endorsers(&self.node).await;
+                }
                 None => return Ok(()),
                 _ => {}
             }
@@ -99,7 +93,9 @@ impl Ui {
         match page_in_focus {
             // syncing page
             0 => {
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
+                    .widgets
+                    .in_focus();
                 match widget_in_focus {
                     // peer table widget
                     1 => {
@@ -151,7 +147,9 @@ impl Ui {
         match page_in_focus {
             // syncing page
             0 => {
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
+                    .widgets
+                    .in_focus();
                 match widget_in_focus {
                     // peer table widget
                     1 => {

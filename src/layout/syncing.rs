@@ -1,4 +1,3 @@
-
 use conv::ValueFrom;
 
 use tui::style::Modifier;
@@ -19,7 +18,9 @@ impl SyncingScreen {
     pub fn draw_syncing_screen<B: Backend>(ui: &mut Ui, f: &mut Frame<B>) {
         let state = ui.state.read().unwrap();
         let page_in_focus = ui.ui_state.page_state.in_focus();
-        let widget_in_focus = ui.ui_state.page_state.pages[page_in_focus].widgets.in_focus();
+        let widget_in_focus = ui.ui_state.page_state.pages[page_in_focus]
+            .widgets
+            .in_focus();
 
         let size = f.size();
 
@@ -41,12 +42,12 @@ impl SyncingScreen {
             )
             .split(f.size());
 
+        // ======================== HEADER AND OPs (TOP LEFT RECT) ========================
         let top_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
             .split(chunks[0]);
 
-        // ======================== HEADER AND OPs (TOP LEFT RECT) ========================
         let headers_and_operations_block = Block::default()
             .title("Syncing headers and operations")
             .borders(Borders::ALL);
