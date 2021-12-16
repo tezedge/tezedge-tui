@@ -35,7 +35,7 @@ impl MempoolScreen {
         let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(5),
+                Constraint::Length(5),
                 Constraint::Length(4),
                 Constraint::Min(1),
             ])
@@ -46,7 +46,7 @@ impl MempoolScreen {
 
         // ======================== HEADER ========================
         // wrap the header chunk in border
-        let block = Block::default().borders(Borders::ALL).title("Header");
+        let block = Block::default().borders(Borders::ALL).title("Current Head");
         f.render_widget(block, header_chunk);
 
         let header = &state.current_head_header;
@@ -57,12 +57,12 @@ impl MempoolScreen {
             .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
             .split(header_chunk);
 
-        let block_hash = Paragraph::new(Spans::from(format!("Current head hash: {}", header.hash)))
+        let block_hash = Paragraph::new(Spans::from(format!("Block hash: {}", header.hash)))
             .block(Block::default())
             .alignment(Alignment::Left);
         f.render_widget(block_hash, header_chunks[0]);
 
-        let block_level = Paragraph::new(format!("Current head level: {}", header.level))
+        let block_level = Paragraph::new(format!("Level: {}", header.level))
             .block(Block::default())
             .alignment(Alignment::Left);
         f.render_widget(block_level, header_chunks[1]);
