@@ -1,8 +1,5 @@
 use std::str::FromStr;
 
-use conv::ValueFrom;
-
-use tui::layout::Rect;
 use tui::style::Modifier;
 use tui::{
     backend::Backend,
@@ -15,14 +12,14 @@ use tui::{
 
 use itertools::Itertools;
 
-use crate::model::{CurrentHeadHeader, EndorsementState};
-use crate::node_rpc::{RpcCall, RpcResponse};
-use crate::ui::Ui;
+use crate::model::{EndorsementState, UiState, StateRef};
+
+use super::create_pages_tabs;
 pub struct MempoolScreen {}
 
 impl MempoolScreen {
-    pub fn draw_mempool_screen<B: Backend>(ui: &mut Ui, f: &mut Frame<B>) {
-        let state = ui.state.read().unwrap();
+    pub fn draw_mempool_screen<B: Backend>(data_state: &StateRef, ui_state: &mut UiState, f: &mut Frame<B>) {
+        let data_state = data_state.read().unwrap();
         let size = f.size();
 
         // TODO: placeholder for mempool page
@@ -49,7 +46,7 @@ impl MempoolScreen {
         let block = Block::default().borders(Borders::ALL).title("Current Head");
         f.render_widget(block, header_chunk);
 
-        let header = &state.current_head_header;
+        let header = &data_state.current_head_header;
 
         let header_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -98,7 +95,7 @@ impl MempoolScreen {
             let block_text = Paragraph::new(format!(
                 "{}\n{}",
                 title,
-                state
+                data_state
                     .endoresement_status_summary
                     .get(
                         &EndorsementState::from_str(&title.to_ascii_lowercase())
@@ -141,7 +138,7 @@ impl MempoolScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = state.current_head_endorsement_rights.iter().map(|item| {
+        let rows = data_state.current_head_endorsement_statuses.iter().map(|item| {
             let height = item
                 .iter()
                 .map(|content| content.chars().filter(|c| *c == '\n').count())
@@ -175,7 +172,7 @@ impl MempoolScreen {
         // f.render_widget(block, chunks[0]);
 
         // ======================== PAGES TABS ========================
-        let tabs = ui.create_pages_tabs();
+        let tabs = create_pages_tabs(ui_state);
         f.render_widget(tabs, chunks[1]);
     }
 }

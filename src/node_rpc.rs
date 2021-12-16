@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use reqwest::Response;
 use thiserror::Error;
@@ -62,7 +62,6 @@ impl Node {
                 let statuses: EndorsementStatuses = res.json().await?;
                 Ok(RpcResponse::EndorsementsStatus(statuses))
             }
-            _ => unimplemented!(),
         }
     }
 

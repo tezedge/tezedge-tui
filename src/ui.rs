@@ -1,19 +1,11 @@
-use conv::ValueFrom;
 use std::io;
-use tui::text::Span;
 
 use crossterm::event::{self, Event, KeyCode};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
-use tui::style::Modifier;
-use tui::widgets::Tabs;
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style},
-    text::Spans,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
-    Frame, Terminal,
+    Terminal,
 };
 
 use crate::layout::{MempoolScreen, SyncingScreen};
@@ -29,27 +21,6 @@ pub struct Ui {
 
 impl Ui {
     // TODO: add constructor function, rework the url..
-
-    pub fn create_pages_tabs(&self) -> Tabs {
-        let titles = self
-            .ui_state
-            .page_state
-            .pages
-            .iter()
-            .map(|t| {
-                Spans::from(Span::styled(
-                    t.title.clone(),
-                    Style::default().fg(Color::White),
-                ))
-            })
-            .collect();
-        let page_in_focus = self.ui_state.page_state.in_focus();
-        Tabs::new(titles)
-            .block(Block::default().borders(Borders::ALL))
-            .highlight_style(Style::default().fg(Color::Blue))
-            .select(page_in_focus)
-    }
-
     pub async fn run_tui<B: Backend>(
         &mut self,
         terminal: &mut Terminal<B>,
@@ -58,10 +29,14 @@ impl Ui {
         let mut events = events(tick_rate);
         loop {
             let page_in_focus = self.ui_state.page_state.in_focus();
+
+            let data_state = &self.state;
+            let ui_state = &mut self.ui_state;
+
             // Note: here we decide what screen to draw
             terminal.draw(|f| match page_in_focus {
-                0 => SyncingScreen::draw_syncing_screen::<B>(self, f),
-                1 => MempoolScreen::draw_mempool_screen::<B>(self, f),
+                0 => SyncingScreen::draw_syncing_screen::<B>(data_state, ui_state, f),
+                1 => MempoolScreen::draw_mempool_screen::<B>(data_state, ui_state, f),
                 _ => {}
             })?;
 

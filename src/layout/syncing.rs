@@ -10,15 +10,17 @@ use tui::{
     Frame,
 };
 
-use crate::ui::Ui;
+use crate::model::{UiState, StateRef};
+
+use super::create_pages_tabs;
 
 pub struct SyncingScreen {}
 
 impl SyncingScreen {
-    pub fn draw_syncing_screen<B: Backend>(ui: &mut Ui, f: &mut Frame<B>) {
-        let state = ui.state.read().unwrap();
-        let page_in_focus = ui.ui_state.page_state.in_focus();
-        let widget_in_focus = ui.ui_state.page_state.pages[page_in_focus]
+    pub fn draw_syncing_screen<B: Backend>(data_state: &StateRef, ui_state: &mut UiState, f: &mut Frame<B>) {
+        let data_state = data_state.read().unwrap();
+        let page_in_focus = ui_state.page_state.in_focus();
+        let widget_in_focus = ui_state.page_state.pages[page_in_focus]
             .widgets
             .in_focus();
 
@@ -53,7 +55,7 @@ impl SyncingScreen {
             .borders(Borders::ALL);
         // f.render_widget(headers_and_operations_block, top_chunks[0]);
 
-        let syncing_eta = if let Some(eta) = state.incoming_transfer.eta {
+        let syncing_eta = if let Some(eta) = data_state.incoming_transfer.eta {
             eta
         } else {
             0.0
@@ -63,18 +65,18 @@ impl SyncingScreen {
             Spans::from(format!(
                 "{:.2}% {}",
                 calculate_percentage(
-                    state.incoming_transfer.current_block_count,
-                    state.incoming_transfer.downloaded_blocks
+                    data_state.incoming_transfer.current_block_count,
+                    data_state.incoming_transfer.downloaded_blocks
                 ),
                 convert_eta(syncing_eta)
             )),
             Spans::from(format!(
                 "{} level",
-                state.incoming_transfer.downloaded_blocks
+                data_state.incoming_transfer.downloaded_blocks
             )),
             Spans::from(format!(
                 "{:.2} blocks / s",
-                state.incoming_transfer.download_rate
+                data_state.incoming_transfer.download_rate
             )),
         ])
         .style(Style::default())
@@ -89,9 +91,9 @@ impl SyncingScreen {
             .borders(Borders::ALL);
         // f.render_widget(applying, top_chunks[1]);
 
-        let application_eta = if state.aplication_status.current_application_speed != 0.0 {
-            (state.incoming_transfer.current_block_count - state.last_applied_level as usize) as f32
-                / state.aplication_status.current_application_speed
+        let application_eta = if data_state.aplication_status.current_application_speed != 0.0 {
+            (data_state.incoming_transfer.current_block_count - data_state.last_applied_level as usize) as f32
+                / data_state.aplication_status.current_application_speed
                 * 60.0
         } else {
             0.0
@@ -101,15 +103,15 @@ impl SyncingScreen {
             Spans::from(format!(
                 "{:.2}% {}",
                 calculate_percentage(
-                    state.incoming_transfer.current_block_count,
-                    state.last_applied_level as usize
+                    data_state.incoming_transfer.current_block_count,
+                    data_state.last_applied_level as usize
                 ),
                 convert_eta(application_eta)
             )),
-            Spans::from(format!("{} level", state.last_applied_level)),
+            Spans::from(format!("{} level", data_state.last_applied_level)),
             Spans::from(format!(
                 "{:.2} blocks / s",
-                state.aplication_status.current_application_speed / 60.0
+                data_state.aplication_status.current_application_speed / 60.0
             )),
         ])
         .style(Style::default())
@@ -118,7 +120,7 @@ impl SyncingScreen {
         f.render_widget(paragraph, top_chunks[1]);
 
         // ======================== CHAIN STATUS ========================
-        let chain_status = Block::default().borders(Borders::ALL);
+        // let chain_status = Block::default().borders(Borders::ALL);
         // f.render_widget(chain_status, chunks[1]);
 
         let cycle_block_width = 5;
@@ -135,14 +137,14 @@ impl SyncingScreen {
         let horizontal_padding =
             (chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
 
-        let cycle_count = state.cycle_data.len();
+        let cycle_count = data_state.cycle_data.len();
         let period_count = cycle_count / cycle_per_period;
         // let period_count = divide_round_up(cycle_count, cycle_per_period);
 
         // selected period container state
-        ui.ui_state.period_info_state.displayable_container_count =
+        ui_state.period_info_state.displayable_container_count =
             period_count_per_page_on_heigth.into();
-        ui.ui_state.period_info_state.container_count =
+        ui_state.period_info_state.container_count =
             period_count / period_count_per_page_on_width as usize;
         // ui.ui_state.period_info_state.container_count = divide_round_up(period_count, period_count_per_page_on_width as usize);
 
@@ -177,7 +179,7 @@ impl SyncingScreen {
 
         // TODO: more appropriate approach
         // do not render while we have no data
-        if state.block_metrics.is_empty() {
+        if data_state.block_metrics.is_empty() {
             return;
         }
 
@@ -190,10 +192,10 @@ impl SyncingScreen {
                 ])
                 .split(container)[0];
 
-            if let Some(selected_container) = ui.ui_state.period_info_state.selected {
+            if let Some(selected_container) = ui_state.period_info_state.selected {
                 if widget_in_focus == 0
                     && selected_container
-                        == container_index + ui.ui_state.period_info_state.offset()
+                        == container_index + ui_state.period_info_state.offset()
                 {
                     let block = Block::default()
                         .borders(Borders::ALL)
@@ -221,7 +223,7 @@ impl SyncingScreen {
 
             for (period_index, period) in periods.into_iter().enumerate() {
                 // only render periods that are present on the netrwork
-                if (container_index + ui.ui_state.period_info_state.offset())
+                if (container_index + ui_state.period_info_state.offset())
                     * period_count_per_page_on_width as usize
                     + period_index
                     > period_count
@@ -248,7 +250,7 @@ impl SyncingScreen {
 
                 for (cycle_index, cycle) in cycles.into_iter().enumerate() {
                     let cycle_data_index = ((container_index
-                        + ui.ui_state.period_info_state.offset())
+                        + ui_state.period_info_state.offset())
                         * period_count_per_page_on_width as usize
                         * cycle_per_period)
                         + (period_index * cycle_per_period)
@@ -281,11 +283,11 @@ impl SyncingScreen {
                                 .style(Style::default().bg(Color::Black).fg(Color::White)),
                         )
                         .alignment(Alignment::Center)
-                        .style(if state.block_metrics.len() <= cycle_data_index {
+                        .style(if data_state.block_metrics.len() <= cycle_data_index {
                             default_style
-                        } else if state.cycle_data[cycle_data_index].all_applied() {
+                        } else if data_state.cycle_data[cycle_data_index].all_applied() {
                             applied_style
-                        } else if state.block_metrics[cycle_data_index].all_downloaded() {
+                        } else if data_state.block_metrics[cycle_data_index].all_downloaded() {
                             dowloaded_style
                         } else {
                             default_style
@@ -319,7 +321,7 @@ impl SyncingScreen {
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
-        let rows = state.peer_metrics.iter().map(|item| {
+        let rows = data_state.peer_metrics.iter().map(|item| {
             let height = item
                 .iter()
                 .map(|content| content.chars().filter(|c| *c == '\n').count())
@@ -341,13 +343,13 @@ impl SyncingScreen {
                 Constraint::Percentage(25),
             ]);
         if widget_in_focus == 1 {
-            f.render_stateful_widget(table, chunks[2], &mut ui.ui_state.peer_table_state);
+            f.render_stateful_widget(table, chunks[2], &mut ui_state.peer_table_state);
         } else {
             f.render_widget(table, chunks[2]);
         }
 
         // ======================== PAGES TABS ========================
-        let tabs = ui.create_pages_tabs();
+        let tabs = create_pages_tabs(ui_state);
         f.render_widget(tabs, chunks[3]);
     }
 }
@@ -372,6 +374,6 @@ fn calculate_percentage(total: usize, current: usize) -> f32 {
     current / total * 100.0
 }
 
-fn divide_round_up(dividend: usize, divisor: usize) -> usize {
+fn _divide_round_up(dividend: usize, divisor: usize) -> usize {
     (dividend + (divisor - 1)) / divisor
 }

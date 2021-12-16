@@ -3,14 +3,12 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io, str::FromStr};
+use std::{error::Error, io};
 use tokio::time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 use crate::ui::Ui;
-
-use crate::node_rpc::RpcCall;
 
 pub mod layout;
 pub mod model;
