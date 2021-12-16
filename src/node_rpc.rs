@@ -4,7 +4,7 @@ use reqwest::Response;
 use thiserror::Error;
 use url::Url;
 
-use crate::model::{CurrentHeadHeader, EndorsementRights};
+use crate::model::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses};
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -32,7 +32,7 @@ pub enum RpcError {
 #[allow(clippy::large_enum_variant)]
 pub enum RpcResponse {
     EndorsementRights(EndorsementRights),
-    EndorsementsStatus,
+    EndorsementsStatus(EndorsementStatuses),
     CurrentHeadHeader(CurrentHeadHeader),
 }
 
@@ -57,6 +57,10 @@ impl Node {
             RpcCall::CurrentHeadHeader => {
                 let header: CurrentHeadHeader = res.json().await?;
                 Ok(RpcResponse::CurrentHeadHeader(header))
+            }
+            RpcCall::EndersementsStatus => {
+                let statuses: EndorsementStatuses = res.json().await?;
+                Ok(RpcResponse::EndorsementsStatus(statuses))
             }
             _ => unimplemented!(),
         }

@@ -111,17 +111,25 @@ impl MempoolScreen {
         }
 
         // ======================== ENDORSERS ========================
-        let endorsers =
-            Block::default()
-                .borders(Borders::ALL);
-        
+        let endorsers = Block::default().borders(Borders::ALL);
+
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
 
         // TODO: add all the columns!
-        let header_cells = ["Slots", "Baker", "Status", "Delta"]
-            .iter()
-            .map(|h| Cell::from(*h).style(Style::default()));
+        let header_cells = [
+            "Slots",
+            "Baker",
+            "Status",
+            "Delta",
+            "Receive",
+            "Decode",
+            "Precheck",
+            "Apply",
+            "Broadcast",
+        ]
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default()));
         let header = Row::new(header_cells)
             .style(normal_style)
             .height(1)
@@ -144,10 +152,15 @@ impl MempoolScreen {
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
             .widths(&[
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
+                Constraint::Length(4),
+                Constraint::Length(36),
+                Constraint::Min(11),
+                Constraint::Min(8),
+                Constraint::Min(8),
+                Constraint::Min(8),
+                Constraint::Min(8),
+                Constraint::Min(8),
+                Constraint::Min(9),
             ]);
         f.render_widget(table, endorsements_chunk);
 

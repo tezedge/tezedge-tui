@@ -1,5 +1,7 @@
-use std::{sync::Arc, collections::HashMap};
+use std::{collections::{BTreeMap, HashMap}, sync::Arc, time::Duration, hash::Hash};
 
+use conv::TryFrom;
+use itertools::Itertools;
 use serde::Deserialize;
 use std::sync::RwLock;
 use tui::widgets::TableState;
@@ -8,10 +10,11 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
 pub type StateRef = Arc<RwLock<State>>;
 pub type PeerTableData = Vec<[String; 4]>;
-pub type EndorsementRights = HashMap<String, Vec<i32>>;
+pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
+pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
 
 // TODO: update accordingly
-pub type EndorsementRightsTableData = Vec<[String; 4]>;
+pub type EndorsementRightsTableData = Vec<Vec<String>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
@@ -27,7 +30,197 @@ pub struct State {
     pub block_metrics: Vec<BlockMetrics>,
     pub cycle_data: Vec<Cycle>,
     pub current_head_header: CurrentHeadHeader,
+
+    pub endorsement_rights: EndorsementRights,
     pub current_head_endorsement_rights: EndorsementRightsTableData,
+    pub endoresement_status_summary: HashMap<String, u16>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct EndorsementStatus {
+    pub block_timestamp: u64,
+    pub decoded_time: Option<u64>,
+    pub received_time: Option<u64>,
+    pub applied_time: Option<u64>,
+    pub prechecked_time: Option<u64>,
+    pub broadcast_time: Option<u64>,
+    pub slot: u32,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct EndorsementStatusSortable {
+    pub delta: u64,
+    pub decoded_time: u64,
+    pub received_time: u64,
+    pub applied_time: u64,
+    pub prechecked_time: u64,
+    pub broadcast_time: u64,
+    pub slot: u32,
+    pub state: String,
+
+    pub baker: String,
+    pub slot_count: usize,
+}
+
+impl EndorsementStatus {
+    pub fn to_sortable_descending(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
+        let delta = if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
+            broadcast - received
+        } else {
+            0
+        };
+
+        let received_time = if let Some(received) = self.received_time {
+            received
+        } else {
+            0
+        };
+
+        let decoded_time = if let Some(decoded) = self.decoded_time {
+            decoded
+        } else {
+            0
+        };
+
+        let prechecked_time = if let Some(prechecked) = self.prechecked_time {
+            prechecked
+        } else {
+            0
+        };
+
+        let applied_time = if let Some(applied) = self.applied_time {
+            applied
+        } else {
+            0
+        };
+
+        let broadcast_time = if let Some(broadcast) = self.broadcast_time {
+            broadcast
+        } else {
+            0
+        };
+
+        EndorsementStatusSortable {
+            baker,
+            slot_count,
+            delta,
+            received_time,
+            decoded_time,
+            prechecked_time,
+            applied_time,
+            broadcast_time,
+            slot: self.slot,
+            state: self.state.clone(),
+        }
+    }
+
+    pub fn to_sortable_ascending(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
+        let delta = if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
+            broadcast - received
+        } else {
+            u64::MAX
+        };
+
+        let received_time = if let Some(received) = self.received_time {
+            received
+        } else {
+            u64::MAX
+        };
+
+        let decoded_time = if let Some(decoded) = self.decoded_time {
+            decoded
+        } else {
+            u64::MAX
+        };
+
+        let prechecked_time = if let Some(prechecked) = self.prechecked_time {
+            prechecked
+        } else {
+            u64::MAX
+        };
+
+        let applied_time = if let Some(applied) = self.applied_time {
+            applied
+        } else {
+            u64::MAX
+        };
+
+        let broadcast_time = if let Some(broadcast) = self.broadcast_time {
+            broadcast
+        } else {
+            u64::MAX
+        };
+
+        EndorsementStatusSortable {
+            baker,
+            slot_count,
+            delta,
+            received_time,
+            decoded_time,
+            prechecked_time,
+            applied_time,
+            broadcast_time,
+            slot: self.slot,
+            state: self.state.clone(),
+        }
+    }
+}
+
+impl EndorsementStatusSortable {
+    fn new(baker: String) -> Self {
+        Self {
+            baker,
+            state: "missing".to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn construct_tui_table_data(&self) -> Vec<String> {
+        let mut final_vec = Vec::with_capacity(9);
+
+        final_vec.push(self.slot_count.to_string());
+        final_vec.push(self.baker.clone());
+        final_vec.push(self.state.clone());
+
+        if self.broadcast_time != 0 && self.received_time != 0 && self.broadcast_time != u64::MAX && self.received_time != u64::MAX{
+            final_vec.push(convert_time_to_unit_string(self.broadcast_time - self.received_time))
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        if self.received_time > 0 && self.received_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.received_time));
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        if self.decoded_time > 0 && self.decoded_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.decoded_time));
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        if self.prechecked_time > 0 && self.prechecked_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.prechecked_time));
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        if self.applied_time > 0 && self.applied_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.applied_time));
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        if self.broadcast_time > 0 && self.broadcast_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.broadcast_time));
+        } else {
+            final_vec.push(String::from('-'));
+        }
+
+        final_vec
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -319,16 +512,53 @@ impl State {
         let block_hash = &self.current_head_header.hash;
         let block_level = self.current_head_header.level;
 
-        let rights = if let Ok(RpcResponse::EndorsementRights(rights)) = node.call_rpc(RpcCall::EndorsementRights, Some(&format!("?block={}&level={}", block_hash, block_level))).await {
+        let rights = if let Ok(RpcResponse::EndorsementRights(rights)) = node
+            .call_rpc(
+                RpcCall::EndorsementRights,
+                Some(&format!("?block={}&level={}", block_hash, block_level)),
+            )
+            .await
+        {
             rights
         } else {
             EndorsementRights::default()
         };
 
-        let table_data: EndorsementRightsTableData = rights.into_iter().map(|(k, v)| {
-            // TODO: replace mocked data
-            [k, v.len().to_string(), "missing".to_string(), "0".to_string()]
-        }).collect();
+        let statuses = if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
+            node.call_rpc(RpcCall::EndersementsStatus, None).await
+        {
+            statuses
+        } else {
+            EndorsementStatuses::default()
+        };
+
+        // TODO: can be combined with the code above
+        // build a per slot representation to be used later
+        let slot_mapped: BTreeMap<u32, EndorsementStatus> =
+            statuses.into_iter().map(|(_, v)| (v.slot, v)).collect();
+        
+        let mut sumary: HashMap<String, u16> = HashMap::new();
+
+        // let endorsement_operation_statistics: BTreeMap<String, EndorsementStatus> = BTreeMap::new();
+
+        let mut endorsement_operation_time_statistics: Vec<EndorsementStatusSortable> = rights
+            .into_iter()
+            .map(|(k, v)| {
+                if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot)) {
+                    status.to_sortable_ascending(k, v.len())
+                } else {
+                    EndorsementStatusSortable::new(k)
+                }
+            })
+            .collect();
+
+        endorsement_operation_time_statistics.sort_by_key(|k| k.delta);
+
+        let table_data: EndorsementRightsTableData = endorsement_operation_time_statistics
+            .into_iter()
+            .map(|v| v.construct_tui_table_data())
+            .collect();
+
 
         self.current_head_endorsement_rights = table_data;
     }
@@ -361,5 +591,22 @@ impl PeriodInfoState {
         } else {
             0
         }
+    }
+}
+
+pub fn convert_time_to_unit_string(time: u64) -> String {
+    let time = time as f64;
+    const MILLISECOND_FACTOR: f64 = 1000.0;
+    const MICROSECOND_FACTOR: f64 = 1000000.0;
+    const NANOSECOND_FACTOR: f64 = 1000000000.0;
+
+    if time >= NANOSECOND_FACTOR {
+        format!("{:.2}s", time / NANOSECOND_FACTOR)
+    } else if time >= MICROSECOND_FACTOR {
+        format!("{:.2}ms", time / MICROSECOND_FACTOR)
+    } else if time >= MILLISECOND_FACTOR {
+        format!("{:.2}μs", time / MILLISECOND_FACTOR)
+    } else {
+        format!("{}ns", time)
     }
 }
