@@ -1,4 +1,10 @@
-use std::{collections::{BTreeMap, HashMap}, sync::Arc, time::Duration, hash::Hash};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::Hash,
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use conv::TryFrom;
 use itertools::Itertools;
@@ -33,7 +39,7 @@ pub struct State {
 
     pub endorsement_rights: EndorsementRights,
     pub current_head_endorsement_rights: EndorsementRightsTableData,
-    pub endoresement_status_summary: HashMap<String, u16>,
+    pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -48,6 +54,53 @@ pub struct EndorsementStatus {
     pub state: String,
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EndorsementState {
+    Missing = 0,
+    Broadcast = 1,
+    Applied = 2,
+    Prechecked = 3,
+    Decoded = 4,
+    Received = 5,
+}
+
+pub struct InvalidVariantError {}
+
+impl FromStr for EndorsementState {
+    type Err = InvalidVariantError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "missing" => Ok(EndorsementState::Missing),
+            "broadcast" => Ok(EndorsementState::Broadcast),
+            "applied" => Ok(EndorsementState::Applied),
+            "prechecked" => Ok(EndorsementState::Prechecked),
+            "decoded" => Ok(EndorsementState::Decoded),
+            "received" => Ok(EndorsementState::Received),
+            _ => Err(InvalidVariantError {}),
+        }
+    }
+}
+
+impl ToString for EndorsementState {
+    fn to_string(&self) -> String {
+        match self {
+            EndorsementState::Missing => String::from("missing"),
+            EndorsementState::Broadcast => String::from("broadcast"),
+            EndorsementState::Applied => String::from("broadcast"),
+            EndorsementState::Prechecked => String::from("prechecked"),
+            EndorsementState::Decoded => String::from("decoded"),
+            EndorsementState::Received => String::from("received"),
+        }
+    }
+}
+
+impl Default for EndorsementState {
+    fn default() -> Self {
+        Self::Missing
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct EndorsementStatusSortable {
     pub delta: u64,
@@ -57,19 +110,24 @@ pub struct EndorsementStatusSortable {
     pub prechecked_time: u64,
     pub broadcast_time: u64,
     pub slot: u32,
-    pub state: String,
+    pub state: EndorsementState,
 
     pub baker: String,
     pub slot_count: usize,
 }
 
 impl EndorsementStatus {
-    pub fn to_sortable_descending(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
-        let delta = if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
-            broadcast - received
-        } else {
-            0
-        };
+    pub fn to_sortable_descending(
+        &self,
+        baker: String,
+        slot_count: usize,
+    ) -> EndorsementStatusSortable {
+        let delta =
+            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
+                broadcast - received
+            } else {
+                0
+            };
 
         let received_time = if let Some(received) = self.received_time {
             received
@@ -111,16 +169,21 @@ impl EndorsementStatus {
             applied_time,
             broadcast_time,
             slot: self.slot,
-            state: self.state.clone(),
+            state: EndorsementState::from_str(&self.state).unwrap_or_default(),
         }
     }
 
-    pub fn to_sortable_ascending(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
-        let delta = if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
-            broadcast - received
-        } else {
-            u64::MAX
-        };
+    pub fn to_sortable_ascending(
+        &self,
+        baker: String,
+        slot_count: usize,
+    ) -> EndorsementStatusSortable {
+        let delta =
+            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
+                broadcast - received
+            } else {
+                u64::MAX
+            };
 
         let received_time = if let Some(received) = self.received_time {
             received
@@ -162,16 +225,16 @@ impl EndorsementStatus {
             applied_time,
             broadcast_time,
             slot: self.slot,
-            state: self.state.clone(),
+            state: EndorsementState::from_str(&self.state).unwrap_or_default(),
         }
     }
 }
 
 impl EndorsementStatusSortable {
-    fn new(baker: String) -> Self {
+    fn new(baker: String, slot_count: usize) -> Self {
         Self {
             baker,
-            state: "missing".to_string(),
+            slot_count,
             ..Default::default()
         }
     }
@@ -181,10 +244,16 @@ impl EndorsementStatusSortable {
 
         final_vec.push(self.slot_count.to_string());
         final_vec.push(self.baker.clone());
-        final_vec.push(self.state.clone());
+        final_vec.push(self.state.to_string());
 
-        if self.broadcast_time != 0 && self.received_time != 0 && self.broadcast_time != u64::MAX && self.received_time != u64::MAX{
-            final_vec.push(convert_time_to_unit_string(self.broadcast_time - self.received_time))
+        if self.broadcast_time != 0
+            && self.received_time != 0
+            && self.broadcast_time != u64::MAX
+            && self.received_time != u64::MAX
+        {
+            final_vec.push(convert_time_to_unit_string(
+                self.broadcast_time - self.received_time,
+            ))
         } else {
             final_vec.push(String::from('-'));
         }
@@ -499,55 +568,51 @@ impl State {
     }
 
     pub async fn update_current_head_header(&mut self, node: &Node) {
-        self.current_head_header = if let Ok(RpcResponse::CurrentHeadHeader(header)) =
+        if let Ok(RpcResponse::CurrentHeadHeader(header)) =
             node.call_rpc(RpcCall::CurrentHeadHeader, None).await
         {
-            header
-        } else {
-            CurrentHeadHeader::default()
-        }
+            // only update the head and rights on head change
+            if header.level != self.current_head_header.level {
+                self.current_head_header = header;
+                self.update_head_endorsing_rights(node).await;
+            }
+        };
     }
 
-    pub async fn update_endorsers(&mut self, node: &Node) {
+    async fn update_head_endorsing_rights(&mut self, node: &Node) {
         let block_hash = &self.current_head_header.hash;
         let block_level = self.current_head_header.level;
 
-        let rights = if let Ok(RpcResponse::EndorsementRights(rights)) = node
+        if let Ok(RpcResponse::EndorsementRights(rights)) = node
             .call_rpc(
                 RpcCall::EndorsementRights,
                 Some(&format!("?block={}&level={}", block_hash, block_level)),
             )
             .await
         {
-            rights
-        } else {
-            EndorsementRights::default()
+            self.endorsement_rights = rights;
         };
+    }
 
-        let statuses = if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
+    pub async fn update_endorsers(&mut self, node: &Node) {
+        let slot_mapped: BTreeMap<u32, EndorsementStatus> = if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
             node.call_rpc(RpcCall::EndersementsStatus, None).await
         {
-            statuses
+            // build a per slot representation to be used later
+            statuses.into_iter().map(|(_, v)| (v.slot, v)).collect()
         } else {
-            EndorsementStatuses::default()
+            BTreeMap::new()
         };
 
-        // TODO: can be combined with the code above
-        // build a per slot representation to be used later
-        let slot_mapped: BTreeMap<u32, EndorsementStatus> =
-            statuses.into_iter().map(|(_, v)| (v.slot, v)).collect();
-        
-        let mut sumary: HashMap<String, u16> = HashMap::new();
+        let mut sumary: BTreeMap<EndorsementState, usize> = BTreeMap::new();
 
-        // let endorsement_operation_statistics: BTreeMap<String, EndorsementStatus> = BTreeMap::new();
-
-        let mut endorsement_operation_time_statistics: Vec<EndorsementStatusSortable> = rights
-            .into_iter()
+        let mut endorsement_operation_time_statistics: Vec<EndorsementStatusSortable> = self.endorsement_rights
+            .iter()
             .map(|(k, v)| {
                 if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot)) {
-                    status.to_sortable_ascending(k, v.len())
+                    status.to_sortable_ascending(k.to_string(), v.len())
                 } else {
-                    EndorsementStatusSortable::new(k)
+                    EndorsementStatusSortable::new(k.to_string(), v.len())
                 }
             })
             .collect();
@@ -556,11 +621,15 @@ impl State {
 
         let table_data: EndorsementRightsTableData = endorsement_operation_time_statistics
             .into_iter()
-            .map(|v| v.construct_tui_table_data())
+            .map(|v| {
+                let state_count = sumary.entry(v.state.clone()).or_insert(0);
+                *state_count += v.slot_count;
+                v.construct_tui_table_data()
+            })
             .collect();
 
-
         self.current_head_endorsement_rights = table_data;
+        self.endoresement_status_summary = sumary;
     }
 }
 

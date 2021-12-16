@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use conv::ValueFrom;
 
 use tui::layout::Rect;
@@ -13,7 +15,7 @@ use tui::{
 
 use itertools::Itertools;
 
-use crate::model::CurrentHeadHeader;
+use crate::model::{CurrentHeadHeader, EndorsementState};
 use crate::node_rpc::{RpcCall, RpcResponse};
 use crate::ui::Ui;
 pub struct MempoolScreen {}
@@ -81,24 +83,28 @@ impl MempoolScreen {
             "Applied",
             "Prechecked",
             "Decoded",
-            "Receives",
+            "Received",
         ]
         .iter()
         .map(|v| v.to_string())
         .collect();
-
-        // TODO: replace mocked data
-        let endorsement_statuses_values = vec![123, 11, 31, 33, 12, 22];
 
         let sumary_blocks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(summary_elements_constraits)
             .split(summary_chunk);
 
-        for (i, sumary_block) in sumary_blocks.into_iter().enumerate() {
+        for (i, title) in endorsement_statuses.iter().enumerate() {
             let block_text = Paragraph::new(format!(
                 "{}\n{}",
-                endorsement_statuses[i], endorsement_statuses_values[i]
+                title,
+                state
+                    .endoresement_status_summary
+                    .get(
+                        &EndorsementState::from_str(&title.to_ascii_lowercase())
+                            .unwrap_or_default()
+                    )
+                    .unwrap_or(&0)
             ))
             .block(
                 Block::default()
@@ -107,7 +113,7 @@ impl MempoolScreen {
                     .style(Style::default().bg(Color::Black).fg(Color::White)),
             )
             .alignment(Alignment::Center);
-            f.render_widget(block_text, sumary_block)
+            f.render_widget(block_text, sumary_blocks[i])
         }
 
         // ======================== ENDORSERS ========================
