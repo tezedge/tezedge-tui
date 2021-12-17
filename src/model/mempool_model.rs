@@ -1,8 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    hash::Hash,
-    str::FromStr,
-};
+use std::{collections::BTreeMap, hash::Hash, str::FromStr};
 
 use serde::Deserialize;
 
@@ -79,7 +75,6 @@ pub struct EndorsementStatusSortable {
     pub applied_time: u64,
     pub prechecked_time: u64,
     pub broadcast_time: u64,
-    pub slot: u32,
     pub state: EndorsementState,
 
     pub baker: String,
@@ -138,7 +133,6 @@ impl EndorsementStatus {
             prechecked_time,
             applied_time,
             broadcast_time,
-            slot: self.slot,
             state: EndorsementState::from_str(&self.state).unwrap_or_default(),
         }
     }
@@ -194,7 +188,6 @@ impl EndorsementStatus {
             prechecked_time,
             applied_time,
             broadcast_time,
-            slot: self.slot,
             state: EndorsementState::from_str(&self.state).unwrap_or_default(),
         }
     }
@@ -205,6 +198,12 @@ impl EndorsementStatusSortable {
         Self {
             baker,
             slot_count,
+            delta: u64::MAX,
+            received_time: u64::MAX,
+            decoded_time: u64::MAX,
+            prechecked_time: u64::MAX,
+            applied_time: u64::MAX,
+            broadcast_time: u64::MAX,
             ..Default::default()
         }
     }
@@ -259,6 +258,30 @@ impl EndorsementStatusSortable {
         }
 
         final_vec
+    }
+}
+
+pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
+
+pub trait SortableByFocus {
+    fn sort_by_focus(&mut self, focus_index: usize) -> Vec<EndorsementStatusSortable>;
+}
+
+impl SortableByFocus for EndorsementStatusSortableVec {
+    fn sort_by_focus(&mut self, focus_index: usize) -> EndorsementStatusSortableVec {
+        match focus_index {
+            0 => self.sort_by_key(|k| k.slot_count),
+            1 => self.sort_by_key(|k| k.baker.clone()),
+            2 => self.sort_by_key(|k| k.state.clone()),
+            3 => self.sort_by_key(|k| k.delta),
+            4 => self.sort_by_key(|k| k.received_time),
+            5 => self.sort_by_key(|k| k.decoded_time),
+            6 => self.sort_by_key(|k| k.prechecked_time),
+            7 => self.sort_by_key(|k| k.applied_time),
+            8 => self.sort_by_key(|k| k.broadcast_time),
+            _ => {}
+        }
+        self.to_vec()
     }
 }
 

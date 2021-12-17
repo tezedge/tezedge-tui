@@ -1,13 +1,16 @@
-use std::{
-    collections::{BTreeMap}, sync::Arc, time::Duration,
-};
+use std::{collections::BTreeMap, sync::Arc};
 
 use std::sync::RwLock;
 use tui::widgets::TableState;
 
 use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
-use super::{IncomingTransferMetrics, BlockApplicationStatus, PeerTableData, BlockMetrics, Cycle, CurrentHeadHeader, EndorsementRights, EndorsementRightsTableData, EndorsementState, PeerMetrics, ChainStatus, EndorsementStatus, EndorsementStatusSortable};
+use super::{
+    BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
+    EndorsementRightsTableData, EndorsementState, EndorsementStatus, EndorsementStatusSortable,
+    EndorsementStatusSortableVec, IncomingTransferMetrics, PeerMetrics, PeerTableData,
+    SortableByFocus,
+};
 
 pub type StateRef = Arc<RwLock<State>>;
 
@@ -59,7 +62,7 @@ impl State {
         self.cycle_data = chain_status.chain;
     }
 
-    pub async fn update_current_head_header(&mut self, node: &Node) {
+    pub async fn update_current_head_header(&mut self, node: &Node, sort_by: usize) {
         if let Ok(RpcResponse::CurrentHeadHeader(header)) =
             node.call_rpc(RpcCall::CurrentHeadHeader, None).await
         {
@@ -67,7 +70,7 @@ impl State {
             if header.level != self.current_head_header.level {
                 self.current_head_header = header;
                 self.update_head_endorsing_rights(node).await;
-                self.reset_endorsers();
+                self.reset_endorsers(sort_by);
             }
         };
     }
@@ -87,27 +90,39 @@ impl State {
         };
     }
 
-    fn reset_endorsers(&mut self) {
-        self.current_head_endorsement_statuses = self.endorsement_rights.iter().map(|(k, slots)| {
-            EndorsementStatusSortable::new(k.to_string(), slots.len()).construct_tui_table_data()
-        })
-        .collect();
+    fn reset_endorsers(&mut self, sort_by: usize) {
+        let mut statuses: EndorsementStatusSortableVec = self
+            .endorsement_rights
+            .iter()
+            .map(|(k, slots)| {
+                EndorsementStatusSortable::new(k.to_string(), slots.len())
+            })
+            .collect();
+        
+        statuses.sort_by_focus(sort_by);
+
+        self.current_head_endorsement_statuses = statuses
+            .iter()
+            .map(|v| v.construct_tui_table_data())
+            .collect();
     }
 
-    pub async fn update_endorsers(&mut self, node: &Node) {
-
-        let slot_mapped: BTreeMap<u32, EndorsementStatus> = if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
-            node.call_rpc(RpcCall::EndersementsStatus, None).await
-        {
-            // build a per slot representation to be used later
-            statuses.into_iter().map(|(_, v)| (v.slot, v)).collect()
-        } else {
-            BTreeMap::new()
-        };
+    pub async fn update_endorsers(&mut self, node: &Node, sort_by: usize) {
+        let slot_mapped: BTreeMap<u32, EndorsementStatus> =
+            if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
+                node.call_rpc(RpcCall::EndersementsStatus, None).await
+            {
+                // build a per slot representation to be used later
+                statuses.into_iter().map(|(_, v)| (v.slot, v)).collect()
+            } else {
+                BTreeMap::new()
+            };
 
         if !slot_mapped.is_empty() {
             if let Some((_, status)) = slot_mapped.iter().last() {
-                if let Ok(time) = chrono::DateTime::parse_from_rfc3339(&self.current_head_header.timestamp) {
+                if let Ok(time) =
+                    chrono::DateTime::parse_from_rfc3339(&self.current_head_header.timestamp)
+                {
                     // TODO: investigate this cast
                     if status.block_timestamp != time.timestamp_nanos() as u64 {
                         return;
@@ -119,10 +134,12 @@ impl State {
 
             let mut sumary: BTreeMap<EndorsementState, usize> = BTreeMap::new();
 
-            let mut endorsement_operation_time_statistics: Vec<EndorsementStatusSortable> = self.endorsement_rights
+            let mut endorsement_operation_time_statistics: EndorsementStatusSortableVec = self
+                .endorsement_rights
                 .iter()
                 .map(|(k, v)| {
-                    if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot)) {
+                    if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot))
+                    {
                         status.to_sortable_ascending(k.to_string(), v.len())
                     } else {
                         EndorsementStatusSortable::new(k.to_string(), v.len())
@@ -130,7 +147,7 @@ impl State {
                 })
                 .collect();
 
-            endorsement_operation_time_statistics.sort_by_key(|k| k.delta);
+            endorsement_operation_time_statistics.sort_by_focus(sort_by);
 
             let table_data: EndorsementRightsTableData = endorsement_operation_time_statistics
                 .into_iter()
@@ -152,6 +169,7 @@ impl State {
 pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
+    pub endorsement_sorter_state: EndorsementSorterState,
     pub page_state: PageState,
 }
 
@@ -183,7 +201,7 @@ impl Default for PageState {
                 ),
                 Page::new(
                     "Mempool".to_string(),
-                    WidgetState::new(vec!["TODOWidget".to_string()]),
+                    WidgetState::new(vec!["TableSorter".to_string()]),
                 ),
             ],
             in_focus: 0,
@@ -227,16 +245,6 @@ impl RollingList for WidgetState {
         self.widgets.len()
     }
 }
-
-// impl PageState {
-//     pub fn new(titles: Vec<String>, widget_state: Vec<WidgetState>) -> Self {
-//         Self {
-//             titles,
-//             index: 0,
-//             widget_state,
-//         }
-//     }
-// }
 
 impl RollingList for PageState {
     fn get_mutable_in_focus(&mut self) -> &mut usize {
@@ -305,5 +313,54 @@ impl PeriodInfoState {
         } else {
             0
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+#[derive(Debug, Clone)]
+pub struct EndorsementSorterState {
+    pub sort_by: [&'static str; 9],
+    pub in_focus: usize,
+    pub order: SortOrder,
+}
+
+impl EndorsementSorterState {
+    pub fn in_focus(&self) -> usize {
+        self.in_focus
+    }
+}
+
+impl Default for EndorsementSorterState {
+    fn default() -> Self {
+        Self {
+            in_focus: 3,
+            sort_by: [
+                "Slots",
+                "Baker",
+                "Status",
+                "Delta",
+                "Receive",
+                "Decode",
+                "Precheck",
+                "Apply",
+                "Broadcast",
+            ],
+            order: SortOrder::Ascending,
+        }
+    }
+}
+
+impl RollingList for EndorsementSorterState {
+    fn get_mutable_in_focus(&mut self) -> &mut usize {
+        &mut self.in_focus
+    }
+
+    fn get_count(&self) -> usize {
+        self.sort_by.len()
     }
 }

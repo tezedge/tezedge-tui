@@ -3,7 +3,11 @@ pub use syncing::*;
 
 pub mod mempool;
 pub use mempool::*;
-use tui::{widgets::{Tabs, Block, Borders}, text::{Span, Spans}, style::{Style, Color}};
+use tui::{
+    style::{Color, Style},
+    text::{Span, Spans},
+    widgets::{Block, Borders, Tabs},
+};
 
 use crate::model::UiState;
 

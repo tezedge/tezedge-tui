@@ -10,19 +10,21 @@ use tui::{
     Frame,
 };
 
-use crate::model::{UiState, StateRef};
+use crate::model::{StateRef, UiState};
 
 use super::create_pages_tabs;
 
 pub struct SyncingScreen {}
 
 impl SyncingScreen {
-    pub fn draw_syncing_screen<B: Backend>(data_state: &StateRef, ui_state: &mut UiState, f: &mut Frame<B>) {
+    pub fn draw_syncing_screen<B: Backend>(
+        data_state: &StateRef,
+        ui_state: &mut UiState,
+        f: &mut Frame<B>,
+    ) {
         let data_state = data_state.read().unwrap();
         let page_in_focus = ui_state.page_state.in_focus();
-        let widget_in_focus = ui_state.page_state.pages[page_in_focus]
-            .widgets
-            .in_focus();
+        let widget_in_focus = ui_state.page_state.pages[page_in_focus].widgets.in_focus();
 
         let size = f.size();
 
@@ -92,7 +94,8 @@ impl SyncingScreen {
         // f.render_widget(applying, top_chunks[1]);
 
         let application_eta = if data_state.aplication_status.current_application_speed != 0.0 {
-            (data_state.incoming_transfer.current_block_count - data_state.last_applied_level as usize) as f32
+            (data_state.incoming_transfer.current_block_count
+                - data_state.last_applied_level as usize) as f32
                 / data_state.aplication_status.current_application_speed
                 * 60.0
         } else {
@@ -194,8 +197,7 @@ impl SyncingScreen {
 
             if let Some(selected_container) = ui_state.period_info_state.selected {
                 if widget_in_focus == 0
-                    && selected_container
-                        == container_index + ui_state.period_info_state.offset()
+                    && selected_container == container_index + ui_state.period_info_state.offset()
                 {
                     let block = Block::default()
                         .borders(Borders::ALL)

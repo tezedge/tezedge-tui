@@ -1,4 +1,3 @@
-
 use serde::Deserialize;
 
 pub type PeerTableData = Vec<[String; 4]>;

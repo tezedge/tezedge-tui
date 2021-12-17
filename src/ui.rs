@@ -1,22 +1,31 @@
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode};
+use slog::Logger;
 use tokio::sync::mpsc;
 use tokio::time::Duration;
-use tui::{
-    backend::Backend,
-    Terminal,
-};
+use tui::{backend::Backend, Terminal};
 
 use crate::layout::{MempoolScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
 use crate::model::{RollingList, StateRef, UiState};
-#[derive(Default)]
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
     pub node: Node,
+    pub log: Logger,
+}
+
+impl Default for Ui {
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+            ui_state: Default::default(),
+            node: Default::default(),
+            log: create_file_logger("tui.log"),
+        }
+    }
 }
 
 impl Ui {
@@ -50,12 +59,20 @@ impl Ui {
                     KeyCode::Tab => {
                         self.ui_state.page_state.pages[page_in_focus].widgets.next();
                     }
+                    KeyCode::Char('k') => self.ui_state.endorsement_sorter_state.next(),
+                    KeyCode::Char('j') => self.ui_state.endorsement_sorter_state.previous(),
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
+                    slog::info!(self.log, "UI STATE: {:?}", self.ui_state.endorsement_sorter_state);
                     let mut state = self.state.write().unwrap();
-                    state.update_current_head_header(&self.node).await;
-                    state.update_endorsers(&self.node).await;
+                    state.update_current_head_header(&self.node, self.ui_state.endorsement_sorter_state.in_focus()).await;
+                    state
+                        .update_endorsers(
+                            &self.node,
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                        )
+                        .await;
                 }
                 None => return Ok(()),
                 _ => {}
@@ -224,4 +241,21 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
     });
 
     rx
+}
+
+fn create_file_logger(path: &str) -> slog::Logger {
+    use slog::Drain;
+
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(path)
+        .expect("Failed to create log file");
+
+    let decorator = slog_term::PlainDecorator::new(file);
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
+
+    slog::Logger::root(drain, slog::o!())
 }
