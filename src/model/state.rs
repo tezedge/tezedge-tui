@@ -7,7 +7,7 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
-    EndorsementRightsTableData, EndorsementState, EndorsementStatus, EndorsementStatusSortable,
+    EndorsementState, EndorsementStatus, EndorsementStatusSortable,
     EndorsementStatusSortableVec, IncomingTransferMetrics, PeerMetrics, PeerTableData,
     SortableByFocus,
 };
@@ -30,7 +30,7 @@ pub struct State {
     pub current_head_header: CurrentHeadHeader,
 
     pub endorsement_rights: EndorsementRights,
-    pub current_head_endorsement_statuses: EndorsementRightsTableData,
+    pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 }
 
@@ -101,10 +101,7 @@ impl State {
         
         statuses.sort_by_focus(sort_by);
 
-        self.current_head_endorsement_statuses = statuses
-            .iter()
-            .map(|v| v.construct_tui_table_data())
-            .collect();
+        self.current_head_endorsement_statuses = statuses;
     }
 
     pub async fn update_endorsers(&mut self, node: &Node, sort_by: usize) {
@@ -149,12 +146,13 @@ impl State {
 
             endorsement_operation_time_statistics.sort_by_focus(sort_by);
 
-            let table_data: EndorsementRightsTableData = endorsement_operation_time_statistics
+            // TODO: NOT CORRECT SUMARY counting - take a look at this iteration could
+            let table_data: EndorsementStatusSortableVec = endorsement_operation_time_statistics
                 .into_iter()
                 .map(|v| {
                     let state_count = sumary.entry(v.state.clone()).or_insert(0);
                     *state_count += v.slot_count;
-                    v.construct_tui_table_data()
+                    v
                 })
                 .collect();
 

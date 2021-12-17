@@ -169,6 +169,7 @@ impl MempoolScreen {
             .current_head_endorsement_statuses
             .iter()
             .map(|item| {
+                let item = item.construct_tui_table_data();
                 let height = item
                     .iter()
                     .map(|content| content.chars().filter(|c| *c == '\n').count())

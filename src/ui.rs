@@ -9,7 +9,7 @@ use tui::{backend::Backend, Terminal};
 use crate::layout::{MempoolScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
-use crate::model::{RollingList, StateRef, UiState};
+use crate::model::{RollingList, StateRef, UiState, SortableByFocus};
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
@@ -30,6 +30,7 @@ impl Default for Ui {
 
 impl Ui {
     // TODO: add constructor function, rework the url..
+    // TODO: Error handling (unwraps)
     pub async fn run_tui<B: Backend>(
         &mut self,
         terminal: &mut Terminal<B>,
@@ -59,8 +60,18 @@ impl Ui {
                     KeyCode::Tab => {
                         self.ui_state.page_state.pages[page_in_focus].widgets.next();
                     }
-                    KeyCode::Char('k') => self.ui_state.endorsement_sorter_state.next(),
-                    KeyCode::Char('j') => self.ui_state.endorsement_sorter_state.previous(),
+                    KeyCode::Char('k') => {
+                        self.ui_state.endorsement_sorter_state.next();
+                        self.state.write().map(|mut state| {
+                            state.current_head_endorsement_statuses.sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        }).unwrap();
+                    },
+                    KeyCode::Char('j') => {
+                        self.ui_state.endorsement_sorter_state.previous();
+                        self.state.write().map(|mut state| {
+                            state.current_head_endorsement_statuses.sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        }).unwrap();
+                    }
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
