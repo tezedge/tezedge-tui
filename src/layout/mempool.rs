@@ -1,8 +1,6 @@
 use std::str::FromStr;
 
 use tui::style::Modifier;
-use tui::text::Span;
-use tui::widgets::Tabs;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -130,30 +128,15 @@ impl MempoolScreen {
             "Precheck",
             "Apply",
             "Broadcast",
-        ].iter().map(|v| v.to_string()).collect();
-        
+        ]
+        .iter()
+        .map(|v| v.to_string())
+        .collect();
+
         // add ▼ to the selected sorted table
-        headers.get_mut(ui_state.endorsement_sorter_state.in_focus()).map(|v| *v = format!("{}▼", v));
-        
-        let titles: Vec<Spans> = headers
-            .iter()
-            .map(|t| Spans::from(Span::styled(t, Style::default().fg(Color::White))))
-            .collect();
-
-        // let (sort_area, endrosement_table_area) = Layout::default()
-        //     .direction(Direction::Vertical)
-        //     .margin(1)
-        //     .constraints([Constraint::Length(3), Constraint::Min(1)])
-        //     .split(endorsements_chunk)
-        //     .into_iter()
-        //     .collect_tuple()
-        //     .unwrap();
-
-        // let sort_by_tabs = Tabs::new(titles)
-        //     .block(Block::default().borders(Borders::ALL).title("Sort by"))
-        //     .highlight_style(Style::default().fg(Color::Blue))
-        //     .select(ui_state.endorsement_sorter_state.in_focus());
-        // f.render_widget(sort_by_tabs, sort_area);
+        headers
+            .get_mut(ui_state.endorsement_sorter_state.in_focus())
+            .map(|v| *v = format!("{}▼", v));
 
         let endorsers = Block::default().borders(Borders::ALL);
 

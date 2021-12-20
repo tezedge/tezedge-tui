@@ -9,7 +9,7 @@ use tui::{backend::Backend, Terminal};
 use crate::layout::{MempoolScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
-use crate::model::{RollingList, StateRef, UiState, SortableByFocus};
+use crate::model::{RollingList, SortableByFocus, StateRef, UiState};
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
@@ -55,28 +55,49 @@ impl Ui {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Down => self.next(),
                     KeyCode::Up => self.previous(),
-                    KeyCode::Right => self.ui_state.page_state.next(),
-                    KeyCode::Left => self.ui_state.page_state.previous(),
+                    KeyCode::Right => {},
+                    KeyCode::Left => {},
                     KeyCode::Tab => {
                         self.ui_state.page_state.pages[page_in_focus].widgets.next();
                     }
                     KeyCode::Char('k') => {
                         self.ui_state.endorsement_sorter_state.next();
-                        self.state.write().map(|mut state| {
-                            state.current_head_endorsement_statuses.sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
-                        }).unwrap();
-                    },
+                        self.state
+                            .write()
+                            .map(|mut state| {
+                                state.current_head_endorsement_statuses.sort_by_focus(
+                                    self.ui_state.endorsement_sorter_state.in_focus(),
+                                )
+                            })
+                            .unwrap();
+                    }
                     KeyCode::Char('j') => {
                         self.ui_state.endorsement_sorter_state.previous();
-                        self.state.write().map(|mut state| {
-                            state.current_head_endorsement_statuses.sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
-                        }).unwrap();
+                        self.state
+                            .write()
+                            .map(|mut state| {
+                                state.current_head_endorsement_statuses.sort_by_focus(
+                                    self.ui_state.endorsement_sorter_state.in_focus(),
+                                )
+                            })
+                            .unwrap();
+                    }
+                    KeyCode::F(1) => {
+                        self.ui_state.page_state.select(0);
+                    }
+                    KeyCode::F(2) => {
+                        self.ui_state.page_state.select(1);
                     }
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
                     let mut state = self.state.write().unwrap();
-                    state.update_current_head_header(&self.node, self.ui_state.endorsement_sorter_state.in_focus()).await;
+                    state
+                        .update_current_head_header(
+                            &self.node,
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                        )
+                        .await;
                     state
                         .update_endorsers(
                             &self.node,

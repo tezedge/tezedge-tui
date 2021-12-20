@@ -17,15 +17,21 @@ pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
         .pages
         .iter()
         .map(|t| {
-            Spans::from(Span::styled(
-                t.title.clone(),
-                Style::default().fg(Color::White),
-            ))
+            Spans::from(vec![
+                Span::styled(
+                    t.shortcut.clone(),
+                    Style::default().fg(Color::Yellow).bg(Color::Black),
+                ),
+                Span::styled(
+                    t.title.clone(),
+                    Style::default().fg(Color::White).bg(Color::Black),
+                ),
+            ])
         })
         .collect();
     let page_in_focus = ui_state.page_state.in_focus();
     Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL))
-        .highlight_style(Style::default().fg(Color::Blue))
+        .highlight_style(Style::default().fg(Color::Black).bg(Color::Gray))
         .select(page_in_focus)
 }

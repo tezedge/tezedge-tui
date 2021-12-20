@@ -7,9 +7,8 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
-    EndorsementState, EndorsementStatus, EndorsementStatusSortable,
-    EndorsementStatusSortableVec, IncomingTransferMetrics, PeerMetrics, PeerTableData,
-    SortableByFocus,
+    EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
+    IncomingTransferMetrics, PeerMetrics, PeerTableData, SortableByFocus,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -94,11 +93,9 @@ impl State {
         let mut statuses: EndorsementStatusSortableVec = self
             .endorsement_rights
             .iter()
-            .map(|(k, slots)| {
-                EndorsementStatusSortable::new(k.to_string(), slots.len())
-            })
+            .map(|(k, slots)| EndorsementStatusSortable::new(k.to_string(), slots.len()))
             .collect();
-        
+
         statuses.sort_by_focus(sort_by);
 
         self.current_head_endorsement_statuses = statuses;
@@ -176,12 +173,17 @@ pub struct PageState {
 #[derive(Debug, Clone)]
 pub struct Page {
     pub title: String,
+    pub shortcut: String,
     pub widgets: WidgetState,
 }
 
 impl Page {
-    fn new(title: String, widgets: WidgetState) -> Self {
-        Self { title, widgets }
+    fn new(title: String, shortcut: String, widgets: WidgetState) -> Self {
+        Self {
+            title,
+            widgets,
+            shortcut,
+        }
     }
 }
 
@@ -190,14 +192,17 @@ impl Default for PageState {
         Self {
             pages: vec![
                 Page::new(
-                    "Synchronization".to_string(),
+                    "SYNCHRONIZATION".to_string(),
+                    "F1".to_string(),
                     WidgetState::new(vec!["Periods".to_string(), "Connected peers".to_string()]),
                 ),
                 Page::new(
-                    "Mempool".to_string(),
+                    "MEMPOOL".to_string(),
+                    "F2".to_string(),
                     WidgetState::new(vec!["TableSorter".to_string()]),
                 ),
             ],
+
             in_focus: 0,
         }
     }
@@ -206,6 +211,10 @@ impl Default for PageState {
 impl PageState {
     pub fn in_focus(&self) -> usize {
         self.in_focus
+    }
+
+    pub fn select(&mut self, page_index: usize) {
+        self.in_focus = page_index
     }
 }
 
