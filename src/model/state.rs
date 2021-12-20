@@ -137,26 +137,22 @@ impl State {
                 .map(|(k, v)| {
                     if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot))
                     {
-                        status.to_sortable_ascending(k.to_string(), v.len())
+                        let status = status.to_sortable_ascending(k.to_string(), v.len());
+                        let state_count = sumary.entry(status.state.clone()).or_insert(0);
+                        *state_count += status.slot_count;
+                        status
                     } else {
-                        EndorsementStatusSortable::new(k.to_string(), v.len())
+                        let status = EndorsementStatusSortable::new(k.to_string(), v.len());
+                        let state_count = sumary.entry(EndorsementState::Missing).or_insert(0);
+                        *state_count += status.slot_count;
+                        status
                     }
                 })
                 .collect();
 
             endorsement_operation_time_statistics.sort_by_focus(sort_by);
 
-            // TODO: NOT CORRECT SUMARY counting - take a look at this iteration could
-            let table_data: EndorsementStatusSortableVec = endorsement_operation_time_statistics
-                .into_iter()
-                .map(|v| {
-                    let state_count = sumary.entry(v.state.clone()).or_insert(0);
-                    *state_count += v.slot_count;
-                    v
-                })
-                .collect();
-
-            self.current_head_endorsement_statuses = table_data;
+            self.current_head_endorsement_statuses = endorsement_operation_time_statistics;
             self.endoresement_status_summary = sumary;
         }
     }

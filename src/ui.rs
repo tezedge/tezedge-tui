@@ -75,7 +75,6 @@ impl Ui {
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
-                    slog::info!(self.log, "UI STATE: {:?}", self.ui_state.endorsement_sorter_state);
                     let mut state = self.state.write().unwrap();
                     state.update_current_head_header(&self.node, self.ui_state.endorsement_sorter_state.in_focus()).await;
                     state
@@ -84,6 +83,7 @@ impl Ui {
                             self.ui_state.endorsement_sorter_state.in_focus(),
                         )
                         .await;
+                    slog::info!(self.log, "Summary: {:?}", state.endoresement_status_summary);
                 }
                 None => return Ok(()),
                 _ => {}

@@ -82,7 +82,7 @@ impl MempoolScreen {
 
         let endorsement_statuses: Vec<String> = vec![
             "Missing",
-            "Broadcasted",
+            "Broadcast",
             "Applied",
             "Prechecked",
             "Decoded",
