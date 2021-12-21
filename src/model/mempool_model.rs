@@ -264,11 +264,11 @@ impl EndorsementStatusSortable {
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
 pub trait SortableByFocus {
-    fn sort_by_focus(&mut self, focus_index: usize) -> Vec<EndorsementStatusSortable>;
+    fn sort_by_focus(&mut self, focus_index: usize);
 }
 
 impl SortableByFocus for EndorsementStatusSortableVec {
-    fn sort_by_focus(&mut self, focus_index: usize) -> EndorsementStatusSortableVec {
+    fn sort_by_focus(&mut self, focus_index: usize) {
         match focus_index {
             0 => self.sort_by_key(|k| k.slot_count),
             1 => self.sort_by_key(|k| k.baker.clone()),
@@ -281,7 +281,6 @@ impl SortableByFocus for EndorsementStatusSortableVec {
             8 => self.sort_by_key(|k| k.broadcast_time),
             _ => {}
         }
-        self.to_vec()
     }
 }
 

@@ -182,7 +182,7 @@ impl MempoolScreen {
                 Constraint::Min(8),
                 Constraint::Min(10),
             ]);
-        f.render_widget(table, endorsements_chunk);
+        f.render_stateful_widget(table, endorsements_chunk, &mut ui_state.endorsement_table_state);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);

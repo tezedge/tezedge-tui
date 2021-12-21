@@ -161,6 +161,31 @@ impl Ui {
             // mempool page
             1 => {
                 // control widgets on mempool page
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
+                    .widgets
+                    .in_focus();
+
+                match widget_in_focus {
+                    0 => {
+                        let state = self.state.read().unwrap();
+                        if state.current_head_endorsement_statuses.is_empty() {
+                            return;
+                        }
+
+                        let i = match self.ui_state.endorsement_table_state.selected() {
+                            Some(i) => {
+                                if i >= state.current_head_endorsement_statuses.len() - 1 {
+                                    0
+                                } else {
+                                    i + 1
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.ui_state.endorsement_table_state.select(Some(i));
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         }
@@ -214,6 +239,31 @@ impl Ui {
             // mempool page
             1 => {
                 // control widgets on mempool page
+                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
+                    .widgets
+                    .in_focus();
+
+                match widget_in_focus {
+                    0 => {
+                        let state = self.state.read().unwrap();
+                        if state.current_head_endorsement_statuses.is_empty() {
+                            return;
+                        }
+
+                        let i = match self.ui_state.endorsement_table_state.selected() {
+                            Some(i) => {
+                                if i == 0 {
+                                    state.current_head_endorsement_statuses.len() - 1
+                                } else {
+                                    i - 1
+                                }
+                            }
+                            None => 0,
+                        };
+                        self.ui_state.endorsement_table_state.select(Some(i));
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         }

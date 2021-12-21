@@ -161,6 +161,7 @@ pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
     pub endorsement_sorter_state: EndorsementSorterState,
+    pub endorsement_table_state: TableState,
     pub page_state: PageState,
 }
 
