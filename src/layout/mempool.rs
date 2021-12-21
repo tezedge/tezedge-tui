@@ -134,9 +134,9 @@ impl MempoolScreen {
         .collect();
 
         // add ▼ to the selected sorted table
-        headers
-            .get_mut(ui_state.endorsement_sorter_state.in_focus())
-            .map(|v| *v = format!("{}▼", v));
+        if let Some(v) = headers.get_mut(ui_state.endorsement_sorter_state.in_focus()) {
+            *v = format!("{}▼", v)
+        }
 
         let endorsers = Block::default().borders(Borders::ALL);
 
@@ -182,7 +182,11 @@ impl MempoolScreen {
                 Constraint::Min(8),
                 Constraint::Min(10),
             ]);
-        f.render_stateful_widget(table, endorsements_chunk, &mut ui_state.endorsement_table_state);
+        f.render_stateful_widget(
+            table,
+            endorsements_chunk,
+            &mut ui_state.endorsement_table_state,
+        );
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);

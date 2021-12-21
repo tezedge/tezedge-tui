@@ -1,7 +1,7 @@
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode};
-use slog::Logger;
+use slog::{info, Logger};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 use tui::{backend::Backend, Terminal};
@@ -9,7 +9,7 @@ use tui::{backend::Backend, Terminal};
 use crate::layout::{MempoolScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
-use crate::model::{RollingList, SortableByFocus, StateRef, UiState};
+use crate::model::{ActivePage, ActiveWidget, SortableByFocus, StateRef, UiState};
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
@@ -38,27 +38,29 @@ impl Ui {
     ) -> io::Result<()> {
         let mut events = events(tick_rate);
         loop {
-            let page_in_focus = self.ui_state.page_state.in_focus();
-
             let data_state = &self.state;
             let ui_state = &mut self.ui_state;
+            let active_page = ui_state.active_page.clone();
 
             // Note: here we decide what screen to draw
-            terminal.draw(|f| match page_in_focus {
-                0 => SyncingScreen::draw_syncing_screen::<B>(data_state, ui_state, f),
-                1 => MempoolScreen::draw_mempool_screen::<B>(data_state, ui_state, f),
-                _ => {}
+            terminal.draw(|f| match active_page {
+                ActivePage::Synchronization => {
+                    SyncingScreen::draw_syncing_screen::<B>(data_state, ui_state, f)
+                }
+                ActivePage::Mempool => {
+                    MempoolScreen::draw_mempool_screen::<B>(data_state, ui_state, f)
+                }
             })?;
 
             match events.recv().await {
                 Some(TuiEvent::Input(key)) => match key {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Down => self.next(),
-                    KeyCode::Up => self.previous(),
-                    KeyCode::Right => {},
-                    KeyCode::Left => {},
+                    KeyCode::Down => self.handle_down(),
+                    KeyCode::Up => self.handle_up(),
+                    KeyCode::Right => {}
+                    KeyCode::Left => {}
                     KeyCode::Tab => {
-                        self.ui_state.page_state.pages[page_in_focus].widgets.next();
+                        self.rotate_widgets();
                     }
                     KeyCode::Char('k') => {
                         self.ui_state.endorsement_sorter_state.next();
@@ -82,15 +84,17 @@ impl Ui {
                             })
                             .unwrap();
                     }
-                    KeyCode::F(1) => {
-                        self.ui_state.page_state.select(0);
-                    }
-                    KeyCode::F(2) => {
-                        self.ui_state.page_state.select(1);
-                    }
+                    KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
+                    KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
+                    info!(
+                        self.log,
+                        "Active Page: {:?}; Active widget: {:?}",
+                        ui_state.active_page,
+                        ui_state.active_widget
+                    );
                     let mut state = self.state.write().unwrap();
                     state
                         .update_current_head_header(
@@ -104,7 +108,6 @@ impl Ui {
                             self.ui_state.endorsement_sorter_state.in_focus(),
                         )
                         .await;
-                    slog::info!(self.log, "Summary: {:?}", state.endoresement_status_summary);
                 }
                 None => return Ok(()),
                 _ => {}
@@ -112,160 +115,64 @@ impl Ui {
         }
     }
 
-    pub fn next(&mut self) {
-        let page_in_focus = self.ui_state.page_state.in_focus();
-        match page_in_focus {
-            // syncing page
-            0 => {
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
-                    .widgets
-                    .in_focus();
-                match widget_in_focus {
-                    // peer table widget
-                    1 => {
-                        let state = self.state.read().unwrap();
-                        if state.peer_metrics.is_empty() {
-                            return;
-                        }
-
-                        let i = match self.ui_state.peer_table_state.selected() {
-                            Some(i) => {
-                                if i >= state.peer_metrics.len() - 1 {
-                                    0
-                                } else {
-                                    i + 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.peer_table_state.select(Some(i));
-                    }
-                    // period blocks
-                    0 => {
-                        let to_select = match self.ui_state.period_info_state.selected() {
-                            Some(to_select) => {
-                                if to_select >= self.ui_state.period_info_state.container_count - 1
-                                {
-                                    0
-                                } else {
-                                    to_select + 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.period_info_state.select(Some(to_select));
-                    }
-                    _ => {}
+    pub fn rotate_widgets(&mut self) {
+        match self.ui_state.active_page {
+            ActivePage::Synchronization => match self.ui_state.active_widget {
+                ActiveWidget::PeriodInfo => self.ui_state.active_widget = ActiveWidget::PeerTable,
+                ActiveWidget::PeerTable => self.ui_state.active_widget = ActiveWidget::PeriodInfo,
+                ActiveWidget::EndorserTable => {
+                    self.ui_state.active_widget = ActiveWidget::PeriodInfo
                 }
-            }
-            // mempool page
-            1 => {
-                // control widgets on mempool page
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
-                    .widgets
-                    .in_focus();
-
-                match widget_in_focus {
-                    0 => {
-                        let state = self.state.read().unwrap();
-                        if state.current_head_endorsement_statuses.is_empty() {
-                            return;
-                        }
-
-                        let i = match self.ui_state.endorsement_table_state.selected() {
-                            Some(i) => {
-                                if i >= state.current_head_endorsement_statuses.len() - 1 {
-                                    0
-                                } else {
-                                    i + 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.endorsement_table_state.select(Some(i));
-                    }
-                    _ => {}
+            },
+            ActivePage::Mempool => match self.ui_state.active_widget {
+                ActiveWidget::PeriodInfo => {
+                    self.ui_state.active_widget = ActiveWidget::EndorserTable
                 }
-            }
-            _ => {}
+                ActiveWidget::PeerTable => {
+                    self.ui_state.active_widget = ActiveWidget::EndorserTable
+                }
+                ActiveWidget::EndorserTable => {
+                    self.ui_state.active_widget = ActiveWidget::EndorserTable
+                }
+            },
         }
     }
 
-    pub fn previous(&mut self) {
-        let page_in_focus = self.ui_state.page_state.in_focus();
-        match page_in_focus {
-            // syncing page
-            0 => {
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
-                    .widgets
-                    .in_focus();
-                match widget_in_focus {
-                    // peer table widget
-                    1 => {
-                        let state = self.state.read().unwrap();
-                        if state.peer_metrics.is_empty() {
-                            return;
-                        }
-
-                        let i = match self.ui_state.peer_table_state.selected() {
-                            Some(i) => {
-                                if i == 0 {
-                                    state.peer_metrics.len() - 1
-                                } else {
-                                    i - 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.peer_table_state.select(Some(i));
-                    }
-                    // period blocks
-                    0 => {
-                        let to_select = match self.ui_state.period_info_state.selected() {
-                            Some(to_select) => {
-                                if to_select == 0 {
-                                    self.ui_state.period_info_state.container_count - 1
-                                } else {
-                                    to_select - 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.period_info_state.select(Some(to_select));
-                    }
-                    _ => {}
-                }
+    pub fn handle_up(&mut self) {
+        let state = self.state.read().unwrap();
+        match self.ui_state.active_widget {
+            ActiveWidget::PeriodInfo => self.ui_state.period_info_state.select(previous_item(
+                self.ui_state.period_info_state.container_count,
+                self.ui_state.period_info_state.selected(),
+            )),
+            ActiveWidget::PeerTable => self.ui_state.peer_table_state.select(previous_item(
+                state.peer_metrics.len(),
+                self.ui_state.peer_table_state.selected(),
+            )),
+            ActiveWidget::EndorserTable => {
+                self.ui_state.endorsement_table_state.select(previous_item(
+                    state.current_head_endorsement_statuses.len(),
+                    self.ui_state.endorsement_table_state.selected(),
+                ))
             }
-            // mempool page
-            1 => {
-                // control widgets on mempool page
-                let widget_in_focus = self.ui_state.page_state.pages[page_in_focus]
-                    .widgets
-                    .in_focus();
+        }
+    }
 
-                match widget_in_focus {
-                    0 => {
-                        let state = self.state.read().unwrap();
-                        if state.current_head_endorsement_statuses.is_empty() {
-                            return;
-                        }
-
-                        let i = match self.ui_state.endorsement_table_state.selected() {
-                            Some(i) => {
-                                if i == 0 {
-                                    state.current_head_endorsement_statuses.len() - 1
-                                } else {
-                                    i - 1
-                                }
-                            }
-                            None => 0,
-                        };
-                        self.ui_state.endorsement_table_state.select(Some(i));
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
+    pub fn handle_down(&mut self) {
+        let state = self.state.read().unwrap();
+        match self.ui_state.active_widget {
+            ActiveWidget::PeriodInfo => self.ui_state.period_info_state.select(next_item(
+                self.ui_state.period_info_state.container_count,
+                self.ui_state.period_info_state.selected(),
+            )),
+            ActiveWidget::PeerTable => self.ui_state.peer_table_state.select(next_item(
+                state.peer_metrics.len(),
+                self.ui_state.peer_table_state.selected(),
+            )),
+            ActiveWidget::EndorserTable => self.ui_state.endorsement_table_state.select(next_item(
+                state.current_head_endorsement_statuses.len(),
+                self.ui_state.endorsement_table_state.selected(),
+            )),
         }
     }
 }
@@ -323,6 +230,39 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
     });
 
     rx
+}
+
+pub fn next_item(total: usize, selection_index: Option<usize>) -> Option<usize> {
+    match selection_index {
+        Some(selection_index) => {
+            if total != 0 {
+                let next_index = selection_index + 1;
+                if next_index > total - 1 {
+                    return Some(0);
+                } else {
+                    return Some(next_index);
+                }
+            }
+            Some(0)
+        }
+        None => Some(0),
+    }
+}
+
+pub fn previous_item(total: usize, selection_index: Option<usize>) -> Option<usize> {
+    match selection_index {
+        Some(selection_index) => {
+            if total != 0 {
+                if selection_index > 0 {
+                    return Some(selection_index - 1);
+                } else {
+                    return Some(total - 1);
+                }
+            }
+            Some(0)
+        }
+        None => Some(0),
+    }
 }
 
 fn create_file_logger(path: &str) -> slog::Logger {

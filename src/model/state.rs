@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use std::sync::RwLock;
+use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
 
 use crate::node_rpc::{Node, RpcCall, RpcResponse};
@@ -162,132 +163,8 @@ pub struct UiState {
     pub period_info_state: PeriodInfoState,
     pub endorsement_sorter_state: EndorsementSorterState,
     pub endorsement_table_state: TableState,
-    pub page_state: PageState,
-}
-
-#[derive(Debug, Clone)]
-pub struct PageState {
-    pub pages: Vec<Page>,
-    pub in_focus: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct Page {
-    pub title: String,
-    pub shortcut: String,
-    pub widgets: WidgetState,
-}
-
-impl Page {
-    fn new(title: String, shortcut: String, widgets: WidgetState) -> Self {
-        Self {
-            title,
-            widgets,
-            shortcut,
-        }
-    }
-}
-
-impl Default for PageState {
-    fn default() -> Self {
-        Self {
-            pages: vec![
-                Page::new(
-                    "SYNCHRONIZATION".to_string(),
-                    "F1".to_string(),
-                    WidgetState::new(vec!["Periods".to_string(), "Connected peers".to_string()]),
-                ),
-                Page::new(
-                    "MEMPOOL".to_string(),
-                    "F2".to_string(),
-                    WidgetState::new(vec!["TableSorter".to_string()]),
-                ),
-            ],
-
-            in_focus: 0,
-        }
-    }
-}
-
-impl PageState {
-    pub fn in_focus(&self) -> usize {
-        self.in_focus
-    }
-
-    pub fn select(&mut self, page_index: usize) {
-        self.in_focus = page_index
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct WidgetState {
-    widgets: Vec<PageWidget>,
-    in_focus: usize,
-}
-
-pub type PageWidget = String;
-
-impl WidgetState {
-    fn new(widgets: Vec<PageWidget>) -> Self {
-        Self {
-            widgets,
-            in_focus: 0,
-        }
-    }
-
-    pub fn in_focus(&self) -> usize {
-        self.in_focus
-    }
-}
-
-impl RollingList for WidgetState {
-    fn get_mutable_in_focus(&mut self) -> &mut usize {
-        &mut self.in_focus
-    }
-
-    fn get_count(&self) -> usize {
-        self.widgets.len()
-    }
-}
-
-impl RollingList for PageState {
-    fn get_mutable_in_focus(&mut self) -> &mut usize {
-        &mut self.in_focus
-    }
-
-    fn get_count(&self) -> usize {
-        self.pages.len()
-    }
-}
-
-pub trait RollingList {
-    fn get_mutable_in_focus(&mut self) -> &mut usize;
-    fn get_count(&self) -> usize;
-
-    fn next(&mut self) {
-        let count = self.get_count();
-        if count <= 1 {
-            return;
-        }
-
-        let in_focus = self.get_mutable_in_focus();
-        *in_focus = (*in_focus + 1) % count;
-    }
-
-    fn previous(&mut self) {
-        let count = self.get_count();
-        let in_focus = self.get_mutable_in_focus();
-
-        if count <= 1 {
-            return;
-        }
-
-        if *in_focus > 0 {
-            *in_focus -= 1;
-        } else {
-            *in_focus = count - 1;
-        }
-    }
+    pub active_page: ActivePage,
+    pub active_widget: ActiveWidget,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -329,13 +206,30 @@ pub enum SortOrder {
 #[derive(Debug, Clone)]
 pub struct EndorsementSorterState {
     pub sort_by: [&'static str; 9],
-    pub in_focus: usize,
+    in_focus: usize,
     pub order: SortOrder,
 }
 
 impl EndorsementSorterState {
     pub fn in_focus(&self) -> usize {
         self.in_focus
+    }
+
+    pub fn next(&mut self) {
+        let next_index = self.in_focus + 1;
+        if next_index >= self.sort_by.len() {
+            self.in_focus = 0
+        } else {
+            self.in_focus = next_index
+        }
+    }
+
+    pub fn previous(&mut self) {
+        if self.in_focus == 0 {
+            self.in_focus = self.sort_by.len();
+        } else {
+            self.in_focus -= 1;
+        }
     }
 }
 
@@ -359,12 +253,36 @@ impl Default for EndorsementSorterState {
     }
 }
 
-impl RollingList for EndorsementSorterState {
-    fn get_mutable_in_focus(&mut self) -> &mut usize {
-        &mut self.in_focus
-    }
+#[derive(Debug, Clone)]
+pub enum ActiveWidget {
+    PeriodInfo,
+    PeerTable,
+    EndorserTable,
+}
 
-    fn get_count(&self) -> usize {
-        self.sort_by.len()
+#[derive(Debug, Clone, EnumIter, Display)]
+pub enum ActivePage {
+    Synchronization,
+    Mempool,
+}
+
+impl ActivePage {
+    pub fn to_index(&self) -> usize {
+        match self {
+            ActivePage::Synchronization => 0,
+            ActivePage::Mempool => 1,
+        }
+    }
+}
+
+impl Default for ActivePage {
+    fn default() -> Self {
+        ActivePage::Synchronization
+    }
+}
+
+impl Default for ActiveWidget {
+    fn default() -> Self {
+        ActiveWidget::PeriodInfo
     }
 }

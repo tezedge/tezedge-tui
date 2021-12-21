@@ -10,7 +10,7 @@ use tui::{
     Frame,
 };
 
-use crate::model::{StateRef, UiState};
+use crate::model::{ActiveWidget, StateRef, UiState};
 
 use super::create_pages_tabs;
 
@@ -23,8 +23,7 @@ impl SyncingScreen {
         f: &mut Frame<B>,
     ) {
         let data_state = data_state.read().unwrap();
-        let page_in_focus = ui_state.page_state.in_focus();
-        let widget_in_focus = ui_state.page_state.pages[page_in_focus].widgets.in_focus();
+        let widget_in_focus = &ui_state.active_widget;
 
         let size = f.size();
 
@@ -196,7 +195,7 @@ impl SyncingScreen {
                 .split(container)[0];
 
             if let Some(selected_container) = ui_state.period_info_state.selected {
-                if widget_in_focus == 0
+                if matches!(widget_in_focus, ActiveWidget::PeriodInfo)
                     && selected_container == container_index + ui_state.period_info_state.offset()
                 {
                     let block = Block::default()
@@ -307,11 +306,13 @@ impl SyncingScreen {
         let connected_peers =
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(if widget_in_focus == 1 {
-                    Color::Blue
-                } else {
-                    Color::White
-                }));
+                .border_style(Style::default().fg(
+                    if matches!(widget_in_focus, ActiveWidget::PeerTable) {
+                        Color::Blue
+                    } else {
+                        Color::White
+                    },
+                ));
         // table
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
@@ -344,7 +345,7 @@ impl SyncingScreen {
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
             ]);
-        if widget_in_focus == 1 {
+        if matches!(widget_in_focus, ActiveWidget::PeerTable) {
             f.render_stateful_widget(table, chunks[2], &mut ui_state.peer_table_state);
         } else {
             f.render_widget(table, chunks[2]);
