@@ -279,6 +279,7 @@ pub enum ActiveWidget {
 pub enum ActivePage {
     Synchronization,
     Mempool,
+    Statistics
 }
 
 impl ActivePage {
@@ -286,6 +287,7 @@ impl ActivePage {
         match self {
             ActivePage::Synchronization => 0,
             ActivePage::Mempool => 1,
+            ActivePage::Statistics => 2,
         }
     }
 }

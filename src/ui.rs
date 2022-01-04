@@ -7,7 +7,7 @@ use tokio::time::Duration;
 use tui::{backend::Backend, Terminal};
 
 use crate::configuration::TuiArgs;
-use crate::layout::{MempoolScreen, SyncingScreen};
+use crate::layout::{MempoolScreen, SyncingScreen, StatisticsScreen};
 use crate::node_rpc::Node;
 
 use crate::model::{ActivePage, ActiveWidget, SortableByFocus, StateRef, UiState};
@@ -49,6 +49,9 @@ impl Ui {
                 ActivePage::Mempool => {
                     MempoolScreen::draw_mempool_screen::<B>(data_state, ui_state, f)
                 }
+                ActivePage::Statistics => {
+                    StatisticsScreen::draw_statistics_screen::<B>(data_state, ui_state, f)
+                }
             })?;
 
             match events.recv().await {
@@ -85,6 +88,7 @@ impl Ui {
                     }
                     KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
                     KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
+                    KeyCode::F(3) => self.ui_state.active_page = ActivePage::Statistics,
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {
@@ -134,6 +138,9 @@ impl Ui {
                     self.ui_state.active_widget = ActiveWidget::EndorserTable
                 }
             },
+            ActivePage::Statistics => {
+                // TODO
+            }
         }
     }
 

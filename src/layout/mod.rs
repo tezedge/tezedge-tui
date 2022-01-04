@@ -4,6 +4,9 @@ pub use syncing::*;
 pub mod mempool;
 pub use mempool::*;
 
+pub mod statistics;
+pub use statistics::*;
+
 use strum::IntoEnumIterator;
 use tui::{
     style::{Color, Style},

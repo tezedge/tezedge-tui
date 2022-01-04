@@ -6,3 +6,6 @@ pub use state::*;
 
 pub mod syncing_model;
 pub use syncing_model::*;
+
+pub mod operation_statistics_model;
+pub use operation_statistics_model::*;
