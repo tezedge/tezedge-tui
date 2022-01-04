@@ -12,7 +12,7 @@ use tui::{
 
 use itertools::Itertools;
 
-use crate::model::{UiState, StateRef};
+use crate::model::{StateRef, UiState};
 
 use super::create_pages_tabs;
 pub struct StatisticsScreen {}
@@ -23,7 +23,6 @@ impl StatisticsScreen {
         ui_state: &mut UiState,
         f: &mut Frame<B>,
     ) {
-        
         let size = f.size();
 
         let page_chunks = Layout::default()
@@ -34,10 +33,7 @@ impl StatisticsScreen {
 
         let (main_table_chunk, details_table_chunk) = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Max(120),
-                Constraint::Min(3),
-            ])
+            .constraints([Constraint::Max(120), Constraint::Min(3)])
             .split(page_chunks[0])
             .into_iter()
             .collect_tuple()
@@ -45,19 +41,8 @@ impl StatisticsScreen {
 
         // ======================== MAIN STATISTICS TABLE ========================
         let main_table_headers: Vec<String> = [
-            "Datetime",
-            "Hash",
-            "Nodes",
-            "Delta",
-            "Received",
-            "Con.Rec.",
-            "Valid.S.",
-            "Preap.S.",
-            "Preap.F.",
-            "Valid.F.",
-            "Val.Len.",
-            "Sent",
-            "Kind",
+            "Datetime", "Hash", "Nodes", "Delta", "Received", "Con.Rec.", "Valid.S.", "Preap.S.",
+            "Preap.F.", "Valid.F.", "Val.Len.", "Sent", "Kind",
         ]
         .iter()
         .map(|v| v.to_string())
@@ -67,7 +52,7 @@ impl StatisticsScreen {
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
-        
+
         let header_cells = main_table_headers
             .iter()
             .map(|h| Cell::from(h.as_str()).style(Style::default()));
@@ -77,7 +62,8 @@ impl StatisticsScreen {
             .bottom_margin(1);
 
         // TODO: replace mocked data
-        let rows = std::iter::repeat(Row::new(std::iter::repeat(Cell::from("MOCK")).take(13))).take(15);
+        let rows =
+            std::iter::repeat(Row::new(std::iter::repeat(Cell::from("MOCK")).take(13))).take(15);
 
         let table = Table::new(rows)
             .header(main_table_header)
@@ -105,13 +91,7 @@ impl StatisticsScreen {
         // ======================== DETAILS TABLE ========================
 
         let main_table_headers: Vec<String> = [
-            "Node Id",
-            "1.Rec.",
-            "1.Rec.C.",
-            "1.Sent",
-            "Received",
-            "Con.Rec.",
-            "Sent",
+            "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
         ]
         .iter()
         .map(|v| v.to_string())
@@ -128,7 +108,8 @@ impl StatisticsScreen {
             .bottom_margin(1);
 
         // TODO: replace mocked data
-        let rows = std::iter::repeat(Row::new(std::iter::repeat(Cell::from("D.MOCK")).take(7))).take(12);
+        let rows =
+            std::iter::repeat(Row::new(std::iter::repeat(Cell::from("D.MOCK")).take(7))).take(12);
 
         let table = Table::new(rows)
             .header(details_table_header)

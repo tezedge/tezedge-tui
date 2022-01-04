@@ -7,7 +7,7 @@ use tokio::time::Duration;
 use tui::{backend::Backend, Terminal};
 
 use crate::configuration::TuiArgs;
-use crate::layout::{MempoolScreen, SyncingScreen, StatisticsScreen};
+use crate::layout::{MempoolScreen, StatisticsScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
 use crate::model::{ActivePage, ActiveWidget, SortableByFocus, StateRef, UiState};
@@ -91,23 +91,26 @@ impl Ui {
                     KeyCode::F(3) => {
                         self.ui_state.active_page = ActivePage::Statistics;
                         let mut state_write = self.state.write().unwrap();
+
+                        // This call can be very long so we launch a thread, when the flag is not set (a thread is already running)
                         if !state_write.statistics_pending {
                             info!(self.log, "Getting operations statistics");
                             state_write.statistics_pending = true;
                             drop(state_write);
+
                             let state = self.state.clone();
                             let node = self.node.clone();
                             let log = self.log.clone();
                             tokio::task::spawn(async move {
-                                    let stats = crate::model::State::update_statistics(&node).await;
-                                    let mut state = state.write().unwrap();
+                                let stats = crate::model::State::update_statistics(&node).await;
+                                let mut state = state.write().unwrap();
 
-                                    state.operations_statistics = stats;
-                                    state.statistics_pending = false;
-                                    info!(log, "Statistics received");
+                                state.operations_statistics = stats;
+                                state.statistics_pending = false;
+                                info!(log, "Statistics received");
                             });
                         }
-                    },
+                    }
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {

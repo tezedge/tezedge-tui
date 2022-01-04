@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
@@ -12,12 +12,7 @@ pub struct OperationStats {
     min_time: Option<u64>,
     first_block_timestamp: Option<u64>,
     validation_started: Option<i128>,
-    validation_result: Option<(
-        i128,
-        OperationValidationResult,
-        i128,
-        i128,
-    )>,
+    validation_result: Option<(i128, OperationValidationResult, i128, i128)>,
     validations: Vec<OperationValidationStats>,
     nodes: HashMap<String, OperationNodeStats>,
 }

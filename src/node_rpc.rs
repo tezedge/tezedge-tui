@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use reqwest::Response;
-use slog::{Logger, info};
+use slog::{info, Logger};
 use thiserror::Error;
 use url::Url;
 
@@ -48,19 +48,31 @@ impl Node {
 
         match rpc {
             RpcCall::EndorsementRights => {
-                let rights: EndorsementRights = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
+                let rights: EndorsementRights = res
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::EndorsementRights(rights))
             }
             RpcCall::CurrentHeadHeader => {
-                let header: CurrentHeadHeader = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
+                let header: CurrentHeadHeader = res
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::CurrentHeadHeader(header))
             }
             RpcCall::EndersementsStatus => {
-                let statuses: EndorsementStatuses = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
+                let statuses: EndorsementStatuses = res
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::EndorsementsStatus(statuses))
             }
             RpcCall::OperationsStats => {
-                let stats: OperationsStats = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
+                let stats: OperationsStats = res
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::OperationsStats(stats))
             }
         }
@@ -76,7 +88,9 @@ impl Node {
             url = url.join(query)?;
         }
 
-        reqwest::get(url).await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))
+        reqwest::get(url)
+            .await
+            .map_err(|e| RpcError::RequestErrorDetailed(rpc, e))
     }
 }
 

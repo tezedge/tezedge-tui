@@ -10,7 +10,7 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, PeerMetrics, PeerTableData, SortableByFocus, OperationsStats
+    IncomingTransferMetrics, OperationsStats, PeerMetrics, PeerTableData, SortableByFocus,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -132,7 +132,7 @@ impl State {
             };
 
         if !slot_mapped.is_empty() {
-            // TODO: we need some info for the slots 
+            // TODO: we need some info for the slots
             // if let Some((_, status)) = slot_mapped.iter().last() {
             //     if let Ok(time) =
             //         chrono::DateTime::parse_from_rfc3339(&self.current_head_header.timestamp)
@@ -182,9 +182,7 @@ impl State {
                 error!(node.log, "{}", e);
                 BTreeMap::new()
             }
-            _ => {
-                BTreeMap::new()
-            }
+            _ => BTreeMap::new(),
         }
         // self.operations_statistics = stats;
     }
@@ -298,7 +296,7 @@ pub enum ActiveWidget {
 pub enum ActivePage {
     Synchronization,
     Mempool,
-    Statistics
+    Statistics,
 }
 
 impl ActivePage {
