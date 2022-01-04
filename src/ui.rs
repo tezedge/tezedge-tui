@@ -6,6 +6,7 @@ use tokio::sync::mpsc;
 use tokio::time::Duration;
 use tui::{backend::Backend, Terminal};
 
+use crate::configuration::TuiArgs;
 use crate::layout::{MempoolScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
@@ -17,19 +18,17 @@ pub struct Ui {
     pub log: Logger,
 }
 
-impl Default for Ui {
-    fn default() -> Self {
+impl Ui {
+    pub fn new(args: &TuiArgs) -> Self {
+        let logger = create_file_logger("tui.log");
         Self {
             state: Default::default(),
             ui_state: Default::default(),
-            node: Default::default(),
-            log: create_file_logger("tui.log"),
+            node: Node::new(&args.node, logger.clone()),
+            log: logger,
         }
     }
-}
 
-impl Ui {
-    // TODO: add constructor function, rework the url..
     // TODO: Error handling (unwraps)
     pub async fn run_tui<B: Backend>(
         &mut self,

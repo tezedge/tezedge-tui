@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use slog::error;
 use std::sync::RwLock;
 use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
@@ -63,15 +64,19 @@ impl State {
     }
 
     pub async fn update_current_head_header(&mut self, node: &Node, sort_by: usize) {
-        if let Ok(RpcResponse::CurrentHeadHeader(header)) =
-            node.call_rpc(RpcCall::CurrentHeadHeader, None).await
-        {
-            // only update the head and rights on head change
-            if header.level != self.current_head_header.level {
-                self.current_head_header = header;
-                self.update_head_endorsing_rights(node).await;
-                self.reset_endorsers(sort_by);
+        match node.call_rpc(RpcCall::CurrentHeadHeader, None).await {
+            Ok(RpcResponse::CurrentHeadHeader(header)) => {
+                // only update the head and rights on head change
+                if header.level != self.current_head_header.level {
+                    self.current_head_header = header;
+                    self.update_head_endorsing_rights(node).await;
+                    self.reset_endorsers(sort_by);
+                }
             }
+            Err(e) => {
+                error!(node.log, "{}", e);
+            }
+            _ => {}
         };
     }
 
@@ -79,14 +84,20 @@ impl State {
         let block_hash = &self.current_head_header.hash;
         let block_level = self.current_head_header.level;
 
-        if let Ok(RpcResponse::EndorsementRights(rights)) = node
+        match node
             .call_rpc(
                 RpcCall::EndorsementRights,
                 Some(&format!("?block={}&level={}", block_hash, block_level)),
             )
             .await
         {
-            self.endorsement_rights = rights;
+            Ok(RpcResponse::EndorsementRights(rights)) => {
+                self.endorsement_rights = rights;
+            }
+            Err(e) => {
+                error!(node.log, "{}", e);
+            }
+            _ => {}
         };
     }
 
@@ -104,28 +115,32 @@ impl State {
 
     pub async fn update_endorsers(&mut self, node: &Node, sort_by: usize) {
         let slot_mapped: BTreeMap<u32, EndorsementStatus> =
-            if let Ok(RpcResponse::EndorsementsStatus(statuses)) =
-                node.call_rpc(RpcCall::EndersementsStatus, None).await
-            {
-                // build a per slot representation to be used later
-                statuses.into_iter().map(|(_, v)| (v.slot, v)).collect()
-            } else {
-                BTreeMap::new()
+            match node.call_rpc(RpcCall::EndersementsStatus, None).await {
+                Ok(RpcResponse::EndorsementsStatus(statuses)) => {
+                    // build a per slot representation to be used later
+                    statuses.into_iter().map(|(_, v)| (v.slot, v)).collect()
+                }
+                Err(e) => {
+                    error!(node.log, "{}", e);
+                    BTreeMap::new()
+                }
+                _ => BTreeMap::new(),
             };
 
         if !slot_mapped.is_empty() {
-            if let Some((_, status)) = slot_mapped.iter().last() {
-                if let Ok(time) =
-                    chrono::DateTime::parse_from_rfc3339(&self.current_head_header.timestamp)
-                {
-                    // TODO: investigate this cast
-                    if status.block_timestamp != time.timestamp_nanos() as u64 {
-                        return;
-                    }
-                } else {
-                    return;
-                };
-            }
+            // TODO: we need some info for the slots 
+            // if let Some((_, status)) = slot_mapped.iter().last() {
+            //     if let Ok(time) =
+            //         chrono::DateTime::parse_from_rfc3339(&self.current_head_header.timestamp)
+            //     {
+            //         // TODO: investigate this cast
+            //         if status.block_timestamp != time.timestamp_nanos() as u64 {
+            //             return;
+            //         }
+            //     } else {
+            //         return;
+            //     };
+            // }
 
             let mut sumary: BTreeMap<EndorsementState, usize> = BTreeMap::new();
 

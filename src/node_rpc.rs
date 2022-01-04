@@ -1,6 +1,7 @@
-use std::str::FromStr;
+use std::fmt::Display;
 
 use reqwest::Response;
+use slog::{Logger, info};
 use thiserror::Error;
 use url::Url;
 
@@ -9,22 +10,16 @@ use crate::model::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses};
 #[derive(Clone, Debug)]
 pub struct Node {
     pub url: Url,
-}
 
-impl Default for Node {
-    fn default() -> Self {
-        Self {
-            url: Url::from_str("http://127.0.0.1:18732").unwrap(),
-        }
-    }
+    pub log: Logger,
 }
 
 #[derive(Debug, Error)]
 pub enum RpcError {
     #[error("Error while parsing URL: {0}")]
     UrlParseError(#[from] url::ParseError),
-    #[error("Error while calling RPC: {0}")]
-    RequestError(#[from] reqwest::Error),
+    #[error("Error while calling RPC {0}: {1}")]
+    RequestErrorDetailed(RpcCall, reqwest::Error),
     #[error("Error while desierializing RPC response: {0}")]
     DeserializationError(#[from] serde_json::Error),
 }
@@ -37,10 +32,11 @@ pub enum RpcResponse {
 }
 
 impl Node {
-    pub fn new(path: &str) -> Result<Self, url::ParseError> {
-        let url = Url::from_str(path)?;
-
-        Ok(Self { url })
+    pub fn new(url: &Url, log: Logger) -> Self {
+        Self {
+            url: url.clone(),
+            log,
+        }
     }
     pub async fn call_rpc(
         &self,
@@ -49,17 +45,20 @@ impl Node {
     ) -> Result<RpcResponse, RpcError> {
         let res = self.call_rpc_inner(rpc, query_arg).await?;
 
+        // TODO: remove
+        info!(self.log, "RPC {} response: {:?}", rpc, res);
+
         match rpc {
             RpcCall::EndorsementRights => {
-                let rights: EndorsementRights = res.json().await?;
+                let rights: EndorsementRights = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::EndorsementRights(rights))
             }
             RpcCall::CurrentHeadHeader => {
-                let header: CurrentHeadHeader = res.json().await?;
+                let header: CurrentHeadHeader = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::CurrentHeadHeader(header))
             }
             RpcCall::EndersementsStatus => {
-                let statuses: EndorsementStatuses = res.json().await?;
+                let statuses: EndorsementStatuses = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::EndorsementsStatus(statuses))
             }
         }
@@ -74,15 +73,26 @@ impl Node {
         if let Some(query) = query_arg {
             url = url.join(query)?;
         }
-        Ok(reqwest::get(url).await?)
+
+        reqwest::get(url).await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum RpcCall {
     EndorsementRights,
     EndersementsStatus,
     CurrentHeadHeader,
+}
+
+impl Display for RpcCall {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RpcCall::EndorsementRights => write!(f, "EndorsementRights"),
+            RpcCall::EndersementsStatus => write!(f, "EndersementsStatus"),
+            RpcCall::CurrentHeadHeader => write!(f, "CurrentHeadHeader"),
+        }
+    }
 }
 
 impl RpcCall {

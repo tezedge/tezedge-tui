@@ -2,6 +2,7 @@ use futures_util::stream::StreamExt;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::connect_async;
+use url::Url;
 
 use crate::model::StateRef;
 
@@ -13,9 +14,12 @@ pub enum WebsocketError {
     DeserializeError,
 }
 
-pub async fn spawn_ws_reader(state: StateRef) -> Result<JoinHandle<()>, WebsocketError> {
+pub async fn spawn_ws_reader(
+    state: StateRef,
+    websocket_url: Url,
+) -> Result<JoinHandle<()>, WebsocketError> {
     let handle = tokio::spawn(async move {
-        let (ws_stream, _) = connect_async("ws://116.202.128.230:4927")
+        let (ws_stream, _) = connect_async(websocket_url)
             .await
             .expect("Failed to connect");
         let (_, read) = ws_stream.split();

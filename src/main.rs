@@ -1,3 +1,4 @@
+use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
@@ -10,6 +11,7 @@ use tui::Terminal;
 
 use crate::ui::Ui;
 
+pub mod configuration;
 pub mod layout;
 pub mod model;
 pub mod node_rpc;
@@ -18,8 +20,12 @@ pub mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut ui = Ui::default();
-    let ws_handle = websocket::spawn_ws_reader(ui.state.clone()).await;
+    let tui_args = configuration::TuiArgs::parse();
+
+    let mut ui = Ui::new(&tui_args);
+    let ws_handle = websocket::spawn_ws_reader(ui.state.clone(), tui_args.websocket)
+        .await
+        .expect("Failed to connect to websocket.");
 
     // Setup terminal
     enable_raw_mode()?;

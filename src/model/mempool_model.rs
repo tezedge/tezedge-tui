@@ -10,14 +10,17 @@ pub type EndorsementRightsTableData = Vec<Vec<String>>;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct EndorsementStatus {
-    pub block_timestamp: u64,
+    // pub block_timestamp: u64,
     pub decoded_time: Option<u64>,
     pub received_time: Option<u64>,
     pub applied_time: Option<u64>,
     pub prechecked_time: Option<u64>,
     pub broadcast_time: Option<u64>,
+    pub received_contents_time: Option<u64>,
+    pub received_hash_time: Option<u64>,
     pub slot: u32,
     pub state: String,
+    pub broadcast: bool,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
