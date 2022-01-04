@@ -10,7 +10,7 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, PeerMetrics, PeerTableData, SortableByFocus,
+    IncomingTransferMetrics, PeerMetrics, PeerTableData, SortableByFocus, OperationsStats
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -33,6 +33,10 @@ pub struct State {
     pub endorsement_rights: EndorsementRights,
     pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
+
+    // TODO: make it sortable
+    pub operations_statistics: OperationsStats,
+    pub statistics_pending: bool,
 }
 
 impl State {
@@ -168,6 +172,21 @@ impl State {
             self.current_head_endorsement_statuses = endorsement_operation_time_statistics;
             self.endoresement_status_summary = sumary;
         }
+    }
+
+    // Leaving this as an associated so we won't block by aquiring th write lock
+    pub async fn update_statistics(node: &Node) -> OperationsStats {
+        match node.call_rpc(RpcCall::OperationsStats, None).await {
+            Ok(RpcResponse::OperationsStats(stats)) => stats,
+            Err(e) => {
+                error!(node.log, "{}", e);
+                BTreeMap::new()
+            }
+            _ => {
+                BTreeMap::new()
+            }
+        }
+        // self.operations_statistics = stats;
     }
 }
 

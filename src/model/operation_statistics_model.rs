@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use serde::Deserialize;
 
-pub type OperationsStats = HashMap<String, OperationStats>;
+pub type OperationsStats = BTreeMap<String, OperationStats>;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct OperationStats {
     kind: Option<OperationKind>,
     /// Minimum time when we saw this operation. Latencies are measured
@@ -22,7 +22,7 @@ pub struct OperationStats {
     nodes: HashMap<String, OperationNodeStats>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct OperationNodeStats {
     received: Vec<OperationNodeCurrentHeadStats>,
     sent: Vec<OperationNodeCurrentHeadStats>,

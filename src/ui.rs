@@ -88,7 +88,26 @@ impl Ui {
                     }
                     KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
                     KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
-                    KeyCode::F(3) => self.ui_state.active_page = ActivePage::Statistics,
+                    KeyCode::F(3) => {
+                        self.ui_state.active_page = ActivePage::Statistics;
+                        let mut state_write = self.state.write().unwrap();
+                        if !state_write.statistics_pending {
+                            info!(self.log, "Getting operations statistics");
+                            state_write.statistics_pending = true;
+                            drop(state_write);
+                            let state = self.state.clone();
+                            let node = self.node.clone();
+                            let log = self.log.clone();
+                            tokio::task::spawn(async move {
+                                    let stats = crate::model::State::update_statistics(&node).await;
+                                    let mut state = state.write().unwrap();
+
+                                    state.operations_statistics = stats;
+                                    state.statistics_pending = false;
+                                    info!(log, "Statistics received");
+                            });
+                        }
+                    },
                     _ => {}
                 },
                 Some(TuiEvent::Tick) => {

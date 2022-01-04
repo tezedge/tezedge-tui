@@ -5,7 +5,7 @@ use slog::{Logger, info};
 use thiserror::Error;
 use url::Url;
 
-use crate::model::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses};
+use crate::model::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses, OperationsStats};
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -29,6 +29,7 @@ pub enum RpcResponse {
     EndorsementRights(EndorsementRights),
     EndorsementsStatus(EndorsementStatuses),
     CurrentHeadHeader(CurrentHeadHeader),
+    OperationsStats(OperationsStats),
 }
 
 impl Node {
@@ -45,9 +46,6 @@ impl Node {
     ) -> Result<RpcResponse, RpcError> {
         let res = self.call_rpc_inner(rpc, query_arg).await?;
 
-        // TODO: remove
-        info!(self.log, "RPC {} response: {:?}", rpc, res);
-
         match rpc {
             RpcCall::EndorsementRights => {
                 let rights: EndorsementRights = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
@@ -60,6 +58,10 @@ impl Node {
             RpcCall::EndersementsStatus => {
                 let statuses: EndorsementStatuses = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
                 Ok(RpcResponse::EndorsementsStatus(statuses))
+            }
+            RpcCall::OperationsStats => {
+                let stats: OperationsStats = res.json().await.map_err(|e| RpcError::RequestErrorDetailed(rpc, e))?;
+                Ok(RpcResponse::OperationsStats(stats))
             }
         }
     }
@@ -83,6 +85,7 @@ pub enum RpcCall {
     EndorsementRights,
     EndersementsStatus,
     CurrentHeadHeader,
+    OperationsStats,
 }
 
 impl Display for RpcCall {
@@ -91,6 +94,7 @@ impl Display for RpcCall {
             RpcCall::EndorsementRights => write!(f, "EndorsementRights"),
             RpcCall::EndersementsStatus => write!(f, "EndersementsStatus"),
             RpcCall::CurrentHeadHeader => write!(f, "CurrentHeadHeader"),
+            RpcCall::OperationsStats => write!(f, "OperationsStats"),
         }
     }
 }
@@ -101,6 +105,7 @@ impl RpcCall {
             RpcCall::EndorsementRights => "dev/shell/automaton/endorsing_rights",
             RpcCall::EndersementsStatus => "dev/shell/automaton/endorsements_status",
             RpcCall::CurrentHeadHeader => "chains/main/blocks/head/header",
+            RpcCall::OperationsStats => "dev/shell/automaton/mempool/operation_stats",
         }
     }
 }
