@@ -40,7 +40,7 @@ impl Ui {
             let data_state = &self.state;
             let ui_state = &mut self.ui_state;
             let active_page = ui_state.active_page.clone();
-
+            let log = self.log.clone();
             // Note: here we decide what screen to draw
             terminal.draw(|f| match active_page {
                 ActivePage::Synchronization => {
@@ -50,7 +50,7 @@ impl Ui {
                     MempoolScreen::draw_mempool_screen::<B>(data_state, ui_state, f)
                 }
                 ActivePage::Statistics => {
-                    StatisticsScreen::draw_statistics_screen::<B>(data_state, ui_state, f)
+                    StatisticsScreen::draw_statistics_screen::<B>(data_state, ui_state, &log, f)
                 }
             })?;
 

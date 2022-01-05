@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use slog::{info, Logger};
 use tui::style::Modifier;
 use tui::{
     backend::Backend,
@@ -21,9 +22,12 @@ impl StatisticsScreen {
     pub fn draw_statistics_screen<B: Backend>(
         data_state: &StateRef,
         ui_state: &mut UiState,
+        log: &Logger,
         f: &mut Frame<B>,
     ) {
         let size = f.size();
+
+        let state = data_state.read().unwrap();
 
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -31,13 +35,32 @@ impl StatisticsScreen {
             .constraints([Constraint::Min(5), Constraint::Length(3)])
             .split(size);
 
+        // ======================== PAGES TABS ========================
+        let tabs = create_pages_tabs(ui_state);
+        f.render_widget(tabs, page_chunks[1]);
+
+        // Display a loading data screen until the data is loaded
+        if state.operations_statistics.is_empty() {
+            let loading = Paragraph::new("Loading data...").alignment(Alignment::Center);
+            f.render_widget(loading, size);
+            return;
+        }
+
         let (main_table_chunk, details_table_chunk) = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Max(120), Constraint::Min(3)])
+            .constraints([Constraint::Min(120), Constraint::Length(84)])
             .split(page_chunks[0])
             .into_iter()
             .collect_tuple()
             .unwrap();
+
+        // DEBUG
+        // info!(
+        //     log,
+        //     "Main table width: {} - Details table width: {}",
+        //     main_table_chunk.width,
+        //     details_table_chunk.width
+        // );
 
         // ======================== MAIN STATISTICS TABLE ========================
         let main_table_headers: Vec<String> = [
@@ -48,7 +71,7 @@ impl StatisticsScreen {
         .map(|v| v.to_string())
         .collect();
 
-        let main_table_block = Block::default().borders(Borders::ALL);
+        let main_table_block = Block::default().borders(Borders::ALL).title("Operations");
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
@@ -97,7 +120,7 @@ impl StatisticsScreen {
         .map(|v| v.to_string())
         .collect();
 
-        let details_table_block = Block::default().borders(Borders::ALL);
+        let details_table_block = Block::default().borders(Borders::ALL).title("Details");
 
         let header_cells = main_table_headers
             .iter()
@@ -127,9 +150,5 @@ impl StatisticsScreen {
             ]);
 
         f.render_widget(table, details_table_chunk);
-
-        // ======================== PAGES TABS ========================
-        let tabs = create_pages_tabs(ui_state);
-        f.render_widget(tabs, page_chunks[1]);
     }
 }
