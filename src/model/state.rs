@@ -3,14 +3,15 @@ use std::{collections::BTreeMap, sync::Arc};
 use slog::error;
 use std::sync::RwLock;
 use strum_macros::{Display, EnumIter};
-use tui::widgets::TableState;
+use tui::widgets::{Table, TableState};
 
 use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, OperationsStats, PeerMetrics, PeerTableData, SortableByFocus,
+    IncomingTransferMetrics, OperationsStats, OperationsStatsSortable, PeerMetrics, PeerTableData,
+    SortableByFocus,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -35,7 +36,7 @@ pub struct State {
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 
     // TODO: make it sortable
-    pub operations_statistics: OperationsStats,
+    pub operations_statistics: (OperationsStats, OperationsStatsSortable),
     pub statistics_pending: bool,
 }
 
@@ -175,14 +176,20 @@ impl State {
     }
 
     // Leaving this as an associated so we won't block by aquiring th write lock
-    pub async fn update_statistics(node: &Node) -> OperationsStats {
+    pub async fn update_statistics(node: &Node) -> (OperationsStats, OperationsStatsSortable) {
         match node.call_rpc(RpcCall::OperationsStats, None).await {
-            Ok(RpcResponse::OperationsStats(stats)) => stats,
+            Ok(RpcResponse::OperationsStats(stats)) => (
+                stats.clone(),
+                stats
+                    .into_iter()
+                    .map(|(k, v)| v.to_statistics_sortable(k))
+                    .collect(),
+            ),
             Err(e) => {
                 error!(node.log, "{}", e);
-                BTreeMap::new()
+                (BTreeMap::new(), Vec::new())
             }
-            _ => BTreeMap::new(),
+            _ => (BTreeMap::new(), Vec::new()),
         }
         // self.operations_statistics = stats;
     }
@@ -197,6 +204,10 @@ pub struct UiState {
     pub endorsement_table_state: TableState,
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
+
+    pub main_operation_statistics_table_state: TableState,
+    pub details_operation_statistics_table_state: TableState,
+    pub current_details_length: usize,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -290,6 +301,8 @@ pub enum ActiveWidget {
     PeriodInfo,
     PeerTable,
     EndorserTable,
+    StatisticsMainTable,
+    StatisticsDetailsTable,
 }
 
 #[derive(Debug, Clone, EnumIter, Display)]

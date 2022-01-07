@@ -27,7 +27,7 @@ impl StatisticsScreen {
     ) {
         let size = f.size();
 
-        let state = data_state.read().unwrap();
+        let data_state = data_state.read().unwrap();
 
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -39,8 +39,11 @@ impl StatisticsScreen {
         let tabs = create_pages_tabs(ui_state);
         f.render_widget(tabs, page_chunks[1]);
 
+        let (operations_statistics, operations_statistics_sortable) =
+            data_state.operations_statistics.clone();
+
         // Display a loading data screen until the data is loaded
-        if state.operations_statistics.is_empty() {
+        if operations_statistics.is_empty() {
             let loading = Paragraph::new("Loading data...").alignment(Alignment::Center);
             f.render_widget(loading, size);
             return;
@@ -84,9 +87,17 @@ impl StatisticsScreen {
             .height(1)
             .bottom_margin(1);
 
-        // TODO: replace mocked data
-        let rows =
-            std::iter::repeat(Row::new(std::iter::repeat(Cell::from("MOCK")).take(13))).take(15);
+        let rows = operations_statistics_sortable.iter().map(|item| {
+            let item = item.construct_tui_table_data();
+            let height = item
+                .iter()
+                .map(|content| content.chars().filter(|c| *c == '\n').count())
+                .max()
+                .unwrap_or(0)
+                + 1;
+            let cells = item.iter().map(|c| Cell::from(c.clone()));
+            Row::new(cells).height(height as u16)
+        });
 
         let table = Table::new(rows)
             .header(main_table_header)
@@ -94,6 +105,7 @@ impl StatisticsScreen {
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
             .widths(&[
+                Constraint::Min(22),
                 Constraint::Min(8),
                 Constraint::Min(8),
                 Constraint::Min(8),
@@ -105,15 +117,18 @@ impl StatisticsScreen {
                 Constraint::Min(8),
                 Constraint::Min(8),
                 Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
+                Constraint::Min(19),
             ]);
 
-        f.render_widget(table, main_table_chunk);
+        f.render_stateful_widget(
+            table,
+            main_table_chunk,
+            &mut ui_state.main_operation_statistics_table_state,
+        );
 
         // ======================== DETAILS TABLE ========================
 
-        let main_table_headers: Vec<String> = [
+        let details_table_headers: Vec<String> = [
             "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
         ]
         .iter()
@@ -122,7 +137,7 @@ impl StatisticsScreen {
 
         let details_table_block = Block::default().borders(Borders::ALL).title("Details");
 
-        let header_cells = main_table_headers
+        let header_cells = details_table_headers
             .iter()
             .map(|h| Cell::from(h.as_str()).style(Style::default()));
         let details_table_header = Row::new(header_cells)
@@ -131,8 +146,39 @@ impl StatisticsScreen {
             .bottom_margin(1);
 
         // TODO: replace mocked data
-        let rows =
-            std::iter::repeat(Row::new(std::iter::repeat(Cell::from("D.MOCK")).take(7))).take(12);
+        // let rows =
+        //     std::iter::repeat(Row::new(std::iter::repeat(Cell::from("D.MOCK")).take(7))).take(12);
+
+        let rows = if let Some(index) = ui_state.main_operation_statistics_table_state.selected() {
+            let hash = operations_statistics_sortable[index].hash.clone();
+
+            if let Some(stats) = operations_statistics.get(&hash) {
+                ui_state.current_details_length = stats.node_count();
+                stats.to_operations_details().into_iter().map(|v| {
+                    let item = v.construct_tui_table_data();
+
+                    let height = item
+                        .iter()
+                        .map(|content| content.chars().filter(|c| *c == '\n').count())
+                        .max()
+                        .unwrap_or(0)
+                        + 1;
+                    let cells = item.iter().map(|c| Cell::from(c.clone()));
+                    Row::new(cells).height(height as u16)
+                })
+            } else {
+                let details = Paragraph::new("Select an operation for details...")
+                    .alignment(Alignment::Center);
+                f.render_widget(details, details_table_chunk);
+                return;
+            }
+        } else {
+            // TODO: duplicate... put inside fn/clousure
+            let details =
+                Paragraph::new("Select an operation for details...").alignment(Alignment::Center);
+            f.render_widget(details, details_table_chunk);
+            return;
+        };
 
         let table = Table::new(rows)
             .header(details_table_header)
@@ -149,6 +195,10 @@ impl StatisticsScreen {
                 Constraint::Min(8),
             ]);
 
-        f.render_widget(table, details_table_chunk);
+        f.render_stateful_widget(
+            table,
+            details_table_chunk,
+            &mut ui_state.details_operation_statistics_table_state,
+        );
     }
 }

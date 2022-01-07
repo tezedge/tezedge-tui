@@ -2,6 +2,8 @@ use std::{collections::BTreeMap, hash::Hash, str::FromStr};
 
 use serde::Deserialize;
 
+use super::convert_time_to_unit_string;
+
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
 
@@ -303,21 +305,4 @@ pub struct CurrentHeadHeader {
     pub priority: i32,
     pub proof_of_work_nonce: String,
     pub liquidity_baking_escape_vote: bool,
-}
-
-pub fn convert_time_to_unit_string(time: u64) -> String {
-    let time = time as f64;
-    const MILLISECOND_FACTOR: f64 = 1000.0;
-    const MICROSECOND_FACTOR: f64 = 1000000.0;
-    const NANOSECOND_FACTOR: f64 = 1000000000.0;
-
-    if time >= NANOSECOND_FACTOR {
-        format!("{:.2}s", time / NANOSECOND_FACTOR)
-    } else if time >= MICROSECOND_FACTOR {
-        format!("{:.2}ms", time / MICROSECOND_FACTOR)
-    } else if time >= MILLISECOND_FACTOR {
-        format!("{:.2}μs", time / MILLISECOND_FACTOR)
-    } else {
-        format!("{}ns", time)
-    }
 }

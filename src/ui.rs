@@ -144,25 +144,18 @@ impl Ui {
         match self.ui_state.active_page {
             ActivePage::Synchronization => match self.ui_state.active_widget {
                 ActiveWidget::PeriodInfo => self.ui_state.active_widget = ActiveWidget::PeerTable,
-                ActiveWidget::PeerTable => self.ui_state.active_widget = ActiveWidget::PeriodInfo,
-                ActiveWidget::EndorserTable => {
-                    self.ui_state.active_widget = ActiveWidget::PeriodInfo
-                }
+                _ => self.ui_state.active_widget = ActiveWidget::PeriodInfo,
             },
-            ActivePage::Mempool => match self.ui_state.active_widget {
-                ActiveWidget::PeriodInfo => {
-                    self.ui_state.active_widget = ActiveWidget::EndorserTable
+            ActivePage::Mempool => self.ui_state.active_widget = ActiveWidget::EndorserTable,
+            ActivePage::Statistics => match self.ui_state.active_widget {
+                ActiveWidget::StatisticsMainTable => {
+                    self.ui_state.active_widget = ActiveWidget::StatisticsDetailsTable
                 }
-                ActiveWidget::PeerTable => {
-                    self.ui_state.active_widget = ActiveWidget::EndorserTable
+                ActiveWidget::StatisticsDetailsTable => {
+                    self.ui_state.active_widget = ActiveWidget::StatisticsMainTable
                 }
-                ActiveWidget::EndorserTable => {
-                    self.ui_state.active_widget = ActiveWidget::EndorserTable
-                }
+                _ => self.ui_state.active_widget = ActiveWidget::StatisticsMainTable,
             },
-            ActivePage::Statistics => {
-                // TODO
-            }
         }
     }
 
@@ -183,6 +176,24 @@ impl Ui {
                     self.ui_state.endorsement_table_state.selected(),
                 ))
             }
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_state
+                .select(previous_item(
+                    state.operations_statistics.1.len(),
+                    self.ui_state
+                        .main_operation_statistics_table_state
+                        .selected(),
+                )),
+            ActiveWidget::StatisticsDetailsTable => self
+                .ui_state
+                .details_operation_statistics_table_state
+                .select(previous_item(
+                    self.ui_state.current_details_length,
+                    self.ui_state
+                        .main_operation_statistics_table_state
+                        .selected(),
+                )),
         }
     }
 
@@ -201,6 +212,24 @@ impl Ui {
                 state.current_head_endorsement_statuses.len(),
                 self.ui_state.endorsement_table_state.selected(),
             )),
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_state
+                .select(next_item(
+                    state.operations_statistics.1.len(),
+                    self.ui_state
+                        .main_operation_statistics_table_state
+                        .selected(),
+                )),
+            ActiveWidget::StatisticsDetailsTable => self
+                .ui_state
+                .details_operation_statistics_table_state
+                .select(next_item(
+                    self.ui_state.current_details_length,
+                    self.ui_state
+                        .main_operation_statistics_table_state
+                        .selected(),
+                )),
         }
     }
 }
