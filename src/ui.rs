@@ -73,8 +73,14 @@ impl Ui {
                     KeyCode::Char('d') => {
                         self.ui_state.delta_toggle = !self.ui_state.delta_toggle;
                     }
-                    KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
-                    KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
+                    KeyCode::F(1) => {
+                        self.ui_state.active_page = ActivePage::Synchronization;
+                        self.ui_state.active_widget = ActiveWidget::PeriodInfo;
+                    }
+                    KeyCode::F(2) => {
+                        self.ui_state.active_page = ActivePage::Mempool;
+                        self.ui_state.active_widget = ActiveWidget::EndorserTable;
+                    }
                     KeyCode::F(3) => {
                         self.ui_state.active_page = ActivePage::Statistics;
                         self.ui_state.active_widget = ActiveWidget::StatisticsMainTable;
