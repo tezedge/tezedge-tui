@@ -122,6 +122,15 @@ pub struct OperationStatsSortable {
     pub validations_length: usize,
     pub sent: i128,
     pub kind: OperationKind,
+
+    // Deltas
+    pub content_received_delta: i128,
+    pub validation_started_delta: i128,
+
+    pub preapply_started_delta: i128,
+    pub preapply_ended_delta: i128,
+    pub validation_finished_delta: i128,
+    pub sent_delta: i128,
 }
 
 impl OperationStats {
@@ -131,12 +140,11 @@ impl OperationStats {
             .nodes
             .clone()
             .into_iter()
-            .map(|(_, v)| {
+            .filter_map(|(_, v)| {
                 v.received
                     .into_iter()
                     .min_by_key(|v| v.latency)
                     .map(|v| v.latency)
-                    .unwrap_or_default()
             })
             .min()
             .unwrap_or_default();
@@ -145,12 +153,11 @@ impl OperationStats {
             .nodes
             .clone()
             .into_iter()
-            .map(|(_, v)| {
+            .filter_map(|(_, v)| {
                 v.sent
                     .into_iter()
                     .min_by_key(|v| v.latency)
                     .map(|v| v.latency)
-                    .unwrap_or_default()
             })
             .min()
             .unwrap_or_default();
@@ -165,7 +172,7 @@ impl OperationStats {
             .nodes
             .clone()
             .into_iter()
-            .map(|(_, v)| v.content_received.into_iter().min().unwrap_or_default())
+            .filter_map(|(_, v)| v.content_received.into_iter().min())
             .min()
             .unwrap_or_default();
 
@@ -176,8 +183,18 @@ impl OperationStats {
         let validations_length = self.validations.len();
         let kind = self.kind.unwrap_or_default();
 
+        // Deltas
+        let content_received_delta = content_received - first_received;
+        let validation_started_delta = validation_started - content_received;
+
+        let preapply_started_delta = preapply_started - validation_started;
+        let preapply_ended_delta = preapply_ended - preapply_started;
+        let validation_finished_delta = validation_finished - validation_started;
+
+        let sent_delta = first_sent - validation_finished;
+
         OperationStatsSortable {
-            datetime: self.first_block_timestamp.unwrap_or_default(), // TODO
+            datetime: self.first_block_timestamp.unwrap_or_default(),
             hash,
             nodes,
             delta,
@@ -190,6 +207,12 @@ impl OperationStats {
             validations_length,
             sent: first_sent,
             kind,
+            content_received_delta,
+            validation_started_delta,
+            preapply_started_delta,
+            preapply_ended_delta,
+            validation_finished_delta,
+            sent_delta,
         }
     }
 
@@ -239,7 +262,7 @@ impl OperationStats {
 }
 
 impl OperationStatsSortable {
-    pub fn construct_tui_table_data(&self) -> Vec<String> {
+    pub fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<String> {
         let mut final_vec = Vec::with_capacity(13);
 
         let datetime =
@@ -262,34 +285,68 @@ impl OperationStatsSortable {
             final_vec.push(String::from('-'));
         }
 
-        if self.content_received != 0 {
-            final_vec.push(convert_time_to_unit_string(self.content_received));
-        } else {
-            final_vec.push(String::from('-'));
-        }
+        // Diferent output based on a toggle
 
-        if self.validation_started != 0 {
-            final_vec.push(convert_time_to_unit_string(self.validation_started));
+        if delta_toggle {
+            if self.content_received_delta != 0 {
+                final_vec.push(convert_time_to_unit_string(self.content_received_delta));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.validation_started_delta != 0 {
+                final_vec.push(convert_time_to_unit_string(self.validation_started_delta));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.preapply_started_delta != 0 {
+                final_vec.push(convert_time_to_unit_string(self.preapply_started_delta));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.preapply_ended_delta != 0 {
+                final_vec.push(convert_time_to_unit_string(self.preapply_ended_delta));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.validation_finished_delta != 0 {
+                final_vec.push(convert_time_to_unit_string(self.validation_finished_delta));
+            } else {
+                final_vec.push(String::from('-'));
+            }
         } else {
-            final_vec.push(String::from('-'));
-        }
-
-        if self.preapply_started != 0 {
-            final_vec.push(convert_time_to_unit_string(self.preapply_started));
-        } else {
-            final_vec.push(String::from('-'));
-        }
-
-        if self.preapply_ended != 0 {
-            final_vec.push(convert_time_to_unit_string(self.preapply_ended));
-        } else {
-            final_vec.push(String::from('-'));
-        }
-
-        if self.validation_finished != 0 {
-            final_vec.push(convert_time_to_unit_string(self.validation_finished));
-        } else {
-            final_vec.push(String::from('-'));
+            if self.content_received != 0 {
+                final_vec.push(convert_time_to_unit_string(self.content_received));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.validation_started != 0 {
+                final_vec.push(convert_time_to_unit_string(self.validation_started));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.preapply_started != 0 {
+                final_vec.push(convert_time_to_unit_string(self.preapply_started));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.preapply_ended != 0 {
+                final_vec.push(convert_time_to_unit_string(self.preapply_ended));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+    
+            if self.validation_finished != 0 {
+                final_vec.push(convert_time_to_unit_string(self.validation_finished));
+            } else {
+                final_vec.push(String::from('-'));
+            }
         }
 
         if self.validations_length != 0 {
@@ -298,8 +355,14 @@ impl OperationStatsSortable {
             final_vec.push(String::from('-'));
         }
 
-        if self.sent != 0 {
-            final_vec.push(convert_time_to_unit_string(self.sent));
+        if delta_toggle {
+            if self.sent != 0 {
+                final_vec.push(convert_time_to_unit_string(self.sent));
+            } else {
+                final_vec.push(String::from('-'));
+            }
+        } else if self.sent_delta != 0 {
+            final_vec.push(convert_time_to_unit_string(self.sent_delta));
         } else {
             final_vec.push(String::from('-'));
         }
@@ -377,7 +440,7 @@ impl OperationDetailSortable {
 impl SortableByFocus for OperationsStatsSortable {
     fn sort_by_focus(&mut self, focus_index: usize) {
         match focus_index {
-            0 => self.sort_by_key(|k| k.datetime.clone()),
+            0 => self.sort_by_key(|k| k.datetime),
             1 => self.sort_by_key(|k| k.hash.clone()),
             2 => self.sort_by_key(|k| k.nodes),
             3 => self.sort_by_key(|k| k.delta),

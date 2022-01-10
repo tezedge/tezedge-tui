@@ -203,7 +203,6 @@ impl State {
             }
             _ => (BTreeMap::new(), Vec::new()),
         }
-        // self.operations_statistics = stats;
     }
 }
 
@@ -222,6 +221,7 @@ pub struct UiState {
     pub main_operation_statistics_sorter_state: SorterState,
     pub details_operation_statistics_sorter_state: SorterState,
     pub current_details_length: usize,
+    pub delta_toggle: bool,
 }
 
 impl UiState {

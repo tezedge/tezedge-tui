@@ -95,7 +95,7 @@ impl StatisticsScreen {
             .bottom_margin(1);
 
         let rows = operations_statistics_sortable.iter().map(|item| {
-            let item = item.construct_tui_table_data();
+            let item = item.construct_tui_table_data(ui_state.delta_toggle);
             let height = item
                 .iter()
                 .map(|content| content.chars().filter(|c| *c == '\n').count())

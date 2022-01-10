@@ -70,6 +70,9 @@ impl Ui {
                     KeyCode::Char('j') => {
                         self.sort_by_previous();
                     }
+                    KeyCode::Char('d') => {
+                        self.ui_state.delta_toggle = !self.ui_state.delta_toggle;
+                    }
                     KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
                     KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
                     KeyCode::F(3) => {
