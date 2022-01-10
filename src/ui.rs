@@ -191,7 +191,7 @@ impl Ui {
                 .select(previous_item(
                     self.ui_state.current_details_length,
                     self.ui_state
-                        .main_operation_statistics_table_state
+                        .details_operation_statistics_table_state
                         .selected(),
                 )),
         }
@@ -227,7 +227,7 @@ impl Ui {
                 .select(next_item(
                     self.ui_state.current_details_length,
                     self.ui_state
-                        .main_operation_statistics_table_state
+                        .details_operation_statistics_table_state
                         .selected(),
                 )),
         }
