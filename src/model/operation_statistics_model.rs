@@ -4,6 +4,8 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
 use strum_macros::{Display, ToString};
 
+use super::SortableByFocus;
+
 // use super::convert_time_to_unit_string;
 
 pub type OperationsStats = BTreeMap<String, OperationStats>;
@@ -52,7 +54,7 @@ pub struct OperationValidationStats {
     result: Option<OperationValidationResult>,
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, Display)]
+#[derive(Deserialize, Debug, Clone, Copy, Display, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OperationKind {
     Endorsement,
     SeedNonceRevelation,
@@ -107,7 +109,7 @@ impl Default for OperationValidationResult {
 
 #[derive(Clone, Debug)]
 pub struct OperationStatsSortable {
-    pub datetime: String,
+    pub datetime: i128,
     pub hash: String,
     pub nodes: usize,
     pub delta: i128,
@@ -174,14 +176,8 @@ impl OperationStats {
         let validations_length = self.validations.len();
         let kind = self.kind.unwrap_or_default();
 
-        let datetime = DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp(self.first_block_timestamp.unwrap_or_default() as i64, 0),
-            Utc,
-        )
-        .format("%H:%M:%S, %Y-%m-%d");
-
         OperationStatsSortable {
-            datetime: datetime.to_string(), // TODO
+            datetime: self.first_block_timestamp.unwrap_or_default(), // TODO
             hash,
             nodes,
             delta,
@@ -246,7 +242,11 @@ impl OperationStatsSortable {
     pub fn construct_tui_table_data(&self) -> Vec<String> {
         let mut final_vec = Vec::with_capacity(13);
 
-        final_vec.push(self.datetime.to_string());
+        let datetime =
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
+                .format("%H:%M:%S, %Y-%m-%d");
+
+        final_vec.push(datetime.to_string());
         final_vec.push(self.hash.clone());
         final_vec.push(self.nodes.to_string());
 
@@ -371,5 +371,26 @@ impl OperationDetailSortable {
         final_vec.push(self.sent.to_string());
 
         final_vec
+    }
+}
+
+impl SortableByFocus for OperationsStatsSortable {
+    fn sort_by_focus(&mut self, focus_index: usize) {
+        match focus_index {
+            0 => self.sort_by_key(|k| k.datetime.clone()),
+            1 => self.sort_by_key(|k| k.hash.clone()),
+            2 => self.sort_by_key(|k| k.nodes),
+            3 => self.sort_by_key(|k| k.delta),
+            4 => self.sort_by_key(|k| k.received),
+            5 => self.sort_by_key(|k| k.content_received),
+            6 => self.sort_by_key(|k| k.validation_started),
+            7 => self.sort_by_key(|k| k.preapply_started),
+            8 => self.sort_by_key(|k| k.preapply_ended),
+            9 => self.sort_by_key(|k| k.validation_finished),
+            10 => self.sort_by_key(|k| k.validations_length),
+            11 => self.sort_by_key(|k| k.sent),
+            12 => self.sort_by_key(|k| k.kind),
+            _ => {}
+        }
     }
 }

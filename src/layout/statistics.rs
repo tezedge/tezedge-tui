@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::time::Instant;
 
 use slog::{info, Logger};
 use tui::style::Modifier;
@@ -6,8 +6,7 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    text::Spans,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
 };
 
@@ -25,6 +24,7 @@ impl StatisticsScreen {
         log: &Logger,
         f: &mut Frame<B>,
     ) {
+        let now = Instant::now();
         let size = f.size();
 
         let data_state = data_state.read().unwrap();
@@ -66,13 +66,20 @@ impl StatisticsScreen {
         // );
 
         // ======================== MAIN STATISTICS TABLE ========================
-        let main_table_headers: Vec<String> = [
+        let mut main_table_headers: Vec<String> = [
             "Datetime", "Hash", "Nodes", "Delta", "Received", "Con.Rec.", "Valid.S.", "Preap.S.",
             "Preap.F.", "Valid.F.", "Val.Len.", "Sent", "Kind",
         ]
         .iter()
         .map(|v| v.to_string())
         .collect();
+
+        // add ▼ to the selected sorted table
+        if let Some(v) =
+            main_table_headers.get_mut(ui_state.main_operation_statistics_sorter_state.in_focus())
+        {
+            *v = format!("{}▼", v)
+        }
 
         let main_table_block = Block::default().borders(Borders::ALL).title("Operations");
 
@@ -106,17 +113,17 @@ impl StatisticsScreen {
             .highlight_symbol(">> ")
             .widths(&[
                 Constraint::Min(22),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
                 Constraint::Min(19),
             ]);
 
@@ -144,10 +151,6 @@ impl StatisticsScreen {
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
-
-        // TODO: replace mocked data
-        // let rows =
-        //     std::iter::repeat(Row::new(std::iter::repeat(Cell::from("D.MOCK")).take(7))).take(12);
 
         let rows = if let Some(index) = ui_state.main_operation_statistics_table_state.selected() {
             let hash = operations_statistics_sortable[index].hash.clone();
@@ -200,5 +203,8 @@ impl StatisticsScreen {
             details_table_chunk,
             &mut ui_state.details_operation_statistics_table_state,
         );
+
+        let elapsed = now.elapsed();
+        info!(log, "Render time: {}ms", elapsed.as_millis())
     }
 }

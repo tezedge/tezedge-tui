@@ -176,15 +176,27 @@ impl State {
     }
 
     // Leaving this as an associated so we won't block by aquiring th write lock
-    pub async fn update_statistics(node: &Node) -> (OperationsStats, OperationsStatsSortable) {
+    pub async fn update_statistics(
+        node: &Node,
+        sort_focus: usize,
+    ) -> (OperationsStats, OperationsStatsSortable) {
         match node.call_rpc(RpcCall::OperationsStats, None).await {
-            Ok(RpcResponse::OperationsStats(stats)) => (
-                stats.clone(),
-                stats
+            Ok(RpcResponse::OperationsStats(stats)) => {
+                let mut sortable: OperationsStatsSortable = stats
+                    .clone()
                     .into_iter()
                     .map(|(k, v)| v.to_statistics_sortable(k))
-                    .collect(),
-            ),
+                    .collect();
+
+                sortable.sort_by_focus(sort_focus);
+                (
+                    stats.clone(),
+                    stats
+                        .into_iter()
+                        .map(|(k, v)| v.to_statistics_sortable(k))
+                        .collect(),
+                )
+            }
             Err(e) => {
                 error!(node.log, "{}", e);
                 (BTreeMap::new(), Vec::new())
@@ -200,14 +212,27 @@ impl State {
 pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
-    pub endorsement_sorter_state: EndorsementSorterState,
+    pub endorsement_sorter_state: SorterState,
     pub endorsement_table_state: TableState,
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
 
     pub main_operation_statistics_table_state: TableState,
     pub details_operation_statistics_table_state: TableState,
+    pub main_operation_statistics_sorter_state: SorterState,
+    pub details_operation_statistics_sorter_state: SorterState,
     pub current_details_length: usize,
+}
+
+impl UiState {
+    pub fn new() -> UiState {
+        UiState {
+            endorsement_sorter_state: SorterState::new(9, 3),
+            main_operation_statistics_sorter_state: SorterState::new(13, 0),
+            details_operation_statistics_sorter_state: SorterState::new(7, 0),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -247,20 +272,27 @@ pub enum SortOrder {
 }
 
 #[derive(Debug, Clone)]
-pub struct EndorsementSorterState {
-    pub sort_by: [&'static str; 9],
+pub struct SorterState {
+    sorter_count: usize,
     in_focus: usize,
     pub order: SortOrder,
 }
 
-impl EndorsementSorterState {
+impl SorterState {
+    pub fn new(sorter_count: usize, in_focus: usize) -> SorterState {
+        SorterState {
+            sorter_count,
+            in_focus,
+            order: SortOrder::Ascending,
+        }
+    }
     pub fn in_focus(&self) -> usize {
         self.in_focus
     }
 
     pub fn next(&mut self) {
         let next_index = self.in_focus + 1;
-        if next_index >= self.sort_by.len() {
+        if next_index >= self.sorter_count {
             self.in_focus = 0
         } else {
             self.in_focus = next_index
@@ -269,28 +301,18 @@ impl EndorsementSorterState {
 
     pub fn previous(&mut self) {
         if self.in_focus == 0 {
-            self.in_focus = self.sort_by.len();
+            self.in_focus = self.sorter_count;
         } else {
             self.in_focus -= 1;
         }
     }
 }
 
-impl Default for EndorsementSorterState {
+impl Default for SorterState {
     fn default() -> Self {
         Self {
             in_focus: 3,
-            sort_by: [
-                "Slots",
-                "Baker",
-                "Status",
-                "Delta",
-                "Receive",
-                "Decode",
-                "Precheck",
-                "Apply",
-                "Broadcast",
-            ],
+            sorter_count: 0,
             order: SortOrder::Ascending,
         }
     }

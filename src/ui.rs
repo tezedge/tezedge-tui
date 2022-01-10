@@ -23,7 +23,7 @@ impl Ui {
         let logger = create_file_logger("tui.log");
         Self {
             state: Default::default(),
-            ui_state: Default::default(),
+            ui_state: UiState::new(),
             node: Node::new(&args.node, logger.clone()),
             log: logger,
         }
@@ -65,31 +65,16 @@ impl Ui {
                         self.rotate_widgets();
                     }
                     KeyCode::Char('k') => {
-                        self.ui_state.endorsement_sorter_state.next();
-                        self.state
-                            .write()
-                            .map(|mut state| {
-                                state.current_head_endorsement_statuses.sort_by_focus(
-                                    self.ui_state.endorsement_sorter_state.in_focus(),
-                                )
-                            })
-                            .unwrap();
+                        self.sort_by_next();
                     }
                     KeyCode::Char('j') => {
-                        self.ui_state.endorsement_sorter_state.previous();
-                        self.state
-                            .write()
-                            .map(|mut state| {
-                                state.current_head_endorsement_statuses.sort_by_focus(
-                                    self.ui_state.endorsement_sorter_state.in_focus(),
-                                )
-                            })
-                            .unwrap();
+                        self.sort_by_previous();
                     }
                     KeyCode::F(1) => self.ui_state.active_page = ActivePage::Synchronization,
                     KeyCode::F(2) => self.ui_state.active_page = ActivePage::Mempool,
                     KeyCode::F(3) => {
                         self.ui_state.active_page = ActivePage::Statistics;
+                        self.ui_state.active_widget = ActiveWidget::StatisticsMainTable;
                         let mut state_write = self.state.write().unwrap();
 
                         // This call can be very long so we launch a thread, when the flag is not set (a thread is already running)
@@ -101,8 +86,13 @@ impl Ui {
                             let state = self.state.clone();
                             let node = self.node.clone();
                             let log = self.log.clone();
+                            let sort_focus = self
+                                .ui_state
+                                .details_operation_statistics_sorter_state
+                                .in_focus();
                             tokio::task::spawn(async move {
-                                let stats = crate::model::State::update_statistics(&node).await;
+                                let stats =
+                                    crate::model::State::update_statistics(&node, sort_focus).await;
                                 let mut state = state.write().unwrap();
 
                                 state.operations_statistics = stats;
@@ -137,6 +127,70 @@ impl Ui {
                 None => return Ok(()),
                 _ => {}
             }
+        }
+    }
+
+    fn sort_by_next(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::EndorserTable => {
+                self.ui_state.endorsement_sorter_state.next();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        state
+                            .current_head_endorsement_statuses
+                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                    })
+                    .unwrap();
+            }
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state.main_operation_statistics_sorter_state.next();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        state.operations_statistics.1.sort_by_focus(
+                            self.ui_state
+                                .main_operation_statistics_sorter_state
+                                .in_focus(),
+                        )
+                    })
+                    .unwrap();
+            }
+            ActiveWidget::StatisticsDetailsTable => {}
+            _ => {}
+        }
+    }
+
+    fn sort_by_previous(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::EndorserTable => {
+                self.ui_state.endorsement_sorter_state.previous();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        state
+                            .current_head_endorsement_statuses
+                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                    })
+                    .unwrap();
+            }
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state
+                    .main_operation_statistics_sorter_state
+                    .previous();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        state.operations_statistics.1.sort_by_focus(
+                            self.ui_state
+                                .main_operation_statistics_sorter_state
+                                .in_focus(),
+                        )
+                    })
+                    .unwrap();
+            }
+            ActiveWidget::StatisticsDetailsTable => {}
+            _ => {}
         }
     }
 

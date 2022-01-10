@@ -10,6 +10,10 @@ pub use syncing_model::*;
 pub mod operation_statistics_model;
 pub use operation_statistics_model::*;
 
+pub trait SortableByFocus {
+    fn sort_by_focus(&mut self, focus_index: usize);
+}
+
 pub fn convert_time_to_unit_string(time: u64) -> String {
     let time = time as f64;
     const MILLISECOND_FACTOR: f64 = 1000.0;

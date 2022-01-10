@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, hash::Hash, str::FromStr};
 
 use serde::Deserialize;
 
-use super::convert_time_to_unit_string;
+use super::{convert_time_to_unit_string, SortableByFocus};
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
@@ -267,10 +267,6 @@ impl EndorsementStatusSortable {
 }
 
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
-
-pub trait SortableByFocus {
-    fn sort_by_focus(&mut self, focus_index: usize);
-}
 
 impl SortableByFocus for EndorsementStatusSortableVec {
     fn sort_by_focus(&mut self, focus_index: usize) {
