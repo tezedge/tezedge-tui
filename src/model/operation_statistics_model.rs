@@ -185,7 +185,11 @@ impl OperationStats {
 
         // Deltas
         let content_received_delta = content_received - first_received;
-        let validation_started_delta = validation_started - content_received;
+        let validation_started_delta = if validation_started != 0 {
+            validation_started - content_received
+        } else {
+            0
+        };
 
         let preapply_started_delta = preapply_started - validation_started;
         let preapply_ended_delta = preapply_ended - preapply_started;
@@ -233,11 +237,17 @@ impl OperationStats {
                     .into_iter()
                     .next()
                     .unwrap_or_default();
-                let first_sent = stats
-                    .content_sent
+                let first_sent = self
+                    .nodes
                     .clone()
                     .into_iter()
-                    .next()
+                    .filter_map(|(_, v)| {
+                        v.sent
+                            .into_iter()
+                            .min_by_key(|v| v.latency)
+                            .map(|v| v.latency)
+                    })
+                    .min()
                     .unwrap_or_default();
                 let received = stats.received.len();
                 let content_received = stats.content_received.len();

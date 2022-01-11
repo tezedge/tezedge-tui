@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use slog::{info, Logger};
 use tui::style::Modifier;
+use tui::text::Spans;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -32,12 +33,12 @@ impl StatisticsScreen {
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Min(5), Constraint::Length(3)])
+            .constraints([Constraint::Length(5), Constraint::Min(5), Constraint::Length(3)])
             .split(size);
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(ui_state);
-        f.render_widget(tabs, page_chunks[1]);
+        f.render_widget(tabs, page_chunks[2]);
 
         let (operations_statistics, operations_statistics_sortable) =
             data_state.operations_statistics.clone();
@@ -51,11 +52,39 @@ impl StatisticsScreen {
 
         let (main_table_chunk, details_table_chunk) = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(120), Constraint::Length(84)])
-            .split(page_chunks[0])
+            .constraints([Constraint::Min(120), Constraint::Length(64)])
+            .split(page_chunks[1])
             .into_iter()
             .collect_tuple()
             .unwrap();
+
+        // ======================== HEADER ========================
+        // wrap the header chunk in border
+        let block = Block::default().borders(Borders::ALL).title("Current Head");
+        f.render_widget(block, page_chunks[0]);
+
+        let header = &data_state.current_head_header;
+
+        let header_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+            .split(page_chunks[0]);
+
+        let block_hash = Paragraph::new(Spans::from(format!("Block hash: {}", header.hash)))
+            .block(Block::default())
+            .alignment(Alignment::Left);
+        f.render_widget(block_hash, header_chunks[0]);
+
+        let block_level = Paragraph::new(format!("Level: {}", header.level))
+            .block(Block::default())
+            .alignment(Alignment::Left);
+        f.render_widget(block_level, header_chunks[1]);
+
+        let block_protocol = Paragraph::new(format!("Protocol: {}", header.protocol))
+            .block(Block::default())
+            .alignment(Alignment::Left);
+        f.render_widget(block_protocol, header_chunks[2]);
 
         // DEBUG
         // info!(
@@ -114,7 +143,7 @@ impl StatisticsScreen {
             .widths(&[
                 Constraint::Min(22),
                 Constraint::Min(9),
-                Constraint::Min(9),
+                Constraint::Min(6),
                 Constraint::Min(9),
                 Constraint::Min(9),
                 Constraint::Min(9),
