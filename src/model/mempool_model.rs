@@ -14,7 +14,6 @@ pub type EndorsementRightsTableData = Vec<Vec<String>>;
 pub struct EndorsementStatus {
     // pub block_timestamp: u64,
     pub decoded_time: Option<u64>,
-    pub received_time: Option<u64>,
     pub applied_time: Option<u64>,
     pub prechecked_time: Option<u64>,
     pub broadcast_time: Option<u64>,
@@ -76,7 +75,8 @@ impl Default for EndorsementState {
 pub struct EndorsementStatusSortable {
     pub delta: u64,
     pub decoded_time: u64,
-    pub received_time: u64,
+    pub received_hash_time: u64,
+    pub received_contents_time: u64,
     pub applied_time: u64,
     pub prechecked_time: u64,
     pub broadcast_time: u64,
@@ -87,20 +87,27 @@ pub struct EndorsementStatusSortable {
 }
 
 impl EndorsementStatus {
-    pub fn to_sortable_descending(
+    // TODO: fix sorting, use Options
+    pub fn to_sortable(
         &self,
         baker: String,
         slot_count: usize,
     ) -> EndorsementStatusSortable {
         let delta =
-            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
+            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_contents_time) {
                 broadcast - received
             } else {
                 0
             };
 
-        let received_time = if let Some(received) = self.received_time {
-            received
+        let received_hash_time = if let Some(received_hash_time) = self.received_hash_time {
+            received_hash_time
+        } else {
+            0
+        };
+
+        let received_contents_time = if let Some(received_contents_time) = self.received_contents_time {
+            received_contents_time
         } else {
             0
         };
@@ -133,62 +140,8 @@ impl EndorsementStatus {
             baker,
             slot_count,
             delta,
-            received_time,
-            decoded_time,
-            prechecked_time,
-            applied_time,
-            broadcast_time,
-            state: EndorsementState::from_str(&self.state).unwrap_or_default(),
-        }
-    }
-
-    pub fn to_sortable_ascending(
-        &self,
-        baker: String,
-        slot_count: usize,
-    ) -> EndorsementStatusSortable {
-        let delta =
-            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_time) {
-                broadcast - received
-            } else {
-                u64::MAX
-            };
-
-        let received_time = if let Some(received) = self.received_time {
-            received
-        } else {
-            u64::MAX
-        };
-
-        let decoded_time = if let Some(decoded) = self.decoded_time {
-            decoded
-        } else {
-            u64::MAX
-        };
-
-        let prechecked_time = if let Some(prechecked) = self.prechecked_time {
-            prechecked
-        } else {
-            u64::MAX
-        };
-
-        let applied_time = if let Some(applied) = self.applied_time {
-            applied
-        } else {
-            u64::MAX
-        };
-
-        let broadcast_time = if let Some(broadcast) = self.broadcast_time {
-            broadcast
-        } else {
-            u64::MAX
-        };
-
-        EndorsementStatusSortable {
-            baker,
-            slot_count,
-            delta,
-            received_time,
+            received_hash_time,
+            received_contents_time,
             decoded_time,
             prechecked_time,
             applied_time,
@@ -204,7 +157,8 @@ impl EndorsementStatusSortable {
             baker,
             slot_count,
             delta: u64::MAX,
-            received_time: u64::MAX,
+            received_contents_time: u64::MAX,
+            received_hash_time: u64::MAX,
             decoded_time: u64::MAX,
             prechecked_time: u64::MAX,
             applied_time: u64::MAX,
@@ -221,19 +175,19 @@ impl EndorsementStatusSortable {
         final_vec.push(self.state.to_string());
 
         if self.broadcast_time != 0
-            && self.received_time != 0
+            && self.received_contents_time != 0
             && self.broadcast_time != u64::MAX
-            && self.received_time != u64::MAX
+            && self.received_contents_time != u64::MAX
         {
             final_vec.push(convert_time_to_unit_string(
-                self.broadcast_time - self.received_time,
+                self.broadcast_time - self.received_contents_time,
             ))
         } else {
             final_vec.push(String::from('-'));
         }
 
-        if self.received_time > 0 && self.received_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.received_time));
+        if self.received_contents_time > 0 && self.received_contents_time != u64::MAX {
+            final_vec.push(convert_time_to_unit_string(self.received_contents_time));
         } else {
             final_vec.push(String::from('-'));
         }
@@ -275,7 +229,7 @@ impl SortableByFocus for EndorsementStatusSortableVec {
             1 => self.sort_by_key(|k| k.baker.clone()),
             2 => self.sort_by_key(|k| k.state.clone()),
             3 => self.sort_by_key(|k| k.delta),
-            4 => self.sort_by_key(|k| k.received_time),
+            4 => self.sort_by_key(|k| k.received_contents_time),
             5 => self.sort_by_key(|k| k.decoded_time),
             6 => self.sort_by_key(|k| k.prechecked_time),
             7 => self.sort_by_key(|k| k.applied_time),

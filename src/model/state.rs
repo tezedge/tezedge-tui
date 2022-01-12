@@ -155,7 +155,7 @@ impl State {
                 .map(|(k, v)| {
                     if let Some((_, status)) = slot_mapped.iter().find(|(slot, _)| v.contains(slot))
                     {
-                        let status = status.to_sortable_ascending(k.to_string(), v.len());
+                        let status = status.to_sortable(k.to_string(), v.len());
                         let state_count = sumary.entry(status.state.clone()).or_insert(0);
                         *state_count += status.slot_count;
                         status
