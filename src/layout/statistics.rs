@@ -127,11 +127,11 @@ impl StatisticsScreen {
             let item = item.construct_tui_table_data(ui_state.delta_toggle);
             let height = item
                 .iter()
-                .map(|content| content.chars().filter(|c| *c == '\n').count())
+                .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
                 .max()
                 .unwrap_or(0)
                 + 1;
-            let cells = item.iter().map(|c| Cell::from(c.clone()));
+            let cells = item.iter().map(|(content, color)| Cell::from(content.clone()).style(Style::default().fg(*color)));
             Row::new(cells).height(height as u16)
         });
 
@@ -191,11 +191,11 @@ impl StatisticsScreen {
 
                     let height = item
                         .iter()
-                        .map(|content| content.chars().filter(|c| *c == '\n').count())
+                        .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
                         .max()
                         .unwrap_or(0)
                         + 1;
-                    let cells = item.iter().map(|c| Cell::from(c.clone()));
+                    let cells = item.iter().map(|(content, color)| Cell::from(content.clone()).style(Style::default().fg(*color)));
                     Row::new(cells).height(height as u16)
                 })
             } else {
