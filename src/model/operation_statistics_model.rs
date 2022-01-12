@@ -297,19 +297,19 @@ impl OperationStatsSortable {
                 .format("%H:%M:%S, %Y-%m-%d");
 
         final_vec.push((datetime.to_string(), Color::Gray));
-        final_vec.push((self.hash.clone(), Color::White));
+        final_vec.push((self.hash.clone(), Color::Reset));
         final_vec.push((self.nodes.to_string(), Color::Gray));
 
         if let Some(delta) = self.delta {
             final_vec.push((convert_time_to_unit_string(delta), get_color(delta)));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         if let Some(received) = self.received {
-            final_vec.push((convert_time_to_unit_string(received), Color::White));
+            final_vec.push((convert_time_to_unit_string(received), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         // Diferent output based on a toggle
@@ -318,86 +318,86 @@ impl OperationStatsSortable {
             if let Some(content_received_delta) = self.content_received_delta {
                 final_vec.push((convert_time_to_unit_string(content_received_delta), get_color(content_received_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(validation_started_delta) = self.validation_started_delta {
                 final_vec.push((convert_time_to_unit_string(validation_started_delta), get_color(validation_started_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(preapply_started_delta) = self.preapply_started_delta {
                 final_vec.push((convert_time_to_unit_string(preapply_started_delta), get_color(preapply_started_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(preapply_ended_delta) = self.preapply_ended_delta {
                 final_vec.push((convert_time_to_unit_string(preapply_ended_delta), get_color(preapply_ended_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(validation_finished_delta) = self.validation_finished_delta {
                 final_vec.push((convert_time_to_unit_string(validation_finished_delta), get_color(validation_finished_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
         } else {
             if let Some(content_received) = self.content_received {
-                final_vec.push((convert_time_to_unit_string(content_received), Color::White));
+                final_vec.push((convert_time_to_unit_string(content_received), Color::Reset));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(validation_started) = self.validation_started {
-                final_vec.push((convert_time_to_unit_string(validation_started), Color::White));
+                final_vec.push((convert_time_to_unit_string(validation_started), Color::Reset));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(preapply_started) = self.preapply_started {
-                final_vec.push((convert_time_to_unit_string(preapply_started), Color::White));
+                final_vec.push((convert_time_to_unit_string(preapply_started), Color::Reset));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(preapply_ended) = self.preapply_ended {
-                final_vec.push((convert_time_to_unit_string(preapply_ended), Color::White));
+                final_vec.push((convert_time_to_unit_string(preapply_ended), Color::Reset));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
     
             if let Some(validation_finished) = self.validation_finished {
-                final_vec.push((convert_time_to_unit_string(validation_finished), Color::White));
+                final_vec.push((convert_time_to_unit_string(validation_finished), Color::Reset));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
         }
 
         if self.validations_length != 0 {
             final_vec.push((self.validations_length.to_string(), Color::Gray));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         if delta_toggle {
             if let Some(sent_delta) = self.sent_delta {
                 final_vec.push((convert_time_to_unit_string(sent_delta), get_color(sent_delta)));
             } else {
-                final_vec.push((String::from('-'), Color::Gray));
+                final_vec.push((String::from('-'), Color::DarkGray));
             }
         } else if let Some(sent) = self.sent {
-            final_vec.push((convert_time_to_unit_string(sent), Color::White));
+            final_vec.push((convert_time_to_unit_string(sent), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         if let Some(kind) = self.kind {
-            final_vec.push((kind.to_string(), Color::White));
+            final_vec.push((kind.to_string(), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         final_vec
@@ -436,29 +436,29 @@ impl OperationDetailSortable {
     pub fn construct_tui_table_data(&self) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(7);
 
-        final_vec.push((self.node_id.clone(), Color::White));
+        final_vec.push((self.node_id.clone(), Color::Reset));
 
         if let Some(first_received) = self.first_received {
-            final_vec.push((convert_time_to_unit_string(first_received), Color::White));
+            final_vec.push((convert_time_to_unit_string(first_received), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         if let Some(first_content_received) = self.first_content_received {
-            final_vec.push((convert_time_to_unit_string(first_content_received), Color::White));
+            final_vec.push((convert_time_to_unit_string(first_content_received), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
         if let Some(first_sent) = self.first_sent {
-            final_vec.push((convert_time_to_unit_string(first_sent), Color::White));
+            final_vec.push((convert_time_to_unit_string(first_sent), Color::Reset));
         } else {
-            final_vec.push((String::from('-'), Color::Gray));
+            final_vec.push((String::from('-'), Color::DarkGray));
         }
 
-        final_vec.push((self.received.to_string(), Color::White));
-        final_vec.push((self.content_received.to_string(), Color::White));
-        final_vec.push((self.sent.to_string(), Color::White));
+        final_vec.push((self.received.to_string(), Color::Reset));
+        final_vec.push((self.content_received.to_string(), Color::Reset));
+        final_vec.push((self.sent.to_string(), Color::Reset));
 
         final_vec
     }
@@ -466,7 +466,7 @@ impl OperationDetailSortable {
 
 fn get_color(value: i128) -> Color {
     if value < 20000000 {
-        Color::White
+        Color::Reset
     } else if value < 50000000 {
         Color::Rgb(255, 165, 0) // orange
     } else {
