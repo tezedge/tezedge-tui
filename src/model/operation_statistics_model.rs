@@ -16,10 +16,11 @@ pub struct OperationStats {
     kind: Option<OperationKind>,
     /// Minimum time when we saw this operation. Latencies are measured
     /// from this point.
-    min_time: Option<i128>,
-    first_block_timestamp: Option<i128>,
+    min_time: Option<u64>,
+    first_block_timestamp: Option<u64>,
     validation_started: Option<i128>,
-    validation_result: Option<(i128, OperationValidationResult, i128, i128)>,
+    /// (time_validation_finished, validation_result, prevalidation_duration)
+    validation_result: Option<(i128, OperationValidationResult, Option<i128>, Option<i128>)>,
     validations: Vec<OperationValidationStats>,
     nodes: HashMap<String, OperationNodeStats>,
 }
@@ -86,6 +87,9 @@ pub enum OperationValidationResult {
     Refused,
     BranchRefused,
     BranchDelayed,
+    Prechecked,
+    PrecheckRefused,
+    Prevalidate,
     Default,
 }
 
@@ -109,7 +113,7 @@ impl Default for OperationValidationResult {
 
 #[derive(Clone, Debug)]
 pub struct OperationStatsSortable {
-    pub datetime: i128,
+    pub datetime: u64,
     pub hash: String,
     pub nodes: usize,
     pub delta: i128,
@@ -191,8 +195,18 @@ impl OperationStats {
             0
         };
 
-        let preapply_started_delta = preapply_started - validation_started;
-        let preapply_ended_delta = preapply_ended - preapply_started;
+        let preapply_started_delta = if let Some(preapply_started) = preapply_started {
+            preapply_started - validation_started
+        } else {
+            0
+        };
+
+        let preapply_ended_delta = if let (Some(preapply_started), Some(preapply_ended)) = (preapply_started, preapply_ended) {
+            preapply_ended - preapply_started
+        } else {
+            0
+        };
+
         let validation_finished_delta = validation_finished - validation_started;
 
         let sent_delta = first_sent - validation_finished;
@@ -205,8 +219,8 @@ impl OperationStats {
             received: first_received,
             content_received,
             validation_started,
-            preapply_started,
-            preapply_ended,
+            preapply_started: preapply_started.unwrap_or_default(),
+            preapply_ended: preapply_ended.unwrap_or_default(),
             validation_finished,
             validations_length,
             sent: first_sent,
@@ -237,18 +251,12 @@ impl OperationStats {
                     .into_iter()
                     .next()
                     .unwrap_or_default();
-                let first_sent = self
-                    .nodes
-                    .clone()
-                    .into_iter()
-                    .filter_map(|(_, v)| {
-                        v.sent
+                let first_sent =
+                        stats.clone().sent
                             .into_iter()
                             .min_by_key(|v| v.latency)
                             .map(|v| v.latency)
-                    })
-                    .min()
-                    .unwrap_or_default();
+                        .unwrap_or_default();
                 let received = stats.received.len();
                 let content_received = stats.content_received.len();
                 let sent = stats.sent.len();
