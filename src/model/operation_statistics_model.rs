@@ -116,25 +116,25 @@ pub struct OperationStatsSortable {
     pub datetime: u64,
     pub hash: String,
     pub nodes: usize,
-    pub delta: i128,
-    pub received: i128,
-    pub content_received: i128,
-    pub validation_started: i128,
-    pub preapply_started: i128,
-    pub preapply_ended: i128,
-    pub validation_finished: i128,
+    pub delta: Option<i128>,
+    pub received: Option<i128>,
+    pub content_received: Option<i128>,
+    pub validation_started: Option<i128>,
+    pub preapply_started: Option<i128>,
+    pub preapply_ended: Option<i128>,
+    pub validation_finished: Option<i128>,
     pub validations_length: usize,
-    pub sent: i128,
-    pub kind: OperationKind,
+    pub sent: Option<i128>,
+    pub kind: Option<OperationKind>,
 
     // Deltas
-    pub content_received_delta: i128,
-    pub validation_started_delta: i128,
+    pub content_received_delta: Option<i128>,
+    pub validation_started_delta: Option<i128>,
 
-    pub preapply_started_delta: i128,
-    pub preapply_ended_delta: i128,
-    pub validation_finished_delta: i128,
-    pub sent_delta: i128,
+    pub preapply_started_delta: Option<i128>,
+    pub preapply_ended_delta: Option<i128>,
+    pub validation_finished_delta: Option<i128>,
+    pub sent_delta: Option<i128>,
 }
 
 impl OperationStats {
@@ -150,8 +150,7 @@ impl OperationStats {
                     .min_by_key(|v| v.latency)
                     .map(|v| v.latency)
             })
-            .min()
-            .unwrap_or_default();
+            .min();
 
         let first_sent = self
             .nodes
@@ -163,13 +162,12 @@ impl OperationStats {
                     .min_by_key(|v| v.latency)
                     .map(|v| v.latency)
             })
-            .min()
-            .unwrap_or_default();
+            .min();
 
-        let delta = if first_received == 0 || first_sent == 0 {
-            0
+        let delta = if let (Some(first_received), Some(first_sent)) = (first_received, first_sent) {
+            Some(first_sent - first_received)
         } else {
-            first_sent - first_received
+            None
         };
 
         let content_received = self
@@ -177,39 +175,52 @@ impl OperationStats {
             .clone()
             .into_iter()
             .filter_map(|(_, v)| v.content_received.into_iter().min())
-            .min()
-            .unwrap_or_default();
+            .min();
 
-        let validation_started = self.validation_started.unwrap_or_default();
-        let (validation_finished, _, preapply_started, preapply_ended) =
-            self.validation_result.unwrap_or_default();
-
-        let validations_length = self.validations.len();
-        let kind = self.kind.unwrap_or_default();
-
-        // Deltas
-        let content_received_delta = content_received - first_received;
-        let validation_started_delta = if validation_started != 0 {
-            validation_started - content_received
+        let (validation_finished, _, preapply_started, preapply_ended) = if let Some(validation_res) = self.validation_result {
+            (Some(validation_res.0), Some(validation_res.1), validation_res.2, validation_res.3)
         } else {
-            0
+            (None, None, None, None)
         };
 
-        let preapply_started_delta = if let Some(preapply_started) = preapply_started {
-            preapply_started - validation_started
+        let validations_length = self.validations.len();
+
+        // Deltas
+        let content_received_delta = if let (Some(content_received), Some(first_received)) = (content_received, first_received) {
+            Some(content_received - first_received)
         } else {
-            0
+            None
+        };
+
+        let validation_started_delta = if let (Some(validation_started), Some(content_received)) = (self.validation_started, content_received) {
+            Some(validation_started - content_received)
+        } else {
+            None
+        };
+
+        let preapply_started_delta = if let (Some(preapply_started), Some(validation_started)) = (preapply_started, self.validation_started) {
+            Some(preapply_started - validation_started)
+        } else {
+            None
         };
 
         let preapply_ended_delta = if let (Some(preapply_started), Some(preapply_ended)) = (preapply_started, preapply_ended) {
-            preapply_ended - preapply_started
+            Some(preapply_ended - preapply_started)
         } else {
-            0
+            None
         };
 
-        let validation_finished_delta = validation_finished - validation_started;
+        let validation_finished_delta = if let (Some(validation_started), Some(validation_finished)) = (self.validation_started, validation_finished) {
+            Some(validation_finished - validation_started)
+        } else {
+            None
+        };
 
-        let sent_delta = first_sent - validation_finished;
+        let sent_delta = if let (Some(first_sent), Some(validation_finished)) = (first_sent, validation_finished) {
+            Some(first_sent - validation_finished)
+        } else {
+            None
+        };
 
         OperationStatsSortable {
             datetime: self.first_block_timestamp.unwrap_or_default(),
@@ -218,13 +229,13 @@ impl OperationStats {
             delta,
             received: first_received,
             content_received,
-            validation_started,
-            preapply_started: preapply_started.unwrap_or_default(),
-            preapply_ended: preapply_ended.unwrap_or_default(),
+            validation_started: self.validation_started,
+            preapply_started,
+            preapply_ended,
             validation_finished,
             validations_length,
             sent: first_sent,
-            kind,
+            kind: self.kind,
             content_received_delta,
             validation_started_delta,
             preapply_started_delta,
@@ -243,20 +254,17 @@ impl OperationStats {
                     .clone()
                     .into_iter()
                     .next()
-                    .unwrap_or_default()
-                    .latency;
+                    .map(|v| v.latency);
                 let first_content_received = stats
                     .content_received
                     .clone()
                     .into_iter()
-                    .next()
-                    .unwrap_or_default();
+                    .next();
                 let first_sent =
                         stats.clone().sent
                             .into_iter()
                             .min_by_key(|v| v.latency)
-                            .map(|v| v.latency)
-                        .unwrap_or_default();
+                            .map(|v| v.latency);
                 let received = stats.received.len();
                 let content_received = stats.content_received.len();
                 let sent = stats.sent.len();
@@ -291,14 +299,14 @@ impl OperationStatsSortable {
         final_vec.push(self.hash.clone());
         final_vec.push(self.nodes.to_string());
 
-        if self.delta != 0 {
-            final_vec.push(convert_time_to_unit_string(self.delta));
+        if let Some(delta) = self.delta {
+            final_vec.push(convert_time_to_unit_string(delta));
         } else {
             final_vec.push(String::from('-'));
         }
 
-        if self.received != 0 {
-            final_vec.push(convert_time_to_unit_string(self.received));
+        if let Some(received) = self.received {
+            final_vec.push(convert_time_to_unit_string(received));
         } else {
             final_vec.push(String::from('-'));
         }
@@ -306,62 +314,62 @@ impl OperationStatsSortable {
         // Diferent output based on a toggle
 
         if delta_toggle {
-            if self.content_received_delta != 0 {
-                final_vec.push(convert_time_to_unit_string(self.content_received_delta));
+            if let Some(content_received_delta) = self.content_received_delta {
+                final_vec.push(convert_time_to_unit_string(content_received_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.validation_started_delta != 0 {
-                final_vec.push(convert_time_to_unit_string(self.validation_started_delta));
+            if let Some(validation_started_delta) = self.validation_started_delta {
+                final_vec.push(convert_time_to_unit_string(validation_started_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.preapply_started_delta != 0 {
-                final_vec.push(convert_time_to_unit_string(self.preapply_started_delta));
+            if let Some(preapply_started_delta) = self.preapply_started_delta {
+                final_vec.push(convert_time_to_unit_string(preapply_started_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.preapply_ended_delta != 0 {
-                final_vec.push(convert_time_to_unit_string(self.preapply_ended_delta));
+            if let Some(preapply_ended_delta) = self.preapply_ended_delta {
+                final_vec.push(convert_time_to_unit_string(preapply_ended_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.validation_finished_delta != 0 {
-                final_vec.push(convert_time_to_unit_string(self.validation_finished_delta));
+            if let Some(validation_finished_delta) = self.validation_finished_delta {
+                final_vec.push(convert_time_to_unit_string(validation_finished_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
         } else {
-            if self.content_received != 0 {
-                final_vec.push(convert_time_to_unit_string(self.content_received));
+            if let Some(content_received) = self.content_received {
+                final_vec.push(convert_time_to_unit_string(content_received));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.validation_started != 0 {
-                final_vec.push(convert_time_to_unit_string(self.validation_started));
+            if let Some(validation_started) = self.validation_started {
+                final_vec.push(convert_time_to_unit_string(validation_started));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.preapply_started != 0 {
-                final_vec.push(convert_time_to_unit_string(self.preapply_started));
+            if let Some(preapply_started) = self.preapply_started {
+                final_vec.push(convert_time_to_unit_string(preapply_started));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.preapply_ended != 0 {
-                final_vec.push(convert_time_to_unit_string(self.preapply_ended));
+            if let Some(preapply_ended) = self.preapply_ended {
+                final_vec.push(convert_time_to_unit_string(preapply_ended));
             } else {
                 final_vec.push(String::from('-'));
             }
     
-            if self.validation_finished != 0 {
-                final_vec.push(convert_time_to_unit_string(self.validation_finished));
+            if let Some(validation_finished) = self.validation_finished {
+                final_vec.push(convert_time_to_unit_string(validation_finished));
             } else {
                 final_vec.push(String::from('-'));
             }
@@ -374,21 +382,21 @@ impl OperationStatsSortable {
         }
 
         if delta_toggle {
-            if self.sent != 0 {
-                final_vec.push(convert_time_to_unit_string(self.sent));
+            if let Some(sent_delta) = self.sent_delta {
+                final_vec.push(convert_time_to_unit_string(sent_delta));
             } else {
                 final_vec.push(String::from('-'));
             }
-        } else if self.sent_delta != 0 {
-            final_vec.push(convert_time_to_unit_string(self.sent_delta));
+        } else if let Some(sent) = self.sent {
+            final_vec.push(convert_time_to_unit_string(sent));
         } else {
             final_vec.push(String::from('-'));
         }
 
-        if let OperationKind::Default = self.kind {
-            final_vec.push(String::from('-'));
+        if let Some(kind) = self.kind {
+            final_vec.push(kind.to_string());
         } else {
-            final_vec.push(self.kind.to_string());
+            final_vec.push(String::from('-'));
         }
 
         final_vec
@@ -415,9 +423,9 @@ fn convert_time_to_unit_string(time: i128) -> String {
 
 pub struct OperationDetailSortable {
     pub node_id: String,
-    pub first_received: i128,
-    pub first_content_received: i128,
-    pub first_sent: i128,
+    pub first_received: Option<i128>,
+    pub first_content_received: Option<i128>,
+    pub first_sent: Option<i128>,
     pub received: usize,
     pub content_received: usize,
     pub sent: usize,
@@ -429,20 +437,20 @@ impl OperationDetailSortable {
 
         final_vec.push(self.node_id.clone());
 
-        if self.first_received != 0 {
-            final_vec.push(convert_time_to_unit_string(self.first_received));
+        if let Some(first_received) = self.first_received {
+            final_vec.push(convert_time_to_unit_string(first_received));
         } else {
             final_vec.push(String::from('-'));
         }
 
-        if self.first_content_received != 0 {
-            final_vec.push(convert_time_to_unit_string(self.first_content_received));
+        if let Some(first_content_received) = self.first_content_received {
+            final_vec.push(convert_time_to_unit_string(first_content_received));
         } else {
             final_vec.push(String::from('-'));
         }
 
-        if self.first_sent != 0 {
-            final_vec.push(convert_time_to_unit_string(self.first_sent));
+        if let Some(first_sent) = self.first_sent {
+            final_vec.push(convert_time_to_unit_string(first_sent));
         } else {
             final_vec.push(String::from('-'));
         }
