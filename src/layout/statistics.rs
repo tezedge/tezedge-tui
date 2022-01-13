@@ -33,7 +33,11 @@ impl StatisticsScreen {
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Length(5), Constraint::Min(5), Constraint::Length(3)])
+            .constraints([
+                Constraint::Length(5),
+                Constraint::Min(5),
+                Constraint::Length(3),
+            ])
             .split(size);
 
         // ======================== PAGES TABS ========================
@@ -131,7 +135,9 @@ impl StatisticsScreen {
                 .max()
                 .unwrap_or(0)
                 + 1;
-            let cells = item.iter().map(|(content, color)| Cell::from(content.clone()).style(Style::default().fg(*color)));
+            let cells = item.iter().map(|(content, color)| {
+                Cell::from(content.clone()).style(Style::default().fg(*color))
+            });
             Row::new(cells).height(height as u16)
         });
 
@@ -195,7 +201,9 @@ impl StatisticsScreen {
                         .max()
                         .unwrap_or(0)
                         + 1;
-                    let cells = item.iter().map(|(content, color)| Cell::from(content.clone()).style(Style::default().fg(*color)));
+                    let cells = item.iter().map(|(content, color)| {
+                        Cell::from(content.clone()).style(Style::default().fg(*color))
+                    });
                     Row::new(cells).height(height as u16)
                 })
             } else {
