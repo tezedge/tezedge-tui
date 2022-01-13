@@ -178,46 +178,65 @@ impl OperationStats {
             .filter_map(|(_, v)| v.content_received.into_iter().min())
             .min();
 
-        let (validation_finished, _, preapply_started, preapply_ended) = if let Some(validation_res) = self.validation_result {
-            (Some(validation_res.0), Some(validation_res.1), validation_res.2, validation_res.3)
-        } else {
-            (None, None, None, None)
-        };
+        let (validation_finished, _, preapply_started, preapply_ended) =
+            if let Some(validation_res) = self.validation_result {
+                (
+                    Some(validation_res.0),
+                    Some(validation_res.1),
+                    validation_res.2,
+                    validation_res.3,
+                )
+            } else {
+                (None, None, None, None)
+            };
 
         let validations_length = self.validations.len();
 
         // Deltas
-        let content_received_delta = if let (Some(content_received), Some(first_received)) = (content_received, first_received) {
+        let content_received_delta = if let (Some(content_received), Some(first_received)) =
+            (content_received, first_received)
+        {
             Some(content_received - first_received)
         } else {
             None
         };
 
-        let validation_started_delta = if let (Some(validation_started), Some(content_received)) = (self.validation_started, content_received) {
+        let validation_started_delta = if let (Some(validation_started), Some(content_received)) =
+            (self.validation_started, content_received)
+        {
             Some(validation_started - content_received)
         } else {
             None
         };
 
-        let preapply_started_delta = if let (Some(preapply_started), Some(validation_started)) = (preapply_started, self.validation_started) {
+        let preapply_started_delta = if let (Some(preapply_started), Some(validation_started)) =
+            (preapply_started, self.validation_started)
+        {
             Some(preapply_started - validation_started)
         } else {
             None
         };
 
-        let preapply_ended_delta = if let (Some(preapply_started), Some(preapply_ended)) = (preapply_started, preapply_ended) {
+        let preapply_ended_delta = if let (Some(preapply_started), Some(preapply_ended)) =
+            (preapply_started, preapply_ended)
+        {
             Some(preapply_ended - preapply_started)
         } else {
             None
         };
 
-        let validation_finished_delta = if let (Some(validation_started), Some(validation_finished)) = (self.validation_started, validation_finished) {
-            Some(validation_finished - validation_started)
-        } else {
-            None
-        };
+        let validation_finished_delta =
+            if let (Some(validation_started), Some(validation_finished)) =
+                (self.validation_started, validation_finished)
+            {
+                Some(validation_finished - validation_started)
+            } else {
+                None
+            };
 
-        let sent_delta = if let (Some(first_sent), Some(validation_finished)) = (first_sent, validation_finished) {
+        let sent_delta = if let (Some(first_sent), Some(validation_finished)) =
+            (first_sent, validation_finished)
+        {
             Some(first_sent - validation_finished)
         } else {
             None
@@ -250,22 +269,14 @@ impl OperationStats {
         self.nodes
             .iter()
             .map(|(node_id, stats)| {
-                let first_received = stats
-                    .received
+                let first_received = stats.received.clone().into_iter().next().map(|v| v.latency);
+                let first_content_received = stats.content_received.clone().into_iter().next();
+                let first_sent = stats
                     .clone()
+                    .sent
                     .into_iter()
-                    .next()
+                    .min_by_key(|v| v.latency)
                     .map(|v| v.latency);
-                let first_content_received = stats
-                    .content_received
-                    .clone()
-                    .into_iter()
-                    .next();
-                let first_sent =
-                        stats.clone().sent
-                            .into_iter()
-                            .min_by_key(|v| v.latency)
-                            .map(|v| v.latency);
                 let received = stats.received.len();
                 let content_received = stats.content_received.len();
                 let sent = stats.sent.len();
@@ -316,31 +327,46 @@ impl OperationStatsSortable {
 
         if delta_toggle {
             if let Some(content_received_delta) = self.content_received_delta {
-                final_vec.push((convert_time_to_unit_string(content_received_delta), get_color(content_received_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(content_received_delta),
+                    get_color(content_received_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(validation_started_delta) = self.validation_started_delta {
-                final_vec.push((convert_time_to_unit_string(validation_started_delta), get_color(validation_started_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(validation_started_delta),
+                    get_color(validation_started_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(preapply_started_delta) = self.preapply_started_delta {
-                final_vec.push((convert_time_to_unit_string(preapply_started_delta), get_color(preapply_started_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(preapply_started_delta),
+                    get_color(preapply_started_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(preapply_ended_delta) = self.preapply_ended_delta {
-                final_vec.push((convert_time_to_unit_string(preapply_ended_delta), get_color(preapply_ended_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(preapply_ended_delta),
+                    get_color(preapply_ended_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(validation_finished_delta) = self.validation_finished_delta {
-                final_vec.push((convert_time_to_unit_string(validation_finished_delta), get_color(validation_finished_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(validation_finished_delta),
+                    get_color(validation_finished_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
@@ -350,27 +376,33 @@ impl OperationStatsSortable {
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(validation_started) = self.validation_started {
-                final_vec.push((convert_time_to_unit_string(validation_started), Color::Reset));
+                final_vec.push((
+                    convert_time_to_unit_string(validation_started),
+                    Color::Reset,
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(preapply_started) = self.preapply_started {
                 final_vec.push((convert_time_to_unit_string(preapply_started), Color::Reset));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(preapply_ended) = self.preapply_ended {
                 final_vec.push((convert_time_to_unit_string(preapply_ended), Color::Reset));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
-    
+
             if let Some(validation_finished) = self.validation_finished {
-                final_vec.push((convert_time_to_unit_string(validation_finished), Color::Reset));
+                final_vec.push((
+                    convert_time_to_unit_string(validation_finished),
+                    Color::Reset,
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
@@ -384,7 +416,10 @@ impl OperationStatsSortable {
 
         if delta_toggle {
             if let Some(sent_delta) = self.sent_delta {
-                final_vec.push((convert_time_to_unit_string(sent_delta), get_color(sent_delta)));
+                final_vec.push((
+                    convert_time_to_unit_string(sent_delta),
+                    get_color(sent_delta),
+                ));
             } else {
                 final_vec.push((String::from('-'), Color::DarkGray));
             }
@@ -445,7 +480,10 @@ impl OperationDetailSortable {
         }
 
         if let Some(first_content_received) = self.first_content_received {
-            final_vec.push((convert_time_to_unit_string(first_content_received), Color::Reset));
+            final_vec.push((
+                convert_time_to_unit_string(first_content_received),
+                Color::Reset,
+            ));
         } else {
             final_vec.push((String::from('-'), Color::DarkGray));
         }
@@ -475,20 +513,50 @@ fn get_color(value: i128) -> Color {
 }
 
 impl SortableByFocus for OperationsStatsSortable {
-    fn sort_by_focus(&mut self, focus_index: usize) {
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
         match focus_index {
             0 => self.sort_by_key(|k| k.datetime),
             1 => self.sort_by_key(|k| k.hash.clone()),
             2 => self.sort_by_key(|k| k.nodes),
             3 => self.sort_by_key(|k| k.delta),
             4 => self.sort_by_key(|k| k.received),
-            5 => self.sort_by_key(|k| k.content_received),
-            6 => self.sort_by_key(|k| k.validation_started),
-            7 => self.sort_by_key(|k| k.preapply_started),
-            8 => self.sort_by_key(|k| k.preapply_ended),
-            9 => self.sort_by_key(|k| k.validation_finished),
+            5 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.content_received_delta
+                } else {
+                    k.content_received
+                }
+            }),
+            6 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.validation_started_delta
+                } else {
+                    k.validation_started
+                }
+            }),
+            7 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.preapply_started_delta
+                } else {
+                    k.preapply_started
+                }
+            }),
+            8 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.preapply_ended_delta
+                } else {
+                    k.preapply_ended
+                }
+            }),
+            9 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.validation_finished_delta
+                } else {
+                    k.validation_finished
+                }
+            }),
             10 => self.sort_by_key(|k| k.validations_length),
-            11 => self.sort_by_key(|k| k.sent),
+            11 => self.sort_by_key(|k| if delta_toggle { k.sent_delta } else { k.sent }),
             12 => self.sort_by_key(|k| k.kind),
             _ => {}
         }

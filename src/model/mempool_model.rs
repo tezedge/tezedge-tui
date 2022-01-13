@@ -88,17 +88,14 @@ pub struct EndorsementStatusSortable {
 
 impl EndorsementStatus {
     // TODO: fix sorting, use Options
-    pub fn to_sortable(
-        &self,
-        baker: String,
-        slot_count: usize,
-    ) -> EndorsementStatusSortable {
-        let delta =
-            if let (Some(broadcast), Some(received)) = (self.broadcast_time, self.received_contents_time) {
-                broadcast - received
-            } else {
-                0
-            };
+    pub fn to_sortable(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
+        let delta = if let (Some(broadcast), Some(received)) =
+            (self.broadcast_time, self.received_contents_time)
+        {
+            broadcast - received
+        } else {
+            0
+        };
 
         let received_hash_time = if let Some(received_hash_time) = self.received_hash_time {
             received_hash_time
@@ -106,11 +103,12 @@ impl EndorsementStatus {
             0
         };
 
-        let received_contents_time = if let Some(received_contents_time) = self.received_contents_time {
-            received_contents_time
-        } else {
-            0
-        };
+        let received_contents_time =
+            if let Some(received_contents_time) = self.received_contents_time {
+                received_contents_time
+            } else {
+                0
+            };
 
         let decoded_time = if let Some(decoded) = self.decoded_time {
             decoded
@@ -223,7 +221,7 @@ impl EndorsementStatusSortable {
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
 impl SortableByFocus for EndorsementStatusSortableVec {
-    fn sort_by_focus(&mut self, focus_index: usize) {
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
         match focus_index {
             0 => self.sort_by_key(|k| k.slot_count),
             1 => self.sort_by_key(|k| k.baker.clone()),

@@ -95,13 +95,18 @@ impl Ui {
                             let state = self.state.clone();
                             let node = self.node.clone();
                             let log = self.log.clone();
+                            let delta_toggle = self.ui_state.delta_toggle;
                             let sort_focus = self
                                 .ui_state
                                 .details_operation_statistics_sorter_state
                                 .in_focus();
                             tokio::task::spawn(async move {
-                                let stats =
-                                    crate::model::State::update_statistics(&node, sort_focus).await;
+                                let stats = crate::model::State::update_statistics(
+                                    &node,
+                                    sort_focus,
+                                    delta_toggle,
+                                )
+                                .await;
                                 let mut state = state.write().unwrap();
 
                                 state.operations_statistics = stats;
@@ -146,9 +151,10 @@ impl Ui {
                 self.state
                     .write()
                     .map(|mut state| {
-                        state
-                            .current_head_endorsement_statuses
-                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        state.current_head_endorsement_statuses.sort_by_focus(
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            self.ui_state.delta_toggle,
+                        )
                     })
                     .unwrap();
             }
@@ -161,6 +167,7 @@ impl Ui {
                             self.ui_state
                                 .main_operation_statistics_sorter_state
                                 .in_focus(),
+                            self.ui_state.delta_toggle,
                         )
                     })
                     .unwrap();
@@ -177,9 +184,10 @@ impl Ui {
                 self.state
                     .write()
                     .map(|mut state| {
-                        state
-                            .current_head_endorsement_statuses
-                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        state.current_head_endorsement_statuses.sort_by_focus(
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            self.ui_state.delta_toggle,
+                        )
                     })
                     .unwrap();
             }
@@ -194,6 +202,7 @@ impl Ui {
                             self.ui_state
                                 .main_operation_statistics_sorter_state
                                 .in_focus(),
+                            self.ui_state.delta_toggle,
                         )
                     })
                     .unwrap();

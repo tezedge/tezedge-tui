@@ -11,7 +11,7 @@ pub mod operation_statistics_model;
 pub use operation_statistics_model::*;
 
 pub trait SortableByFocus {
-    fn sort_by_focus(&mut self, focus_index: usize);
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toogle: bool);
 }
 
 pub fn convert_time_to_unit_string(time: u64) -> String {

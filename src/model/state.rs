@@ -113,7 +113,7 @@ impl State {
             .map(|(k, slots)| EndorsementStatusSortable::new(k.to_string(), slots.len()))
             .collect();
 
-        statuses.sort_by_focus(sort_by);
+        statuses.sort_by_focus(sort_by, false); // TODO
 
         self.current_head_endorsement_statuses = statuses;
     }
@@ -168,7 +168,7 @@ impl State {
                 })
                 .collect();
 
-            endorsement_operation_time_statistics.sort_by_focus(sort_by);
+            endorsement_operation_time_statistics.sort_by_focus(sort_by, false); // TODO
 
             self.current_head_endorsement_statuses = endorsement_operation_time_statistics;
             self.endoresement_status_summary = sumary;
@@ -179,6 +179,7 @@ impl State {
     pub async fn update_statistics(
         node: &Node,
         sort_focus: usize,
+        delta_toggle: bool,
     ) -> (OperationsStats, OperationsStatsSortable) {
         match node.call_rpc(RpcCall::OperationsStats, None).await {
             Ok(RpcResponse::OperationsStats(stats)) => {
@@ -188,7 +189,7 @@ impl State {
                     .map(|(k, v)| v.to_statistics_sortable(k))
                     .collect();
 
-                sortable.sort_by_focus(sort_focus);
+                sortable.sort_by_focus(sort_focus, delta_toggle);
                 (
                     stats.clone(),
                     stats
