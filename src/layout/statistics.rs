@@ -140,27 +140,51 @@ impl StatisticsScreen {
             });
             Row::new(cells).height(height as u16)
         });
+        
+        const SIDE_PADDINGS: u16 = 1;
+        const INITIAL_PADDING: u16 = 2;
+        let table_size_max: u16 = f.size().width - details_table_chunk.width - SIDE_PADDINGS;
+        info!(log, "Calculated max size: {}", table_size_max);
+        info!(log, "Actual size: {}", main_table_chunk.width);
+
+        let table_constraints = [
+            Constraint::Min(22),
+            Constraint::Min(9),
+            Constraint::Min(6),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(9),
+            Constraint::Min(19),
+        ];
+
+        let mut acc: u16 = INITIAL_PADDING;
+
+        let to_render: Vec<Constraint> = table_constraints.iter().take_while_ref(|constraint| {
+            if let Constraint::Min(unit) = constraint {
+                acc += unit + SIDE_PADDINGS;
+                acc <= table_size_max
+            } else {
+                // TODO
+                false
+            }
+        })
+        .cloned()
+        .collect();
+
+        info!(log, "Table constructor acc: {}", acc);
 
         let table = Table::new(rows)
             .header(main_table_header)
             .block(main_table_block)
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
-            .widths(&[
-                Constraint::Min(22),
-                Constraint::Min(9),
-                Constraint::Min(6),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(19),
-            ]);
+            .widths(&to_render);
 
         f.render_stateful_widget(
             table,
