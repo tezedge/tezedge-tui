@@ -221,6 +221,7 @@ pub struct UiState {
     pub details_operation_statistics_table_state: TableState,
     pub main_operation_statistics_sorter_state: SorterState,
     pub details_operation_statistics_sorter_state: SorterState,
+    pub main_operation_statistics_table_roller_state: RollableTableState,
     pub current_details_length: usize,
     pub delta_toggle: bool,
 }
@@ -231,6 +232,7 @@ impl UiState {
             endorsement_sorter_state: SorterState::new(9, 3),
             main_operation_statistics_sorter_state: SorterState::new(13, 0),
             details_operation_statistics_sorter_state: SorterState::new(7, 0),
+            main_operation_statistics_table_roller_state: RollableTableState::new(&[0, 1, 2, 3, 4]),
             ..Default::default()
         }
     }
@@ -285,6 +287,7 @@ impl SorterState {
             sorter_count,
             in_focus,
             order: SortOrder::Ascending,
+            ..Default::default()
         }
     }
     pub fn in_focus(&self) -> usize {
@@ -312,9 +315,65 @@ impl SorterState {
 impl Default for SorterState {
     fn default() -> Self {
         Self {
-            in_focus: 3,
+            in_focus: 0,
             sorter_count: 0,
             order: SortOrder::Ascending,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RollableTableState {
+    /// Total number of indexex able to be rendered
+    rendered: usize,
+
+    /// Always render content at these indexes
+    fixed: Vec<usize>,
+
+    /// First index to be rendered
+    first_rendered_index: usize,
+}
+
+impl RollableTableState {
+
+    pub fn new(fixed: &[usize]) -> Self {
+        Self {
+            fixed: fixed.to_vec(),
+            rendered: 0,
+            first_rendered_index: fixed.len(),
+        }
+    }
+
+    pub fn rendered(&self) -> usize {
+        self.rendered
+    }
+
+    pub fn first_rendered_index(&self) -> usize {
+        self.first_rendered_index
+    }
+
+    pub fn set_first_rendered_index(&mut self, first_rendered_index: usize) {
+        self.first_rendered_index = first_rendered_index;
+    }
+
+    pub fn set_rendered(&mut self, rendered: usize) {
+        self.rendered = rendered
+    }
+
+    pub fn set_fixed(&mut self, fixed: &[usize]) {
+        self.fixed = fixed.to_vec()
+    }
+
+    pub fn next(&mut self) {
+        let next_index = self.first_rendered_index + 1;
+        if next_index < self.rendered {
+            self.first_rendered_index = next_index
+        }
+    }
+
+    pub fn previous(&mut self) {
+        if self.first_rendered_index != 0 {
+            self.first_rendered_index -= 1;
         }
     }
 }

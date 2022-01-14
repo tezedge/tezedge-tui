@@ -119,28 +119,8 @@ impl StatisticsScreen {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
 
-        let header_cells = main_table_headers
-            .iter()
-            .map(|h| Cell::from(h.as_str()).style(Style::default()));
-        let main_table_header = Row::new(header_cells)
-            .style(normal_style)
-            .height(1)
-            .bottom_margin(1);
+        let delta_toggle = ui_state.delta_toggle;
 
-        let rows = operations_statistics_sortable.iter().map(|item| {
-            let item = item.construct_tui_table_data(ui_state.delta_toggle);
-            let height = item
-                .iter()
-                .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
-                .max()
-                .unwrap_or(0)
-                + 1;
-            let cells = item.iter().map(|(content, color)| {
-                Cell::from(content.clone()).style(Style::default().fg(*color))
-            });
-            Row::new(cells).height(height as u16)
-        });
-        
         const SIDE_PADDINGS: u16 = 1;
         const INITIAL_PADDING: u16 = 2;
         let table_size_max: u16 = f.size().width - details_table_chunk.width - SIDE_PADDINGS;
@@ -163,9 +143,23 @@ impl StatisticsScreen {
             Constraint::Min(19),
         ];
 
-        let mut acc: u16 = INITIAL_PADDING;
+        // TODO: rethink and rework this part
+        let mut acc: u16 = INITIAL_PADDING + table_constraints.iter().take(5).map(|c| {
+            if let Constraint::Min(unit) = c {
+                *unit
+            } else {
+                0
+            }
+        }).reduce(|mut acc, unit| {
+            acc += unit;
+            acc
+        }).unwrap_or(0);
 
-        let to_render: Vec<Constraint> = table_constraints.iter().take_while_ref(|constraint| {
+        // TODO: rethink and rework this part
+        let mut to_render: Vec<Constraint> = table_constraints.iter().take(5).cloned().collect();
+        let start_index = ui_state.main_operation_statistics_table_roller_state.first_rendered_index();
+
+        let dynamic_to_render: Vec<Constraint> = table_constraints.iter().skip(start_index).take_while_ref(|constraint| {
             if let Constraint::Min(unit) = constraint {
                 acc += unit + SIDE_PADDINGS;
                 acc <= table_size_max
@@ -177,7 +171,46 @@ impl StatisticsScreen {
         .cloned()
         .collect();
 
+        to_render.extend(dynamic_to_render);
+
+        ui_state.main_operation_statistics_table_roller_state.set_rendered(to_render.len());
+
+        let fixed_header_cells = main_table_headers
+            .iter()
+            .take(5)
+            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+
+        let dynamic_header_cells = main_table_headers
+            .iter()
+            .skip(start_index)
+            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+
+        let header_cells = fixed_header_cells.chain(dynamic_header_cells);
+
+        let main_table_header = Row::new(header_cells)
+            .style(normal_style)
+            .height(1)
+            .bottom_margin(1);
+
         info!(log, "Table constructor acc: {}", acc);
+
+        let rows = operations_statistics_sortable.iter().map(|item| {
+            let item = item.construct_tui_table_data(delta_toggle);
+            let height = item
+                .iter()
+                .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
+                .max()
+                .unwrap_or(0)
+                + 1;
+            let fixed_cells = item.iter().take(5).map(|(content, color)| {
+                Cell::from(content.clone()).style(Style::default().fg(*color))
+            });
+            let dynamic_cells = item.iter().skip(start_index).map(|(content, color)| {
+                Cell::from(content.clone()).style(Style::default().fg(*color))
+            });
+            let cells = fixed_cells.chain(dynamic_cells);
+            Row::new(cells).height(height as u16)
+        });
 
         let table = Table::new(rows)
             .header(main_table_header)
@@ -191,6 +224,8 @@ impl StatisticsScreen {
             main_table_chunk,
             &mut ui_state.main_operation_statistics_table_state,
         );
+
+        info!(log, "RollingTableState: {:?}", ui_state.main_operation_statistics_table_roller_state);
 
         // ======================== DETAILS TABLE ========================
 

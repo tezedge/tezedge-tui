@@ -59,8 +59,12 @@ impl Ui {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Down => self.handle_down(),
                     KeyCode::Up => self.handle_up(),
-                    KeyCode::Right => {}
-                    KeyCode::Left => {}
+                    KeyCode::Right => {
+                        self.table_next();
+                    }
+                    KeyCode::Left => {
+                        self.table_previous();
+                    }
                     KeyCode::Tab => {
                         self.rotate_widgets();
                     }
@@ -141,6 +145,29 @@ impl Ui {
                 None => return Ok(()),
                 _ => {}
             }
+        }
+    }
+    fn table_next(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state.main_operation_statistics_table_roller_state.next()
+            }
+            ActiveWidget::StatisticsDetailsTable => {
+
+            }
+            _ => {}
+        }
+    }
+
+    fn table_previous(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state.main_operation_statistics_table_roller_state.previous()
+            }
+            ActiveWidget::StatisticsDetailsTable => {
+
+            }
+            _ => {}
         }
     }
 
