@@ -143,8 +143,9 @@ impl StatisticsScreen {
             Constraint::Min(19),
         ];
 
-        // TODO: rethink and rework this part
-        let mut acc: u16 = INITIAL_PADDING + table_constraints.iter().take(5).map(|c| {
+        let fixed_count = ui_state.main_operation_statistics_table_roller_state.fixed();
+
+        let mut acc: u16 = INITIAL_PADDING + table_constraints.iter().take(fixed_count).map(|c| {
             if let Constraint::Min(unit) = c {
                 *unit
             } else {
@@ -155,8 +156,7 @@ impl StatisticsScreen {
             acc
         }).unwrap_or(0);
 
-        // TODO: rethink and rework this part
-        let mut to_render: Vec<Constraint> = table_constraints.iter().take(5).cloned().collect();
+        let mut to_render: Vec<Constraint> = table_constraints.iter().take(fixed_count).cloned().collect();
         let start_index = ui_state.main_operation_statistics_table_roller_state.first_rendered_index();
 
         let dynamic_to_render: Vec<Constraint> = table_constraints.iter().skip(start_index).take_while_ref(|constraint| {
@@ -177,7 +177,7 @@ impl StatisticsScreen {
 
         let fixed_header_cells = main_table_headers
             .iter()
-            .take(5)
+            .take(fixed_count)
             .map(|h| Cell::from(h.as_str()).style(Style::default()));
 
         let dynamic_header_cells = main_table_headers
@@ -202,7 +202,7 @@ impl StatisticsScreen {
                 .max()
                 .unwrap_or(0)
                 + 1;
-            let fixed_cells = item.iter().take(5).map(|(content, color)| {
+            let fixed_cells = item.iter().take(fixed_count).map(|(content, color)| {
                 Cell::from(content.clone()).style(Style::default().fg(*color))
             });
             let dynamic_cells = item.iter().skip(start_index).map(|(content, color)| {

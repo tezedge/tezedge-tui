@@ -232,7 +232,7 @@ impl UiState {
             endorsement_sorter_state: SorterState::new(9, 3),
             main_operation_statistics_sorter_state: SorterState::new(13, 0),
             details_operation_statistics_sorter_state: SorterState::new(7, 0),
-            main_operation_statistics_table_roller_state: RollableTableState::new(&[0, 1, 2, 3, 4]),
+            main_operation_statistics_table_roller_state: RollableTableState::new(3, 13),
             ..Default::default()
         }
     }
@@ -287,7 +287,6 @@ impl SorterState {
             sorter_count,
             in_focus,
             order: SortOrder::Ascending,
-            ..Default::default()
         }
     }
     pub fn in_focus(&self) -> usize {
@@ -327,25 +326,33 @@ pub struct RollableTableState {
     /// Total number of indexex able to be rendered
     rendered: usize,
 
-    /// Always render content at these indexes
-    fixed: Vec<usize>,
+    /// Always render content this number of content starting from index 0
+    fixed_count: usize,
 
-    /// First index to be rendered
+    /// First index to be rendered after the last fixed index
     first_rendered_index: usize,
+
+    /// The total number of columns
+    total: usize
 }
 
 impl RollableTableState {
 
-    pub fn new(fixed: &[usize]) -> Self {
+    pub fn new(fixed_count: usize, total: usize) -> Self {
         Self {
-            fixed: fixed.to_vec(),
+            fixed_count,
             rendered: 0,
-            first_rendered_index: fixed.len(),
+            first_rendered_index: fixed_count,
+            total,
         }
     }
 
     pub fn rendered(&self) -> usize {
         self.rendered
+    }
+
+    pub fn fixed(&self) -> usize {
+        self.fixed_count
     }
 
     pub fn first_rendered_index(&self) -> usize {
@@ -360,19 +367,19 @@ impl RollableTableState {
         self.rendered = rendered
     }
 
-    pub fn set_fixed(&mut self, fixed: &[usize]) {
-        self.fixed = fixed.to_vec()
+    pub fn set_fixed(&mut self, fixed: usize) {
+        self.fixed_count = fixed
     }
 
     pub fn next(&mut self) {
         let next_index = self.first_rendered_index + 1;
-        if next_index < self.rendered {
+        if next_index < self.total {
             self.first_rendered_index = next_index
         }
     }
 
     pub fn previous(&mut self) {
-        if self.first_rendered_index != 0 {
+        if self.first_rendered_index != self.fixed_count {
             self.first_rendered_index -= 1;
         }
     }
@@ -401,6 +408,7 @@ impl ActivePage {
             ActivePage::Mempool => 1,
             ActivePage::Statistics => 2,
         }
+
     }
 }
 
