@@ -233,6 +233,7 @@ impl UiState {
             main_operation_statistics_sorter_state: SorterState::new(13, 0),
             details_operation_statistics_sorter_state: SorterState::new(7, 0),
             main_operation_statistics_table_roller_state: RollableTableState::new(3, 13),
+            delta_toggle: true,
             ..Default::default()
         }
     }

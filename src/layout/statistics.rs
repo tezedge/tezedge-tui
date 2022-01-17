@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use conv::UnwrapOk;
 use slog::{info, Logger};
 use tui::style::Modifier;
 use tui::text::Spans;
@@ -16,6 +17,10 @@ use itertools::Itertools;
 use crate::model::{StateRef, UiState};
 
 use super::create_pages_tabs;
+
+const SIDE_PADDINGS: u16 = 1;
+const INITIAL_PADDING: u16 = 2;
+const SIDE_BY_SIDE_TABLE_THRESHOLD: u16 = 128;
 pub struct StatisticsScreen {}
 
 impl StatisticsScreen {
@@ -54,14 +59,24 @@ impl StatisticsScreen {
             return;
         }
 
-        let (main_table_chunk, details_table_chunk) = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(120), Constraint::Length(64)])
-            .split(page_chunks[1])
-            .into_iter()
-            .collect_tuple()
-            .unwrap();
-
+        let (main_table_chunk, details_table_chunk) = if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
+            Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(75), Constraint::Length(25)])
+                .split(page_chunks[1])
+                .into_iter()
+                .collect_tuple()
+                .unwrap()
+        } else {
+            Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Min(64), Constraint::Length(64)])
+                .split(page_chunks[1])
+                .into_iter()
+                .collect_tuple()
+                .unwrap()
+        };
+        
         // ======================== HEADER ========================
         // wrap the header chunk in border
         let block = Block::default().borders(Borders::ALL).title("Current Head");
@@ -90,14 +105,6 @@ impl StatisticsScreen {
             .alignment(Alignment::Left);
         f.render_widget(block_protocol, header_chunks[2]);
 
-        // DEBUG
-        // info!(
-        //     log,
-        //     "Main table width: {} - Details table width: {}",
-        //     main_table_chunk.width,
-        //     details_table_chunk.width
-        // );
-
         // ======================== MAIN STATISTICS TABLE ========================
         let mut main_table_headers: Vec<String> = [
             "Datetime", "Hash", "Nodes", "Delta", "Received", "Con.Rec.", "Valid.S.", "Preap.S.",
@@ -121,9 +128,12 @@ impl StatisticsScreen {
 
         let delta_toggle = ui_state.delta_toggle;
 
-        const SIDE_PADDINGS: u16 = 1;
-        const INITIAL_PADDING: u16 = 2;
-        let table_size_max: u16 = f.size().width - details_table_chunk.width - SIDE_PADDINGS;
+        let table_size_max: u16 = if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
+            f.size().width - SIDE_PADDINGS
+        } else {
+            f.size().width - details_table_chunk.width - SIDE_PADDINGS
+        };
+
         info!(log, "Calculated max size: {}", table_size_max);
         info!(log, "Actual size: {}", main_table_chunk.width);
 
