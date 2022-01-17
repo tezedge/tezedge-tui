@@ -91,8 +91,19 @@ impl StatisticsScreen {
 
         // ======================== MAIN STATISTICS TABLE ========================
         let mut main_table_headers: Vec<String> = [
-            "Datetime", "Hash", "Nodes", "Delta", "Received", "Con.Rec.", "Valid.S.", "Preap.S.",
-            "Preap.F.", "Valid.F.", "Val.Len.", "Sent", "Kind",
+            "Datetime",
+            "Hash",
+            "Nodes",
+            "Delta",
+            "Received",
+            "Content Received",
+            "Validation Started",
+            "Preapply Started",
+            "Preapply Finished",
+            "Validation Finished",
+            "Validation Length",
+            "Sent",
+            "Kind",
         ]
         .iter()
         .map(|v| v.to_string())
@@ -127,12 +138,12 @@ impl StatisticsScreen {
             Constraint::Min(6),
             Constraint::Min(9),
             Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(9),
+            Constraint::Min(17),
+            Constraint::Min(19),
+            Constraint::Min(17),
+            Constraint::Min(18),
+            Constraint::Min(20),
+            Constraint::Min(18),
             Constraint::Min(9),
             Constraint::Min(19),
         ];
