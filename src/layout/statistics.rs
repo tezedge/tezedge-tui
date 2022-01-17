@@ -18,7 +18,7 @@ use itertools::Itertools;
 
 use crate::model::{StateRef, UiState};
 
-use super::{create_pages_tabs, create_help_bar};
+use super::{create_pages_tabs, create_help_bar, create_header_bar};
 
 const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
@@ -85,32 +85,8 @@ impl StatisticsScreen {
         create_help_bar(page_chunks[3], f, delta_toggle);
 
         // ======================== HEADER ========================
-        // wrap the header chunk in border
-        let block = Block::default().borders(Borders::ALL).title("Current Head");
-        f.render_widget(block, page_chunks[0]);
-
         let header = &data_state.current_head_header;
-
-        let header_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
-            .split(page_chunks[0]);
-
-        let block_hash = Paragraph::new(Spans::from(format!("Block hash: {}", header.hash)))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_hash, header_chunks[0]);
-
-        let block_level = Paragraph::new(format!("Level: {}", header.level))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_level, header_chunks[1]);
-
-        let block_protocol = Paragraph::new(format!("Protocol: {}", header.protocol))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_protocol, header_chunks[2]);
+        create_header_bar(page_chunks[0], header, f);
 
         // ======================== MAIN STATISTICS TABLE ========================
         let mut main_table_headers: Vec<String> = [

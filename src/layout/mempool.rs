@@ -14,7 +14,7 @@ use itertools::Itertools;
 
 use crate::model::{EndorsementState, StateRef, UiState};
 
-use super::{create_pages_tabs, create_help_bar};
+use super::{create_pages_tabs, create_help_bar, create_header_bar};
 pub struct MempoolScreen {}
 
 impl MempoolScreen {
@@ -47,32 +47,8 @@ impl MempoolScreen {
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
         // ======================== HEADER ========================
-        // wrap the header chunk in border
-        let block = Block::default().borders(Borders::ALL).title("Current Head");
-        f.render_widget(block, header_chunk);
-
         let header = &data_state.current_head_header;
-
-        let header_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
-            .split(header_chunk);
-
-        let block_hash = Paragraph::new(Spans::from(format!("Block hash: {}", header.hash)))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_hash, header_chunks[0]);
-
-        let block_level = Paragraph::new(format!("Level: {}", header.level))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_level, header_chunks[1]);
-
-        let block_protocol = Paragraph::new(format!("Protocol: {}", header.protocol))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_protocol, header_chunks[2]);
+        create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
         let summary_elements_constraits = std::iter::repeat(Constraint::Percentage(16))

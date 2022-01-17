@@ -12,10 +12,10 @@ use strum::IntoEnumIterator;
 use tui::{
     style::{Color, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Tabs, Paragraph}, Frame, backend::Backend, layout::{Layout, Direction, Constraint, Rect},
+    widgets::{Block, Borders, Tabs, Paragraph}, Frame, backend::Backend, layout::{Layout, Direction, Constraint, Rect, Alignment},
 };
 
-use crate::model::{ActivePage, UiState};
+use crate::model::{ActivePage, UiState, CurrentHeadHeader};
 
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
@@ -82,4 +82,36 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
         ]);
         f.render_widget(p, help_chunks[index]);
     }
+}
+
+pub fn create_header_bar<B: Backend>(header_chunk: Rect, header: &CurrentHeadHeader, f: &mut Frame<B>) {
+    // wrap the header info in borders
+    let block = Block::default().borders(Borders::ALL).title("Current Head");
+    f.render_widget(block, header_chunk);
+
+    let header_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .split(header_chunk);
+
+    let block_hash = Paragraph::new(Spans::from(vec![
+        Span::styled("Block hash: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{} ", header.hash), Style::default().fg(Color::Reset)),
+    ]));
+
+    f.render_widget(block_hash, header_chunks[0]);
+
+    let block_level = Paragraph::new(Spans::from(vec![
+        Span::styled("Level: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{} ", header.level), Style::default().fg(Color::Reset)),
+    ]));
+
+    f.render_widget(block_level, header_chunks[1]);
+
+    let block_protocol = Paragraph::new(Spans::from(vec![
+        Span::styled("Protocol: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{} ", header.protocol), Style::default().fg(Color::Reset)),
+    ]));
+    f.render_widget(block_protocol, header_chunks[2]);
 }
