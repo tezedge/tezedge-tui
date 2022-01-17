@@ -14,7 +14,7 @@ use itertools::Itertools;
 
 use crate::model::{EndorsementState, StateRef, UiState};
 
-use super::create_pages_tabs;
+use super::{create_pages_tabs, create_help_bar};
 pub struct MempoolScreen {}
 
 impl MempoolScreen {
@@ -25,12 +25,13 @@ impl MempoolScreen {
     ) {
         let data_state = data_state.read().unwrap();
         let size = f.size();
+        let delta_toggle = ui_state.delta_toggle;
 
         // TODO: placeholder for mempool page
-        let chunks = Layout::default()
+        let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Min(5), Constraint::Length(3)])
+            .constraints([Constraint::Min(5), Constraint::Length(3), Constraint::Length(4)])
             .split(size);
 
         let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
@@ -40,7 +41,7 @@ impl MempoolScreen {
                 Constraint::Length(4),
                 Constraint::Min(1),
             ])
-            .split(chunks[0])
+            .split(page_chunks[0])
             .into_iter()
             .collect_tuple()
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
@@ -193,6 +194,9 @@ impl MempoolScreen {
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(ui_state);
-        f.render_widget(tabs, chunks[1]);
+        f.render_widget(tabs, page_chunks[1]);
+
+        // ======================== HELP BAR ========================
+        create_help_bar(page_chunks[2], f, delta_toggle);
     }
 }

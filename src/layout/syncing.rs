@@ -12,7 +12,7 @@ use tui::{
 
 use crate::model::{ActiveWidget, StateRef, UiState};
 
-use super::create_pages_tabs;
+use super::{create_pages_tabs, create_help_bar};
 
 pub struct SyncingScreen {}
 
@@ -24,6 +24,7 @@ impl SyncingScreen {
     ) {
         let data_state = data_state.read().unwrap();
         let widget_in_focus = &ui_state.active_widget;
+        let delta_toggle = ui_state.delta_toggle;
 
         let size = f.size();
 
@@ -31,7 +32,7 @@ impl SyncingScreen {
         f.render_widget(block, size);
 
         // split the screen to 4 parts vertically
-        let chunks = Layout::default()
+        let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
             .constraints(
@@ -40,6 +41,7 @@ impl SyncingScreen {
                     Constraint::Min(2),
                     Constraint::Length(10),
                     Constraint::Length(3),
+                    Constraint::Length(4),
                 ]
                 .as_ref(),
             )
@@ -49,7 +51,7 @@ impl SyncingScreen {
         let top_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-            .split(chunks[0]);
+            .split(page_chunks[0]);
 
         let headers_and_operations_block = Block::default()
             .title("Syncing headers and operations")
@@ -123,7 +125,7 @@ impl SyncingScreen {
 
         // ======================== CHAIN STATUS ========================
         // let chain_status = Block::default().borders(Borders::ALL);
-        // f.render_widget(chain_status, chunks[1]);
+        // f.render_widget(chain_status, page_chunks[1]);
 
         let cycle_block_width = 5;
         let cycle_block_heigth = 3;
@@ -131,13 +133,13 @@ impl SyncingScreen {
         let period_block_height = cycle_block_heigth + 3;
 
         let cycle_per_period = 8;
-        let period_count_per_page_on_heigth = chunks[1].height / period_block_height;
-        let period_count_per_page_on_width = chunks[1].width / period_block_width;
+        let period_count_per_page_on_heigth = page_chunks[1].height / period_block_height;
+        let period_count_per_page_on_width = page_chunks[1].width / period_block_width;
 
         let vertical_padding =
-            (chunks[1].height - (period_count_per_page_on_heigth * period_block_height)) / 2;
+            (page_chunks[1].height - (period_count_per_page_on_heigth * period_block_height)) / 2;
         let horizontal_padding =
-            (chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
+            (page_chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
 
         let cycle_count = data_state.cycle_data.len();
         let period_count = cycle_count / cycle_per_period;
@@ -168,7 +170,7 @@ impl SyncingScreen {
                 Constraint::Length(period_block_height * period_count_per_page_on_heigth),
                 Constraint::Min(vertical_padding),
             ])
-            .split(chunks[1])[1];
+            .split(page_chunks[1])[1];
 
         let periods_containers = Layout::default()
             .direction(Direction::Vertical)
@@ -346,14 +348,18 @@ impl SyncingScreen {
                 Constraint::Percentage(25),
             ]);
         if matches!(widget_in_focus, ActiveWidget::PeerTable) {
-            f.render_stateful_widget(table, chunks[2], &mut ui_state.peer_table_state);
+            f.render_stateful_widget(table, page_chunks[2], &mut ui_state.peer_table_state);
         } else {
-            f.render_widget(table, chunks[2]);
+            f.render_widget(table, page_chunks[2]);
         }
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(ui_state);
-        f.render_widget(tabs, chunks[3]);
+        f.render_widget(tabs, page_chunks[3]);
+
+        // ======================== HELP BAR ========================
+        create_help_bar(page_chunks[4], f, delta_toggle);
+
     }
 }
 
