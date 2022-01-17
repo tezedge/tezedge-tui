@@ -149,24 +149,22 @@ impl Ui {
     }
     fn table_next(&mut self) {
         match self.ui_state.active_widget {
-            ActiveWidget::StatisticsMainTable => {
-                self.ui_state.main_operation_statistics_table_roller_state.next()
-            }
-            ActiveWidget::StatisticsDetailsTable => {
-
-            }
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_roller_state
+                .next(),
+            ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
         }
     }
 
     fn table_previous(&mut self) {
         match self.ui_state.active_widget {
-            ActiveWidget::StatisticsMainTable => {
-                self.ui_state.main_operation_statistics_table_roller_state.previous()
-            }
-            ActiveWidget::StatisticsDetailsTable => {
-
-            }
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_roller_state
+                .previous(),
+            ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
         }
     }

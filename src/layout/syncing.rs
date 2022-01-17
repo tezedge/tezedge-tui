@@ -12,7 +12,7 @@ use tui::{
 
 use crate::model::{ActiveWidget, StateRef, UiState};
 
-use super::{create_pages_tabs, create_help_bar};
+use super::{create_help_bar, create_pages_tabs};
 
 pub struct SyncingScreen {}
 
@@ -359,7 +359,6 @@ impl SyncingScreen {
 
         // ======================== HELP BAR ========================
         create_help_bar(page_chunks[4], f, delta_toggle);
-
     }
 }
 

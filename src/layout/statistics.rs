@@ -5,7 +5,7 @@ use std::time::Instant;
 use conv::UnwrapOk;
 use slog::{info, Logger};
 use tui::style::Modifier;
-use tui::text::{Spans, Span};
+use tui::text::{Span, Spans};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -18,7 +18,7 @@ use itertools::Itertools;
 
 use crate::model::{StateRef, UiState};
 
-use super::{create_pages_tabs, create_help_bar, create_header_bar};
+use super::{create_header_bar, create_help_bar, create_pages_tabs};
 
 const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
@@ -63,23 +63,24 @@ impl StatisticsScreen {
             return;
         }
 
-        let (main_table_chunk, details_table_chunk) = if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
-            Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(75), Constraint::Length(25)])
-                .split(page_chunks[1])
-                .into_iter()
-                .collect_tuple()
-                .unwrap()
-        } else {
-            Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Min(64), Constraint::Length(64)])
-                .split(page_chunks[1])
-                .into_iter()
-                .collect_tuple()
-                .unwrap()
-        };
+        let (main_table_chunk, details_table_chunk) =
+            if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
+                Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Percentage(75), Constraint::Length(25)])
+                    .split(page_chunks[1])
+                    .into_iter()
+                    .collect_tuple()
+                    .unwrap()
+            } else {
+                Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Min(64), Constraint::Length(64)])
+                    .split(page_chunks[1])
+                    .into_iter()
+                    .collect_tuple()
+                    .unwrap()
+            };
 
         // ======================== HELP BAR ========================
         create_help_bar(page_chunks[3], f, delta_toggle);
@@ -136,37 +137,56 @@ impl StatisticsScreen {
             Constraint::Min(19),
         ];
 
-        let fixed_count = ui_state.main_operation_statistics_table_roller_state.fixed();
+        let fixed_count = ui_state
+            .main_operation_statistics_table_roller_state
+            .fixed();
 
-        let mut acc: u16 = INITIAL_PADDING + table_constraints.iter().take(fixed_count).map(|c| {
-            if let Constraint::Min(unit) = c {
-                *unit
-            } else {
-                0
-            }
-        }).reduce(|mut acc, unit| {
-            acc += unit;
-            acc
-        }).unwrap_or(0);
+        let mut acc: u16 = INITIAL_PADDING
+            + table_constraints
+                .iter()
+                .take(fixed_count)
+                .map(|c| {
+                    if let Constraint::Min(unit) = c {
+                        *unit
+                    } else {
+                        0
+                    }
+                })
+                .reduce(|mut acc, unit| {
+                    acc += unit;
+                    acc
+                })
+                .unwrap_or(0);
 
-        let mut to_render: Vec<Constraint> = table_constraints.iter().take(fixed_count).cloned().collect();
-        let start_index = ui_state.main_operation_statistics_table_roller_state.first_rendered_index();
+        let mut to_render: Vec<Constraint> = table_constraints
+            .iter()
+            .take(fixed_count)
+            .cloned()
+            .collect();
+        let start_index = ui_state
+            .main_operation_statistics_table_roller_state
+            .first_rendered_index();
 
-        let dynamic_to_render: Vec<Constraint> = table_constraints.iter().skip(start_index).take_while_ref(|constraint| {
-            if let Constraint::Min(unit) = constraint {
-                acc += unit + SIDE_PADDINGS;
-                acc <= table_size_max
-            } else {
-                // TODO
-                false
-            }
-        })
-        .cloned()
-        .collect();
+        let dynamic_to_render: Vec<Constraint> = table_constraints
+            .iter()
+            .skip(start_index)
+            .take_while_ref(|constraint| {
+                if let Constraint::Min(unit) = constraint {
+                    acc += unit + SIDE_PADDINGS;
+                    acc <= table_size_max
+                } else {
+                    // TODO
+                    false
+                }
+            })
+            .cloned()
+            .collect();
 
         to_render.extend(dynamic_to_render);
 
-        ui_state.main_operation_statistics_table_roller_state.set_rendered(to_render.len());
+        ui_state
+            .main_operation_statistics_table_roller_state
+            .set_rendered(to_render.len());
 
         let fixed_header_cells = main_table_headers
             .iter()
@@ -218,7 +238,10 @@ impl StatisticsScreen {
             &mut ui_state.main_operation_statistics_table_state,
         );
 
-        info!(log, "RollingTableState: {:?}", ui_state.main_operation_statistics_table_roller_state);
+        info!(
+            log,
+            "RollingTableState: {:?}", ui_state.main_operation_statistics_table_roller_state
+        );
 
         // ======================== DETAILS TABLE ========================
 

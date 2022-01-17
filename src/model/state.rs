@@ -334,11 +334,10 @@ pub struct RollableTableState {
     first_rendered_index: usize,
 
     /// The total number of columns
-    total: usize
+    total: usize,
 }
 
 impl RollableTableState {
-
     pub fn new(fixed_count: usize, total: usize) -> Self {
         Self {
             fixed_count,
@@ -409,7 +408,6 @@ impl ActivePage {
             ActivePage::Mempool => 1,
             ActivePage::Statistics => 2,
         }
-
     }
 }
 

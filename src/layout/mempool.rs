@@ -14,7 +14,7 @@ use itertools::Itertools;
 
 use crate::model::{EndorsementState, StateRef, UiState};
 
-use super::{create_pages_tabs, create_help_bar, create_header_bar};
+use super::{create_header_bar, create_help_bar, create_pages_tabs};
 pub struct MempoolScreen {}
 
 impl MempoolScreen {
@@ -31,7 +31,11 @@ impl MempoolScreen {
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Min(5), Constraint::Length(3), Constraint::Length(4)])
+            .constraints([
+                Constraint::Min(5),
+                Constraint::Length(3),
+                Constraint::Length(4),
+            ])
             .split(size);
 
         let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
