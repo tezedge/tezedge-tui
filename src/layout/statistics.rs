@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+use std::string;
 use std::time::Instant;
 
 use conv::UnwrapOk;
 use slog::{info, Logger};
 use tui::style::Modifier;
-use tui::text::Spans;
+use tui::text::{Spans, Span};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
@@ -37,11 +39,12 @@ impl StatisticsScreen {
 
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
+            // .margin(1)
             .constraints([
                 Constraint::Length(5),
                 Constraint::Min(5),
                 Constraint::Length(3),
+                Constraint::Length(4),
             ])
             .split(size);
 
@@ -76,6 +79,51 @@ impl StatisticsScreen {
                 .collect_tuple()
                 .unwrap()
         };
+
+        // ======================== HELP BAR ========================
+        let help_strings = vec![
+            ("F1 - F3", "PageSwitch"),
+            ("q", "Quit"),
+            ("d", "Delta values"),
+            ("j", "Switch sort left"),
+            ("k", "Switch sort right"),
+            ("←", "Table left"),
+            ("→", "Table right"),
+            ("↑", "Table up"),
+            ("↓", "Table down"),
+            ("TAB", "Rotate widgets"),
+        ];
+
+        let help_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            // .margin(1)
+            .constraints([
+                Constraint::Length(24),
+                Constraint::Length(24),
+                Constraint::Length(24),
+                Constraint::Length(24),
+                Constraint::Length(24),
+            ])
+            .split(page_chunks[3]);
+
+        for (index, (row_1, row_2)) in help_strings.iter().tuple_windows().step_by(2).enumerate() {
+            info!(log, "Key: {:?}  String: {:?}", row_1, row_2);
+            info!(log, "");
+            let p = Paragraph::new(vec![
+                Spans::from(vec![
+                    Span::styled(format!("{} ", row_1.0), Style::default().bg(Color::White).fg(Color::Black)),
+                    Span::styled(format!("{}\n", row_1.1), Style::default())
+                ]),
+                Spans::from(vec![
+                    Span::styled(format!("{} ", row_2.0), Style::default().bg(Color::White).fg(Color::Black)),
+                    Span::styled(format!("{}\n", row_2.1), Style::default())
+                ]),
+            ]);
+            f.render_widget(p, help_chunks[index]);
+        }
+
+        // let block = Block::default().borders(Borders::ALL);
+        // f.render_widget(block, page_chunks[3]);
         
         // ======================== HEADER ========================
         // wrap the header chunk in border
