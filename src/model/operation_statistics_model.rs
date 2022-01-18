@@ -299,8 +299,12 @@ impl OperationStats {
     }
 }
 
-impl OperationStatsSortable {
-    pub fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
+pub trait TuiTableData {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
+}
+
+impl TuiTableData for OperationStatsSortable {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(13);
 
         let datetime =
@@ -467,8 +471,8 @@ pub struct OperationDetailSortable {
     pub sent: usize,
 }
 
-impl OperationDetailSortable {
-    pub fn construct_tui_table_data(&self) -> Vec<(String, Color)> {
+impl TuiTableData for OperationDetailSortable {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(7);
 
         final_vec.push((self.node_id.clone(), Color::Reset));

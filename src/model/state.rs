@@ -16,7 +16,7 @@ use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
     IncomingTransferMetrics, OperationStatsSortable, OperationsStats, OperationsStatsSortable,
-    PeerMetrics, PeerTableData, SortableByFocus,
+    PeerMetrics, PeerTableData, SortableByFocus, TuiTableData,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -223,7 +223,7 @@ pub struct UiState {
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
 
-    pub details_operation_statistics_table_state: TableState,
+    pub details_operation_statistics_table: ExtendedTable,
     pub main_operation_statistics_table: ExtendedTable,
     pub current_details_length: usize,
     pub delta_toggle: bool,
@@ -269,6 +269,24 @@ impl UiState {
                 3,
             ),
             delta_toggle: true,
+            details_operation_statistics_table: ExtendedTable::new(
+                vec![
+                    "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
+                ]
+                .iter()
+                .map(|v| v.to_string())
+                .collect(),
+                vec![
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                    Constraint::Min(8),
+                ],
+                3,
+            ),
             ..Default::default()
         }
     }
@@ -531,14 +549,14 @@ impl ExtendedTable {
         fixed_header_cells.chain(dynamic_header_cells).collect()
     }
 
-    pub fn renderable_rows(
+    pub fn renderable_rows<T: TuiTableData>(
         &self,
-        operations_statistics_sortable: &[OperationStatsSortable],
+        content: &[T],
         delta_toggle: bool,
         selected_style: Style,
     ) -> Vec<Row> {
         let selected = self.selected;
-        operations_statistics_sortable
+        content
             .iter()
             .map(|item| {
                 let item = item.construct_tui_table_data(delta_toggle);
