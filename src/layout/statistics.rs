@@ -141,59 +141,32 @@ impl StatisticsScreen {
 
         info!(
             log,
-            "RollingTableState: {:?}", ui_state.main_operation_statistics_table
+            "Main Table: {:?}", ui_state.main_operation_statistics_table
         );
 
         // ======================== DETAILS TABLE ========================
 
-        let details_table_headers: Vec<String> = [
-            "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
-
         let details_table_block = Block::default().borders(Borders::ALL).title("Details");
 
-        let header_cells = details_table_headers
-            .iter()
-            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+        let renderable_constraints = ui_state
+            .details_operation_statistics_table
+            .renderable_constraints(details_table_chunk.width);
+
+        let header_cells = ui_state
+            .details_operation_statistics_table
+            .renderable_headers(selected_style);
         let details_table_header = Row::new(header_cells)
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
 
-        let rows = if let Some(index) = ui_state
-            .main_operation_statistics_table
-            .table_state
-            .selected()
-        {
-            let hash = operations_statistics_sortable[index].hash.clone();
-
-            if let Some(stats) = operations_statistics.get(&hash) {
-                ui_state.current_details_length = stats.node_count();
-                stats.to_operations_details().into_iter().map(|v| {
-                    let item = v.construct_tui_table_data();
-
-                    let height = item
-                        .iter()
-                        .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
-                        .max()
-                        .unwrap_or(0)
-                        + 1;
-                    let cells = item.iter().map(|(content, color)| {
-                        Cell::from(content.clone()).style(Style::default().fg(*color))
-                    });
-                    Row::new(cells).height(height as u16)
-                })
-            } else {
-                let details = Paragraph::new("Select an operation for details...")
-                    .alignment(Alignment::Center);
-                f.render_widget(details, details_table_chunk);
-                return;
-            }
+        let rows = if let Some(details) = &data_state.selected_operation_details {
+            ui_state.details_operation_statistics_table.renderable_rows(
+                details,
+                delta_toggle,
+                selected_style,
+            )
         } else {
-            // TODO: duplicate... put inside fn/clousure
             let details =
                 Paragraph::new("Select an operation for details...").alignment(Alignment::Center);
             f.render_widget(details, details_table_chunk);
@@ -205,20 +178,20 @@ impl StatisticsScreen {
             .block(details_table_block)
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
-            .widths(&[
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-            ]);
+            .widths(&renderable_constraints);
 
         f.render_stateful_widget(
             table,
             details_table_chunk,
-            &mut ui_state.details_operation_statistics_table_state,
+            &mut ui_state
+                .details_operation_statistics_table
+                .table_state
+                .clone(),
+        );
+
+        info!(
+            log,
+            "Details Table: {:?}", ui_state.details_operation_statistics_table
         );
 
         let elapsed = now.elapsed();

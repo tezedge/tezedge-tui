@@ -11,6 +11,7 @@ use super::SortableByFocus;
 
 pub type OperationsStats = BTreeMap<String, OperationStats>;
 pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
+pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct OperationStats {
@@ -461,6 +462,7 @@ fn convert_time_to_unit_string(time: i128) -> String {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OperationDetailSortable {
     pub node_id: String,
     pub first_received: Option<i128>,
@@ -562,6 +564,21 @@ impl SortableByFocus for OperationsStatsSortable {
             10 => self.sort_by_key(|k| k.validations_length),
             11 => self.sort_by_key(|k| if delta_toggle { k.sent_delta } else { k.sent }),
             12 => self.sort_by_key(|k| k.kind),
+            _ => {}
+        }
+    }
+}
+
+impl SortableByFocus for OperationDetailsSortable {
+    fn sort_by_focus(&mut self, focus_index: usize, _delta_toogle: bool) {
+        match focus_index {
+            0 => self.sort_by_key(|k| k.node_id.clone()),
+            1 => self.sort_by_key(|k| k.first_received),
+            2 => self.sort_by_key(|k| k.first_content_received),
+            3 => self.sort_by_key(|k| k.first_sent),
+            4 => self.sort_by_key(|k| k.received),
+            5 => self.sort_by_key(|k| k.content_received),
+            6 => self.sort_by_key(|k| k.sent),
             _ => {}
         }
     }

@@ -15,8 +15,8 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, OperationStatsSortable, OperationsStats, OperationsStatsSortable,
-    PeerMetrics, PeerTableData, SortableByFocus, TuiTableData,
+    IncomingTransferMetrics, OperationDetailSortable, OperationStatsSortable, OperationsStats,
+    OperationsStatsSortable, PeerMetrics, PeerTableData, SortableByFocus, TuiTableData,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
@@ -42,8 +42,8 @@ pub struct State {
     pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 
-    // TODO: make it sortable
     pub operations_statistics: (OperationsStats, OperationsStatsSortable),
+    pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
     pub statistics_pending: bool,
 }
 
@@ -212,6 +212,16 @@ impl State {
             _ => (BTreeMap::new(), Vec::new()),
         }
     }
+
+    pub fn update_selected_operation_details(&mut self, selected: Option<usize>) {
+        if let Some(index) = selected {
+            let hash = self.operations_statistics.1[index].hash.clone();
+
+            if let Some(stats) = self.operations_statistics.0.get(&hash) {
+                self.selected_operation_details = Some(stats.to_operations_details());
+            }
+        }
+    }
 }
 
 /// TUI statefull widget states
@@ -276,6 +286,7 @@ impl UiState {
                 .iter()
                 .map(|v| v.to_string())
                 .collect(),
+                // TODO: expand for the sort symbol
                 vec![
                     Constraint::Min(8),
                     Constraint::Min(8),

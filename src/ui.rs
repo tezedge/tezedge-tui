@@ -1,6 +1,7 @@
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::style::Stylize;
 use slog::{info, Logger};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
@@ -151,7 +152,9 @@ impl Ui {
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state.main_operation_statistics_table.next()
             }
-            ActiveWidget::StatisticsDetailsTable => {}
+            ActiveWidget::StatisticsDetailsTable => {
+                self.ui_state.details_operation_statistics_table.next()
+            }
             _ => {}
         }
     }
@@ -161,7 +164,9 @@ impl Ui {
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state.main_operation_statistics_table.previous()
             }
-            ActiveWidget::StatisticsDetailsTable => {}
+            ActiveWidget::StatisticsDetailsTable => {
+                self.ui_state.details_operation_statistics_table.previous()
+            }
             _ => {}
         }
     }
@@ -192,7 +197,23 @@ impl Ui {
                     .main_operation_statistics_table
                     .set_sort_order(SortOrder::Ascending);
             }
-            ActiveWidget::StatisticsDetailsTable => {}
+            ActiveWidget::StatisticsDetailsTable => {
+                let selected = self.ui_state.details_operation_statistics_table.selected();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        if let Some(details) = state.selected_operation_details.as_mut() {
+                            details.sort_by_focus(selected, self.ui_state.delta_toggle)
+                        }
+                    })
+                    .unwrap_or_default();
+                self.ui_state
+                    .details_operation_statistics_table
+                    .set_sort_order(SortOrder::Descending);
+                self.ui_state
+                    .details_operation_statistics_table
+                    .set_sorted_by(Some(selected));
+            }
             _ => {}
         }
     }
@@ -221,7 +242,23 @@ impl Ui {
                     .main_operation_statistics_table
                     .set_sorted_by(Some(selected));
             }
-            ActiveWidget::StatisticsDetailsTable => {}
+            ActiveWidget::StatisticsDetailsTable => {
+                let selected = self.ui_state.details_operation_statistics_table.selected();
+                self.state
+                    .write()
+                    .map(|mut state| {
+                        if let Some(details) = state.selected_operation_details.as_mut() {
+                            details.reverse()
+                        }
+                    })
+                    .unwrap_or_default();
+                self.ui_state
+                    .details_operation_statistics_table
+                    .set_sort_order(SortOrder::Descending);
+                self.ui_state
+                    .details_operation_statistics_table
+                    .set_sorted_by(Some(selected));
+            }
             _ => {}
         }
     }
@@ -246,7 +283,7 @@ impl Ui {
     }
 
     pub fn handle_up(&mut self) {
-        let state = self.state.read().unwrap();
+        let mut state = self.state.write().unwrap();
         match self.ui_state.active_widget {
             ActiveWidget::PeriodInfo => self.ui_state.period_info_state.select(previous_item(
                 self.ui_state.period_info_state.container_count,
@@ -262,31 +299,46 @@ impl Ui {
                     self.ui_state.endorsement_table_state.selected(),
                 ))
             }
-            ActiveWidget::StatisticsMainTable => self
-                .ui_state
-                .main_operation_statistics_table
-                .table_state
-                .select(previous_item(
-                    state.operations_statistics.1.len(),
-                    self.ui_state
-                        .main_operation_statistics_table
-                        .table_state
-                        .selected(),
-                )),
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state
+                    .main_operation_statistics_table
+                    .table_state
+                    .select(previous_item(
+                        state.operations_statistics.1.len(),
+                        self.ui_state
+                            .main_operation_statistics_table
+                            .table_state
+                            .selected(),
+                    ));
+
+                let selected = self
+                    .ui_state
+                    .main_operation_statistics_table
+                    .table_state
+                    .selected();
+
+                state.update_selected_operation_details(selected);
+            }
             ActiveWidget::StatisticsDetailsTable => self
                 .ui_state
-                .details_operation_statistics_table_state
+                .details_operation_statistics_table
+                .table_state
                 .select(previous_item(
-                    self.ui_state.current_details_length,
+                    state
+                        .selected_operation_details
+                        .as_ref()
+                        .unwrap_or(&Vec::new())
+                        .len(),
                     self.ui_state
-                        .details_operation_statistics_table_state
+                        .details_operation_statistics_table
+                        .table_state
                         .selected(),
                 )),
         }
     }
 
     pub fn handle_down(&mut self) {
-        let state = self.state.read().unwrap();
+        let mut state = self.state.write().unwrap();
         match self.ui_state.active_widget {
             ActiveWidget::PeriodInfo => self.ui_state.period_info_state.select(next_item(
                 self.ui_state.period_info_state.container_count,
@@ -300,24 +352,39 @@ impl Ui {
                 state.current_head_endorsement_statuses.len(),
                 self.ui_state.endorsement_table_state.selected(),
             )),
-            ActiveWidget::StatisticsMainTable => self
-                .ui_state
-                .main_operation_statistics_table
-                .table_state
-                .select(next_item(
-                    state.operations_statistics.1.len(),
-                    self.ui_state
-                        .main_operation_statistics_table
-                        .table_state
-                        .selected(),
-                )),
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state
+                    .main_operation_statistics_table
+                    .table_state
+                    .select(next_item(
+                        state.operations_statistics.1.len(),
+                        self.ui_state
+                            .main_operation_statistics_table
+                            .table_state
+                            .selected(),
+                    ));
+
+                let selected = self
+                    .ui_state
+                    .main_operation_statistics_table
+                    .table_state
+                    .selected();
+
+                state.update_selected_operation_details(selected);
+            }
             ActiveWidget::StatisticsDetailsTable => self
                 .ui_state
-                .details_operation_statistics_table_state
+                .details_operation_statistics_table
+                .table_state
                 .select(next_item(
-                    self.ui_state.current_details_length,
+                    state
+                        .selected_operation_details
+                        .as_ref()
+                        .unwrap_or(&Vec::new())
+                        .len(),
                     self.ui_state
-                        .details_operation_statistics_table_state
+                        .details_operation_statistics_table
+                        .table_state
                         .selected(),
                 )),
         }
