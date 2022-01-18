@@ -23,12 +23,10 @@ use crate::model::{ActivePage, CurrentHeadHeader, UiState};
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
         .map(|t| {
-            Spans::from(vec![
-                Span::styled(
-                    t.to_string(),
-                    Style::default().fg(Color::White).bg(Color::Black),
-                ),
-            ])
+            Spans::from(vec![Span::styled(
+                t.to_string(),
+                Style::default().fg(Color::White).bg(Color::Black),
+            )])
         })
         .collect();
     let page_in_focus = ui_state.active_page.to_index();

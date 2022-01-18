@@ -103,10 +103,8 @@ impl Ui {
                             let node = self.node.clone();
                             let log = self.log.clone();
                             let delta_toggle = self.ui_state.delta_toggle;
-                            let sort_focus = self
-                                .ui_state
-                                .main_operation_statistics_table_roller_state
-                                .selected();
+                            let sort_focus =
+                                self.ui_state.main_operation_statistics_table.selected();
                             tokio::task::spawn(async move {
                                 let stats = crate::model::State::update_statistics(
                                     &node,
@@ -150,10 +148,9 @@ impl Ui {
     }
     fn table_next(&mut self) {
         match self.ui_state.active_widget {
-            ActiveWidget::StatisticsMainTable => self
-                .ui_state
-                .main_operation_statistics_table_roller_state
-                .next(),
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state.main_operation_statistics_table.next()
+            }
             ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
         }
@@ -161,10 +158,9 @@ impl Ui {
 
     fn table_previous(&mut self) {
         match self.ui_state.active_widget {
-            ActiveWidget::StatisticsMainTable => self
-                .ui_state
-                .main_operation_statistics_table_roller_state
-                .previous(),
+            ActiveWidget::StatisticsMainTable => {
+                self.ui_state.main_operation_statistics_table.previous()
+            }
             ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
         }
@@ -187,15 +183,13 @@ impl Ui {
                     .write()
                     .map(|mut state| {
                         state.operations_statistics.1.sort_by_focus(
-                            self.ui_state
-                                .main_operation_statistics_table_roller_state
-                                .selected(),
+                            self.ui_state.main_operation_statistics_table.selected(),
                             self.ui_state.delta_toggle,
                         )
                     })
                     .unwrap_or_default();
                 self.ui_state
-                    .main_operation_statistics_table_roller_state
+                    .main_operation_statistics_table
                     .set_sort_order(SortOrder::Ascending);
             }
             ActiveWidget::StatisticsDetailsTable => {}
@@ -215,19 +209,16 @@ impl Ui {
                     .unwrap_or_default();
             }
             ActiveWidget::StatisticsMainTable => {
-                let selected = self
-                    .ui_state
-                    .main_operation_statistics_table_roller_state
-                    .selected();
+                let selected = self.ui_state.main_operation_statistics_table.selected();
                 self.state
                     .write()
                     .map(|mut state| state.operations_statistics.1.reverse())
                     .unwrap_or_default();
                 self.ui_state
-                    .main_operation_statistics_table_roller_state
+                    .main_operation_statistics_table
                     .set_sort_order(SortOrder::Descending);
                 self.ui_state
-                    .main_operation_statistics_table_roller_state
+                    .main_operation_statistics_table
                     .set_sorted_by(Some(selected));
             }
             ActiveWidget::StatisticsDetailsTable => {}
@@ -273,11 +264,13 @@ impl Ui {
             }
             ActiveWidget::StatisticsMainTable => self
                 .ui_state
-                .main_operation_statistics_table_state
+                .main_operation_statistics_table
+                .table_state
                 .select(previous_item(
                     state.operations_statistics.1.len(),
                     self.ui_state
-                        .main_operation_statistics_table_state
+                        .main_operation_statistics_table
+                        .table_state
                         .selected(),
                 )),
             ActiveWidget::StatisticsDetailsTable => self
@@ -309,11 +302,13 @@ impl Ui {
             )),
             ActiveWidget::StatisticsMainTable => self
                 .ui_state
-                .main_operation_statistics_table_state
+                .main_operation_statistics_table
+                .table_state
                 .select(next_item(
                     state.operations_statistics.1.len(),
                     self.ui_state
-                        .main_operation_statistics_table_state
+                        .main_operation_statistics_table
+                        .table_state
                         .selected(),
                 )),
             ActiveWidget::StatisticsDetailsTable => self

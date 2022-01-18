@@ -90,42 +90,6 @@ impl StatisticsScreen {
         create_header_bar(page_chunks[0], header, f);
 
         // ======================== MAIN STATISTICS TABLE ========================
-        let mut main_table_headers: Vec<String> = [
-            "Datetime",
-            "Hash",
-            "Nodes",
-            "Delta",
-            "Received",
-            "Content Received",
-            "Validation Started",
-            "Preapply Started",
-            "Preapply Finished",
-            "Validation Finished",
-            "Validation Length",
-            "Sent",
-            "Kind",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
-
-        // add ▼/▲ to the selected sorted table
-        if let Some(sorted_by) = ui_state
-            .main_operation_statistics_table_roller_state
-            .sorted_by()
-        {
-            if let Some(v) = main_table_headers.get_mut(sorted_by) {
-                match ui_state
-                    .main_operation_statistics_table_roller_state
-                    .sort_order()
-                {
-                    SortOrder::Ascending => *v = format!("{}▲", v),
-                    SortOrder::Descending => *v = format!("{}▼", v),
-                    _ => {}
-                }
-            }
-        }
-
         let main_table_block = Block::default().borders(Borders::ALL).title("Operations");
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
@@ -133,187 +97,51 @@ impl StatisticsScreen {
 
         let delta_toggle = ui_state.delta_toggle;
 
-        let table_size_max: u16 = if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
+        let max_size: u16 = if f.size().width < SIDE_BY_SIDE_TABLE_THRESHOLD {
             f.size().width - SIDE_PADDINGS
         } else {
             f.size().width - details_table_chunk.width - SIDE_PADDINGS
         };
 
-        info!(log, "Calculated max size: {}", table_size_max);
+        info!(log, "Calculated max size: {}", max_size);
         info!(log, "Actual size: {}", main_table_chunk.width);
 
-        let table_constraints = [
-            Constraint::Min(22),
-            Constraint::Min(9),
-            Constraint::Min(6),
-            Constraint::Min(9),
-            Constraint::Min(9),
-            Constraint::Min(17),
-            Constraint::Min(19),
-            Constraint::Min(17),
-            Constraint::Min(18),
-            Constraint::Min(20),
-            Constraint::Min(18),
-            Constraint::Min(9),
-            Constraint::Min(19),
-        ];
+        let renderable_constraints = ui_state
+            .main_operation_statistics_table
+            .renderable_constraints(max_size);
 
-        let fixed_count = ui_state
-            .main_operation_statistics_table_roller_state
-            .fixed();
-
-        let mut acc: u16 = INITIAL_PADDING
-            + table_constraints
-                .iter()
-                .take(fixed_count)
-                .map(|c| {
-                    if let Constraint::Min(unit) = c {
-                        *unit
-                    } else {
-                        0
-                    }
-                })
-                .reduce(|mut acc, unit| {
-                    acc += unit;
-                    acc
-                })
-                .unwrap_or(0);
-
-        let mut to_render: Vec<Constraint> = table_constraints
-            .iter()
-            .take(fixed_count)
-            .cloned()
-            .collect();
-        let start_index = ui_state
-            .main_operation_statistics_table_roller_state
-            .first_rendered_index();
-
-        let dynamic_to_render: Vec<Constraint> = table_constraints
-            .iter()
-            .skip(start_index)
-            .take_while_ref(|constraint| {
-                if let Constraint::Min(unit) = constraint {
-                    acc += unit + SIDE_PADDINGS;
-                    acc <= table_size_max
-                } else {
-                    // TODO
-                    false
-                }
-            })
-            .cloned()
-            .collect();
-
-        to_render.extend(dynamic_to_render);
-
-        ui_state
-            .main_operation_statistics_table_roller_state
-            .set_rendered(to_render.len());
-
-        let fixed_header_cells =
-            main_table_headers
-                .iter()
-                .enumerate()
-                .take(fixed_count)
-                .map(|(index, h)| {
-                    if index
-                        == ui_state
-                            .main_operation_statistics_table_roller_state
-                            .selected()
-                    {
-                        Cell::from(h.as_str())
-                            .style(Style::default().add_modifier(Modifier::REVERSED))
-                    } else {
-                        Cell::from(h.as_str()).style(Style::default())
-                    }
-                });
-
-        let dynamic_header_cells =
-            main_table_headers
-                .iter()
-                .enumerate()
-                .skip(start_index)
-                .map(|(index, h)| {
-                    if index
-                        == ui_state
-                            .main_operation_statistics_table_roller_state
-                            .selected()
-                    {
-                        Cell::from(h.as_str())
-                            .style(Style::default().add_modifier(Modifier::REVERSED))
-                    } else {
-                        Cell::from(h.as_str()).style(Style::default())
-                    }
-                });
-
-        let header_cells = fixed_header_cells.chain(dynamic_header_cells);
+        ui_state.main_operation_statistics_table.highlight_sorting();
+        let header_cells = ui_state
+            .main_operation_statistics_table
+            .renderable_headers(selected_style);
 
         let main_table_header = Row::new(header_cells)
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
 
-        info!(log, "Table constructor acc: {}", acc);
-
-        let rows = operations_statistics_sortable.iter().map(|item| {
-            let item = item.construct_tui_table_data(delta_toggle);
-            let height = item
-                .iter()
-                .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
-                .max()
-                .unwrap_or(0)
-                + 1;
-            let fixed_cells =
-                item.iter()
-                    .enumerate()
-                    .take(fixed_count)
-                    .map(|(index, (content, color))| {
-                        if index
-                            == ui_state
-                                .main_operation_statistics_table_roller_state
-                                .selected()
-                        {
-                            Cell::from(content.clone())
-                                .style(Style::default().fg(*color).add_modifier(Modifier::REVERSED))
-                        } else {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
-                        }
-                    });
-            let dynamic_cells =
-                item.iter()
-                    .enumerate()
-                    .skip(start_index)
-                    .map(|(index, (content, color))| {
-                        if index
-                            == ui_state
-                                .main_operation_statistics_table_roller_state
-                                .selected()
-                        {
-                            Cell::from(content.clone())
-                                .style(Style::default().fg(*color).add_modifier(Modifier::REVERSED))
-                        } else {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
-                        }
-                    });
-            let cells = fixed_cells.chain(dynamic_cells);
-            Row::new(cells).height(height as u16)
-        });
+        let rows = ui_state.main_operation_statistics_table.renderable_rows(
+            &operations_statistics_sortable,
+            delta_toggle,
+            selected_style,
+        );
 
         let table = Table::new(rows)
             .header(main_table_header)
             .block(main_table_block)
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
-            .widths(&to_render);
+            .widths(&renderable_constraints);
 
         f.render_stateful_widget(
             table,
             main_table_chunk,
-            &mut ui_state.main_operation_statistics_table_state,
+            &mut ui_state.main_operation_statistics_table.table_state.clone(),
         );
 
         info!(
             log,
-            "RollingTableState: {:?}", ui_state.main_operation_statistics_table_roller_state
+            "RollingTableState: {:?}", ui_state.main_operation_statistics_table
         );
 
         // ======================== DETAILS TABLE ========================
@@ -335,7 +163,11 @@ impl StatisticsScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = if let Some(index) = ui_state.main_operation_statistics_table_state.selected() {
+        let rows = if let Some(index) = ui_state
+            .main_operation_statistics_table
+            .table_state
+            .selected()
+        {
             let hash = operations_statistics_sortable[index].hash.clone();
 
             if let Some(stats) = operations_statistics.get(&hash) {

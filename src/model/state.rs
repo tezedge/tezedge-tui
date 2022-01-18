@@ -1,21 +1,28 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use itertools::Itertools;
 use slog::error;
 use std::sync::RwLock;
 use strum_macros::{Display, EnumIter};
-use tui::widgets::{Table, TableState};
+use tui::{
+    layout::Constraint,
+    style::Style,
+    widgets::{Cell, Row, Table, TableState},
+};
 
 use crate::node_rpc::{Node, RpcCall, RpcResponse};
 
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, OperationsStats, OperationsStatsSortable, PeerMetrics, PeerTableData,
-    SortableByFocus,
+    IncomingTransferMetrics, OperationStatsSortable, OperationsStats, OperationsStatsSortable,
+    PeerMetrics, PeerTableData, SortableByFocus,
 };
 
 pub type StateRef = Arc<RwLock<State>>;
 
+const SIDE_PADDINGS: u16 = 1;
+const INITIAL_PADDING: u16 = 2;
 #[derive(Debug, Clone, Default)]
 pub struct State {
     // info for the syncing and apllication blocks
@@ -216,9 +223,8 @@ pub struct UiState {
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
 
-    pub main_operation_statistics_table_state: TableState,
     pub details_operation_statistics_table_state: TableState,
-    pub main_operation_statistics_table_roller_state: RollableTableState,
+    pub main_operation_statistics_table: ExtendedTable,
     pub current_details_length: usize,
     pub delta_toggle: bool,
 }
@@ -226,7 +232,42 @@ pub struct UiState {
 impl UiState {
     pub fn new() -> UiState {
         UiState {
-            main_operation_statistics_table_roller_state: RollableTableState::new(3, 13),
+            main_operation_statistics_table: ExtendedTable::new(
+                vec![
+                    "Datetime",
+                    "Hash",
+                    "Nodes",
+                    "Delta",
+                    "Received",
+                    "Content Received",
+                    "Validation Started",
+                    "Preapply Started",
+                    "Preapply Finished",
+                    "Validation Finished",
+                    "Validation Length",
+                    "Sent",
+                    "Kind",
+                ]
+                .iter()
+                .map(|v| v.to_string())
+                .collect(),
+                vec![
+                    Constraint::Min(22),
+                    Constraint::Min(9),
+                    Constraint::Min(6),
+                    Constraint::Min(9),
+                    Constraint::Min(9),
+                    Constraint::Min(17),
+                    Constraint::Min(19),
+                    Constraint::Min(17),
+                    Constraint::Min(18),
+                    Constraint::Min(20),
+                    Constraint::Min(18),
+                    Constraint::Min(9),
+                    Constraint::Min(19),
+                ],
+                3,
+            ),
             delta_toggle: true,
             ..Default::default()
         }
@@ -277,7 +318,17 @@ impl Default for SortOrder {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct RollableTableState {
+pub struct ExtendedTable {
+    pub table_state: TableState,
+
+    /// The header strings of the table in order
+    headers: Vec<String>,
+
+    modified_headers: Vec<String>,
+
+    /// Constrainst of the colums
+    constraints: Vec<Constraint>,
+
     /// Total number of indexex able to be rendered
     rendered: usize,
 
@@ -286,9 +337,6 @@ pub struct RollableTableState {
 
     /// First index to be rendered after the last fixed index
     first_rendered_index: usize,
-
-    /// The total number of columns
-    total: usize,
 
     /// selected table column
     selected: usize,
@@ -300,16 +348,19 @@ pub struct RollableTableState {
     sort_order: SortOrder,
 }
 
-impl RollableTableState {
-    pub fn new(fixed_count: usize, total: usize) -> Self {
+impl ExtendedTable {
+    pub fn new(headers: Vec<String>, constraints: Vec<Constraint>, fixed_count: usize) -> Self {
         Self {
+            headers: headers.clone(),
+            modified_headers: headers,
+            constraints,
             fixed_count,
             rendered: 0,
             first_rendered_index: fixed_count,
-            total,
             selected: 0,
             sorted_by: None,
             sort_order: SortOrder::Unsorted,
+            ..Default::default()
         }
     }
 
@@ -360,29 +411,165 @@ impl RollableTableState {
     pub fn next(&mut self) {
         let last_render_index = self.first_rendered_index + (self.rendered - self.fixed_count) - 1;
         let next_index = self.selected + 1;
-        if next_index < self.total {
+        if next_index < self.headers.len() {
             self.selected = next_index
         }
 
         if self.selected >= last_render_index
             && self.first_rendered_index != last_render_index
-            && self.rendered != self.total
+            && self.rendered != self.headers.len()
         {
             self.first_rendered_index += 1;
         }
     }
 
     pub fn previous(&mut self) {
-        if self.selected != 0 && self.selected != self.total {
+        if self.selected != 0 && self.selected != self.headers.len() {
             self.selected -= 1;
         }
 
         if self.selected == self.first_rendered_index - 1
             && self.first_rendered_index != self.fixed_count
-            && self.rendered != self.total
+            && self.rendered != self.headers.len()
         {
             self.first_rendered_index -= 1;
         }
+    }
+
+    pub fn highlight_sorting(&mut self) {
+        let mut headers = self.headers.clone();
+
+        // add ▼/▲ to the selected sorted table
+        if let Some(sorted_by) = self.sorted_by {
+            if let Some(v) = headers.get_mut(sorted_by) {
+                match self.sort_order {
+                    SortOrder::Ascending => *v = format!("{}▲", v),
+                    SortOrder::Descending => *v = format!("{}▼", v),
+                    _ => {}
+                }
+            }
+        }
+        self.modified_headers = headers;
+    }
+
+    pub fn renderable_constraints(&mut self, max_size: u16) -> Vec<Constraint> {
+        let mut acc: u16 = INITIAL_PADDING
+            + self
+                .constraints
+                .iter()
+                .take(self.fixed_count)
+                .map(|c| {
+                    if let Constraint::Min(unit) = c {
+                        *unit
+                    } else {
+                        0
+                    }
+                })
+                .reduce(|mut acc, unit| {
+                    acc += unit;
+                    acc
+                })
+                .unwrap_or(0);
+
+        let mut to_render: Vec<Constraint> = self
+            .constraints
+            .iter()
+            .take(self.fixed_count)
+            .cloned()
+            .collect();
+
+        let dynamic_to_render: Vec<Constraint> = self
+            .constraints
+            .iter()
+            .skip(self.first_rendered_index)
+            .take_while_ref(|constraint| {
+                if let Constraint::Min(unit) = constraint {
+                    acc += unit + SIDE_PADDINGS;
+                    acc <= max_size
+                } else {
+                    // TODO
+                    false
+                }
+            })
+            .cloned()
+            .collect();
+
+        to_render.extend(dynamic_to_render);
+
+        self.rendered = to_render.len();
+        to_render
+    }
+
+    pub fn renderable_headers(&self, selected_style: Style) -> Vec<Cell> {
+        let selected = self.selected;
+        let fixed_header_cells = self
+            .modified_headers
+            .iter()
+            .enumerate()
+            .take(self.fixed_count)
+            .map(|(index, h)| {
+                if index == selected {
+                    Cell::from(h.as_str()).style(selected_style)
+                } else {
+                    Cell::from(h.as_str()).style(Style::default())
+                }
+            });
+
+        let dynamic_header_cells = self
+            .modified_headers
+            .iter()
+            .enumerate()
+            .skip(self.first_rendered_index)
+            .map(|(index, h)| {
+                if index == selected {
+                    Cell::from(h.as_str()).style(selected_style)
+                } else {
+                    Cell::from(h.as_str()).style(Style::default())
+                }
+            });
+
+        fixed_header_cells.chain(dynamic_header_cells).collect()
+    }
+
+    pub fn renderable_rows(
+        &self,
+        operations_statistics_sortable: &[OperationStatsSortable],
+        delta_toggle: bool,
+        selected_style: Style,
+    ) -> Vec<Row> {
+        let selected = self.selected;
+        operations_statistics_sortable
+            .iter()
+            .map(|item| {
+                let item = item.construct_tui_table_data(delta_toggle);
+                let height = item
+                    .iter()
+                    .map(|(content, _)| content.chars().filter(|c| *c == '\n').count())
+                    .max()
+                    .unwrap_or(0)
+                    + 1;
+                let fixed_cells = item.iter().enumerate().take(self.fixed_count).map(
+                    |(index, (content, color))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(selected_style)
+                        } else {
+                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        }
+                    },
+                );
+                let dynamic_cells = item.iter().enumerate().skip(self.first_rendered_index).map(
+                    |(index, (content, color))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(selected_style)
+                        } else {
+                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        }
+                    },
+                );
+                let cells = fixed_cells.chain(dynamic_cells);
+                Row::new(cells).height(height as u16)
+            })
+            .collect()
     }
 }
 
