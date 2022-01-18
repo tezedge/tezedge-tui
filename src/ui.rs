@@ -59,8 +59,12 @@ impl Ui {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Down => self.handle_down(),
                     KeyCode::Up => self.handle_up(),
-                    KeyCode::Right => {}
-                    KeyCode::Left => {}
+                    KeyCode::Right => {
+                        self.table_next();
+                    }
+                    KeyCode::Left => {
+                        self.table_previous();
+                    }
                     KeyCode::Tab => {
                         self.rotate_widgets();
                     }
@@ -95,13 +99,18 @@ impl Ui {
                             let state = self.state.clone();
                             let node = self.node.clone();
                             let log = self.log.clone();
+                            let delta_toggle = self.ui_state.delta_toggle;
                             let sort_focus = self
                                 .ui_state
                                 .details_operation_statistics_sorter_state
                                 .in_focus();
                             tokio::task::spawn(async move {
-                                let stats =
-                                    crate::model::State::update_statistics(&node, sort_focus).await;
+                                let stats = crate::model::State::update_statistics(
+                                    &node,
+                                    sort_focus,
+                                    delta_toggle,
+                                )
+                                .await;
                                 let mut state = state.write().unwrap();
 
                                 state.operations_statistics = stats;
@@ -138,6 +147,27 @@ impl Ui {
             }
         }
     }
+    fn table_next(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_roller_state
+                .next(),
+            ActiveWidget::StatisticsDetailsTable => {}
+            _ => {}
+        }
+    }
+
+    fn table_previous(&mut self) {
+        match self.ui_state.active_widget {
+            ActiveWidget::StatisticsMainTable => self
+                .ui_state
+                .main_operation_statistics_table_roller_state
+                .previous(),
+            ActiveWidget::StatisticsDetailsTable => {}
+            _ => {}
+        }
+    }
 
     fn sort_by_next(&mut self) {
         match self.ui_state.active_widget {
@@ -146,9 +176,10 @@ impl Ui {
                 self.state
                     .write()
                     .map(|mut state| {
-                        state
-                            .current_head_endorsement_statuses
-                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        state.current_head_endorsement_statuses.sort_by_focus(
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            self.ui_state.delta_toggle,
+                        )
                     })
                     .unwrap();
             }
@@ -161,6 +192,7 @@ impl Ui {
                             self.ui_state
                                 .main_operation_statistics_sorter_state
                                 .in_focus(),
+                            self.ui_state.delta_toggle,
                         )
                     })
                     .unwrap();
@@ -177,9 +209,10 @@ impl Ui {
                 self.state
                     .write()
                     .map(|mut state| {
-                        state
-                            .current_head_endorsement_statuses
-                            .sort_by_focus(self.ui_state.endorsement_sorter_state.in_focus())
+                        state.current_head_endorsement_statuses.sort_by_focus(
+                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            self.ui_state.delta_toggle,
+                        )
                     })
                     .unwrap();
             }
@@ -194,6 +227,7 @@ impl Ui {
                             self.ui_state
                                 .main_operation_statistics_sorter_state
                                 .in_focus(),
+                            self.ui_state.delta_toggle,
                         )
                     })
                     .unwrap();

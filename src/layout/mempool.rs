@@ -14,7 +14,7 @@ use itertools::Itertools;
 
 use crate::model::{EndorsementState, StateRef, UiState};
 
-use super::create_pages_tabs;
+use super::{create_header_bar, create_help_bar, create_pages_tabs};
 pub struct MempoolScreen {}
 
 impl MempoolScreen {
@@ -25,12 +25,17 @@ impl MempoolScreen {
     ) {
         let data_state = data_state.read().unwrap();
         let size = f.size();
+        let delta_toggle = ui_state.delta_toggle;
 
         // TODO: placeholder for mempool page
-        let chunks = Layout::default()
+        let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Min(5), Constraint::Length(3)])
+            .constraints([
+                Constraint::Min(5),
+                Constraint::Length(3),
+                Constraint::Length(4),
+            ])
             .split(size);
 
         let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
@@ -40,38 +45,14 @@ impl MempoolScreen {
                 Constraint::Length(4),
                 Constraint::Min(1),
             ])
-            .split(chunks[0])
+            .split(page_chunks[0])
             .into_iter()
             .collect_tuple()
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
         // ======================== HEADER ========================
-        // wrap the header chunk in border
-        let block = Block::default().borders(Borders::ALL).title("Current Head");
-        f.render_widget(block, header_chunk);
-
         let header = &data_state.current_head_header;
-
-        let header_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
-            .split(header_chunk);
-
-        let block_hash = Paragraph::new(Spans::from(format!("Block hash: {}", header.hash)))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_hash, header_chunks[0]);
-
-        let block_level = Paragraph::new(format!("Level: {}", header.level))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_level, header_chunks[1]);
-
-        let block_protocol = Paragraph::new(format!("Protocol: {}", header.protocol))
-            .block(Block::default())
-            .alignment(Alignment::Left);
-        f.render_widget(block_protocol, header_chunks[2]);
+        create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
         let summary_elements_constraits = std::iter::repeat(Constraint::Percentage(16))
@@ -193,6 +174,9 @@ impl MempoolScreen {
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(ui_state);
-        f.render_widget(tabs, chunks[1]);
+        f.render_widget(tabs, page_chunks[1]);
+
+        // ======================== HELP BAR ========================
+        create_help_bar(page_chunks[2], f, delta_toggle);
     }
 }
