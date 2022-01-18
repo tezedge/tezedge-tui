@@ -1,6 +1,6 @@
 use std::io;
 
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use slog::{info, Logger};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
@@ -10,7 +10,7 @@ use crate::configuration::TuiArgs;
 use crate::layout::{MempoolScreen, StatisticsScreen, SyncingScreen};
 use crate::node_rpc::Node;
 
-use crate::model::{ActivePage, ActiveWidget, SortableByFocus, StateRef, UiState};
+use crate::model::{ActivePage, ActiveWidget, SortOrder, SortableByFocus, StateRef, UiState};
 pub struct Ui {
     pub state: StateRef,
     pub ui_state: UiState,
@@ -55,7 +55,7 @@ impl Ui {
             })?;
 
             match events.recv().await {
-                Some(TuiEvent::Input(key)) => match key {
+                Some(TuiEvent::Input(key, modifier)) => match key {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Down => self.handle_down(),
                     KeyCode::Up => self.handle_up(),
@@ -68,12 +68,15 @@ impl Ui {
                     KeyCode::Tab => {
                         self.rotate_widgets();
                     }
-                    KeyCode::Char('k') => {
-                        self.sort_by_next();
-                    }
-                    KeyCode::Char('j') => {
-                        self.sort_by_previous();
-                    }
+                    KeyCode::Char('s') => match modifier {
+                        KeyModifiers::NONE => {
+                            self.sort_ascending();
+                        }
+                        KeyModifiers::CONTROL => {
+                            self.sort_descending();
+                        }
+                        _ => {}
+                    },
                     KeyCode::Char('d') => {
                         self.ui_state.delta_toggle = !self.ui_state.delta_toggle;
                     }
@@ -102,8 +105,8 @@ impl Ui {
                             let delta_toggle = self.ui_state.delta_toggle;
                             let sort_focus = self
                                 .ui_state
-                                .details_operation_statistics_sorter_state
-                                .in_focus();
+                                .main_operation_statistics_table_roller_state
+                                .selected();
                             tokio::task::spawn(async move {
                                 let stats = crate::model::State::update_statistics(
                                     &node,
@@ -131,14 +134,12 @@ impl Ui {
                     let mut state = self.state.write().unwrap();
                     state
                         .update_current_head_header(
-                            &self.node,
-                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            &self.node, 3, // TODO
                         )
                         .await;
                     state
                         .update_endorsers(
-                            &self.node,
-                            self.ui_state.endorsement_sorter_state.in_focus(),
+                            &self.node, 3, // TODO
                         )
                         .await;
                 }
@@ -169,68 +170,65 @@ impl Ui {
         }
     }
 
-    fn sort_by_next(&mut self) {
+    fn sort_ascending(&mut self) {
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {
-                self.ui_state.endorsement_sorter_state.next();
                 self.state
                     .write()
                     .map(|mut state| {
-                        state.current_head_endorsement_statuses.sort_by_focus(
-                            self.ui_state.endorsement_sorter_state.in_focus(),
-                            self.ui_state.delta_toggle,
-                        )
+                        state
+                            .current_head_endorsement_statuses
+                            .sort_by_focus(3, self.ui_state.delta_toggle)
                     })
-                    .unwrap();
+                    .unwrap_or_default();
             }
             ActiveWidget::StatisticsMainTable => {
-                self.ui_state.main_operation_statistics_sorter_state.next();
                 self.state
                     .write()
                     .map(|mut state| {
                         state.operations_statistics.1.sort_by_focus(
                             self.ui_state
-                                .main_operation_statistics_sorter_state
-                                .in_focus(),
+                                .main_operation_statistics_table_roller_state
+                                .selected(),
                             self.ui_state.delta_toggle,
                         )
                     })
-                    .unwrap();
+                    .unwrap_or_default();
+                self.ui_state
+                    .main_operation_statistics_table_roller_state
+                    .set_sort_order(SortOrder::Ascending);
             }
             ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
         }
     }
 
-    fn sort_by_previous(&mut self) {
+    fn sort_descending(&mut self) {
+        // rust by default sorts values ascending, we need to sort and then reverse the vector
+        self.sort_ascending();
+
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {
-                self.ui_state.endorsement_sorter_state.previous();
                 self.state
                     .write()
-                    .map(|mut state| {
-                        state.current_head_endorsement_statuses.sort_by_focus(
-                            self.ui_state.endorsement_sorter_state.in_focus(),
-                            self.ui_state.delta_toggle,
-                        )
-                    })
-                    .unwrap();
+                    .map(|mut state| state.current_head_endorsement_statuses.reverse())
+                    .unwrap_or_default();
             }
             ActiveWidget::StatisticsMainTable => {
-                self.ui_state
-                    .main_operation_statistics_sorter_state
-                    .previous();
+                let selected = self
+                    .ui_state
+                    .main_operation_statistics_table_roller_state
+                    .selected();
                 self.state
                     .write()
-                    .map(|mut state| {
-                        state.operations_statistics.1.sort_by_focus(
-                            self.ui_state
-                                .main_operation_statistics_sorter_state
-                                .in_focus(),
-                            self.ui_state.delta_toggle,
-                        )
-                    })
-                    .unwrap();
+                    .map(|mut state| state.operations_statistics.1.reverse())
+                    .unwrap_or_default();
+                self.ui_state
+                    .main_operation_statistics_table_roller_state
+                    .set_sort_order(SortOrder::Descending);
+                self.ui_state
+                    .main_operation_statistics_table_roller_state
+                    .set_sorted_by(Some(selected));
             }
             ActiveWidget::StatisticsDetailsTable => {}
             _ => {}
@@ -332,7 +330,7 @@ impl Ui {
 }
 
 enum TuiEvent {
-    Input(KeyCode),
+    Input(KeyCode, KeyModifiers),
     Resize,
     Mouse,
     Tick,
@@ -346,7 +344,7 @@ fn events(tick_rate: Duration) -> mpsc::Receiver<TuiEvent> {
         loop {
             match event::read() {
                 Ok(Event::Key(key)) => {
-                    if let Err(err) = keys_tx.send(TuiEvent::Input(key.code)).await {
+                    if let Err(err) = keys_tx.send(TuiEvent::Input(key.code, key.modifiers)).await {
                         eprintln!("{}", err);
                         break;
                     }

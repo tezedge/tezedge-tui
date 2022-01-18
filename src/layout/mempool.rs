@@ -115,7 +115,7 @@ impl MempoolScreen {
         .collect();
 
         // add ▼ to the selected sorted table
-        if let Some(v) = headers.get_mut(ui_state.endorsement_sorter_state.in_focus()) {
+        if let Some(v) = headers.get_mut(3) {
             *v = format!("{}▼", v)
         }
 

@@ -16,7 +16,7 @@ use tui::{
 
 use itertools::Itertools;
 
-use crate::model::{StateRef, UiState};
+use crate::model::{SortOrder, StateRef, UiState};
 
 use super::{create_header_bar, create_help_bar, create_pages_tabs};
 
@@ -109,11 +109,21 @@ impl StatisticsScreen {
         .map(|v| v.to_string())
         .collect();
 
-        // add ▼ to the selected sorted table
-        if let Some(v) =
-            main_table_headers.get_mut(ui_state.main_operation_statistics_sorter_state.in_focus())
+        // add ▼/▲ to the selected sorted table
+        if let Some(sorted_by) = ui_state
+            .main_operation_statistics_table_roller_state
+            .sorted_by()
         {
-            *v = format!("{}▼", v)
+            if let Some(v) = main_table_headers.get_mut(sorted_by) {
+                match ui_state
+                    .main_operation_statistics_table_roller_state
+                    .sort_order()
+                {
+                    SortOrder::Ascending => *v = format!("{}▲", v),
+                    SortOrder::Descending => *v = format!("{}▼", v),
+                    _ => {}
+                }
+            }
         }
 
         let main_table_block = Block::default().borders(Borders::ALL).title("Operations");
@@ -199,15 +209,41 @@ impl StatisticsScreen {
             .main_operation_statistics_table_roller_state
             .set_rendered(to_render.len());
 
-        let fixed_header_cells = main_table_headers
-            .iter()
-            .take(fixed_count)
-            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+        let fixed_header_cells =
+            main_table_headers
+                .iter()
+                .enumerate()
+                .take(fixed_count)
+                .map(|(index, h)| {
+                    if index
+                        == ui_state
+                            .main_operation_statistics_table_roller_state
+                            .selected()
+                    {
+                        Cell::from(h.as_str())
+                            .style(Style::default().add_modifier(Modifier::REVERSED))
+                    } else {
+                        Cell::from(h.as_str()).style(Style::default())
+                    }
+                });
 
-        let dynamic_header_cells = main_table_headers
-            .iter()
-            .skip(start_index)
-            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+        let dynamic_header_cells =
+            main_table_headers
+                .iter()
+                .enumerate()
+                .skip(start_index)
+                .map(|(index, h)| {
+                    if index
+                        == ui_state
+                            .main_operation_statistics_table_roller_state
+                            .selected()
+                    {
+                        Cell::from(h.as_str())
+                            .style(Style::default().add_modifier(Modifier::REVERSED))
+                    } else {
+                        Cell::from(h.as_str()).style(Style::default())
+                    }
+                });
 
         let header_cells = fixed_header_cells.chain(dynamic_header_cells);
 
@@ -226,12 +262,38 @@ impl StatisticsScreen {
                 .max()
                 .unwrap_or(0)
                 + 1;
-            let fixed_cells = item.iter().take(fixed_count).map(|(content, color)| {
-                Cell::from(content.clone()).style(Style::default().fg(*color))
-            });
-            let dynamic_cells = item.iter().skip(start_index).map(|(content, color)| {
-                Cell::from(content.clone()).style(Style::default().fg(*color))
-            });
+            let fixed_cells =
+                item.iter()
+                    .enumerate()
+                    .take(fixed_count)
+                    .map(|(index, (content, color))| {
+                        if index
+                            == ui_state
+                                .main_operation_statistics_table_roller_state
+                                .selected()
+                        {
+                            Cell::from(content.clone())
+                                .style(Style::default().fg(*color).add_modifier(Modifier::REVERSED))
+                        } else {
+                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        }
+                    });
+            let dynamic_cells =
+                item.iter()
+                    .enumerate()
+                    .skip(start_index)
+                    .map(|(index, (content, color))| {
+                        if index
+                            == ui_state
+                                .main_operation_statistics_table_roller_state
+                                .selected()
+                        {
+                            Cell::from(content.clone())
+                                .style(Style::default().fg(*color).add_modifier(Modifier::REVERSED))
+                        } else {
+                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        }
+                    });
             let cells = fixed_cells.chain(dynamic_cells);
             Row::new(cells).height(height as u16)
         });

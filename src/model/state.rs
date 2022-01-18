@@ -212,15 +212,12 @@ impl State {
 pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
-    pub endorsement_sorter_state: SorterState,
     pub endorsement_table_state: TableState,
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
 
     pub main_operation_statistics_table_state: TableState,
     pub details_operation_statistics_table_state: TableState,
-    pub main_operation_statistics_sorter_state: SorterState,
-    pub details_operation_statistics_sorter_state: SorterState,
     pub main_operation_statistics_table_roller_state: RollableTableState,
     pub current_details_length: usize,
     pub delta_toggle: bool,
@@ -229,9 +226,6 @@ pub struct UiState {
 impl UiState {
     pub fn new() -> UiState {
         UiState {
-            endorsement_sorter_state: SorterState::new(9, 3),
-            main_operation_statistics_sorter_state: SorterState::new(13, 0),
-            details_operation_statistics_sorter_state: SorterState::new(7, 0),
             main_operation_statistics_table_roller_state: RollableTableState::new(3, 13),
             delta_toggle: true,
             ..Default::default()
@@ -273,52 +267,12 @@ impl PeriodInfoState {
 pub enum SortOrder {
     Ascending,
     Descending,
+    Unsorted,
 }
 
-#[derive(Debug, Clone)]
-pub struct SorterState {
-    sorter_count: usize,
-    in_focus: usize,
-    pub order: SortOrder,
-}
-
-impl SorterState {
-    pub fn new(sorter_count: usize, in_focus: usize) -> SorterState {
-        SorterState {
-            sorter_count,
-            in_focus,
-            order: SortOrder::Ascending,
-        }
-    }
-    pub fn in_focus(&self) -> usize {
-        self.in_focus
-    }
-
-    pub fn next(&mut self) {
-        let next_index = self.in_focus + 1;
-        if next_index >= self.sorter_count {
-            self.in_focus = 0
-        } else {
-            self.in_focus = next_index
-        }
-    }
-
-    pub fn previous(&mut self) {
-        if self.in_focus == 0 {
-            self.in_focus = self.sorter_count;
-        } else {
-            self.in_focus -= 1;
-        }
-    }
-}
-
-impl Default for SorterState {
+impl Default for SortOrder {
     fn default() -> Self {
-        Self {
-            in_focus: 0,
-            sorter_count: 0,
-            order: SortOrder::Ascending,
-        }
+        Self::Unsorted
     }
 }
 
@@ -335,6 +289,15 @@ pub struct RollableTableState {
 
     /// The total number of columns
     total: usize,
+
+    /// selected table column
+    selected: usize,
+
+    /// The index the table is sorted by
+    sorted_by: Option<usize>,
+
+    /// Sort order
+    sort_order: SortOrder,
 }
 
 impl RollableTableState {
@@ -344,7 +307,22 @@ impl RollableTableState {
             rendered: 0,
             first_rendered_index: fixed_count,
             total,
+            selected: 0,
+            sorted_by: None,
+            sort_order: SortOrder::Unsorted,
         }
+    }
+
+    pub fn sorted_by(&self) -> Option<usize> {
+        self.sorted_by
+    }
+
+    pub fn sort_order(&self) -> &SortOrder {
+        &self.sort_order
+    }
+
+    pub fn selected(&self) -> usize {
+        self.selected
     }
 
     pub fn rendered(&self) -> usize {
@@ -371,15 +349,38 @@ impl RollableTableState {
         self.fixed_count = fixed
     }
 
+    pub fn set_sort_order(&mut self, sort_order: SortOrder) {
+        self.sort_order = sort_order
+    }
+
+    pub fn set_sorted_by(&mut self, sorted_by: Option<usize>) {
+        self.sorted_by = sorted_by
+    }
+
     pub fn next(&mut self) {
-        let next_index = self.first_rendered_index + 1;
+        let last_render_index = self.first_rendered_index + (self.rendered - self.fixed_count) - 1;
+        let next_index = self.selected + 1;
         if next_index < self.total {
-            self.first_rendered_index = next_index
+            self.selected = next_index
+        }
+
+        if self.selected >= last_render_index
+            && self.first_rendered_index != last_render_index
+            && self.rendered != self.total
+        {
+            self.first_rendered_index += 1;
         }
     }
 
     pub fn previous(&mut self) {
-        if self.first_rendered_index != self.fixed_count {
+        if self.selected != 0 && self.selected != self.total {
+            self.selected -= 1;
+        }
+
+        if self.selected == self.first_rendered_index - 1
+            && self.first_rendered_index != self.fixed_count
+            && self.rendered != self.total
+        {
             self.first_rendered_index -= 1;
         }
     }
