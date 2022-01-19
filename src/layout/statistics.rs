@@ -152,6 +152,10 @@ impl StatisticsScreen {
             .details_operation_statistics_table
             .renderable_constraints(details_table_chunk.width);
 
+        ui_state
+            .details_operation_statistics_table
+            .highlight_sorting();
+
         let header_cells = ui_state
             .details_operation_statistics_table
             .renderable_headers(selected_style);

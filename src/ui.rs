@@ -209,7 +209,7 @@ impl Ui {
                     .unwrap_or_default();
                 self.ui_state
                     .details_operation_statistics_table
-                    .set_sort_order(SortOrder::Descending);
+                    .set_sort_order(SortOrder::Ascending);
                 self.ui_state
                     .details_operation_statistics_table
                     .set_sorted_by(Some(selected));
