@@ -5,14 +5,13 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    text::Spans,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, BorderType, Borders, Paragraph, Row, Table},
     Frame,
 };
 
 use itertools::Itertools;
 
-use crate::model::{EndorsementState, StateRef, TuiTableData, UiState};
+use crate::model::{EndorsementState, StateRef, UiState};
 
 use super::{create_header_bar, create_help_bar, create_pages_tabs};
 pub struct MempoolScreen {}

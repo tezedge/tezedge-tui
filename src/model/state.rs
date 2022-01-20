@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, iter::FromIterator, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use itertools::Itertools;
 use slog::error;
@@ -7,7 +7,7 @@ use strum_macros::{Display, EnumIter};
 use tui::{
     layout::Constraint,
     style::Style,
-    widgets::{Cell, Row, Table, TableState},
+    widgets::{Cell, Row, TableState},
 };
 
 use crate::node_rpc::{Node, RpcCall, RpcResponse};
@@ -15,7 +15,7 @@ use crate::node_rpc::{Node, RpcCall, RpcResponse};
 use super::{
     BlockApplicationStatus, BlockMetrics, ChainStatus, CurrentHeadHeader, Cycle, EndorsementRights,
     EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
-    IncomingTransferMetrics, OperationDetailSortable, OperationStatsSortable, OperationsStats,
+    IncomingTransferMetrics, OperationDetailSortable, OperationsStats,
     OperationsStatsSortable, PeerMetrics, PeerTableData, SortableByFocus, TuiTableData,
 };
 
@@ -352,6 +352,7 @@ impl UiState {
 }
 
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct PeriodInfoState {
     pub container_count: usize,
     pub displayable_container_count: usize,

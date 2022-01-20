@@ -1,27 +1,22 @@
-use std::collections::HashMap;
-use std::string;
 use std::time::Instant;
 
-use conv::UnwrapOk;
 use slog::{info, Logger};
 use tui::style::Modifier;
-use tui::text::{Span, Spans};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Paragraph, Row, Table},
     Frame,
 };
 
 use itertools::Itertools;
 
-use crate::model::{SortOrder, StateRef, UiState};
+use crate::model::{StateRef, UiState};
 
 use super::{create_header_bar, create_help_bar, create_pages_tabs};
 
 const SIDE_PADDINGS: u16 = 1;
-const INITIAL_PADDING: u16 = 2;
 const SIDE_BY_SIDE_TABLE_THRESHOLD: u16 = 128;
 pub struct StatisticsScreen {}
 

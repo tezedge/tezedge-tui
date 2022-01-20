@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, hash::Hash, str::FromStr};
 
 use serde::Deserialize;
-use tokio_tungstenite::tungstenite::util::NonBlockingError;
 use tui::style::Color;
 
 use super::{convert_time_to_unit_string, get_color, SortableByFocus, TuiTableData};
@@ -304,7 +303,7 @@ impl TuiTableData for EndorsementStatusSortable {
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
 impl SortableByFocus for EndorsementStatusSortableVec {
-    fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
+    fn sort_by_focus(&mut self, focus_index: usize, _delta_toggle: bool) {
         match focus_index {
             0 => self.sort_by_key(|k| k.slot_count),
             1 => self.sort_by_key(|k| k.baker.clone()),

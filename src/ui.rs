@@ -1,7 +1,6 @@
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
-use crossterm::style::Stylize;
 use slog::{info, Logger};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
@@ -180,8 +179,8 @@ impl Ui {
     }
 
     fn sort_ascending(&mut self) {
-        let delta_toggle = self.ui_state.delta_toggle;
-        let mut ui_state = self.ui_state.clone();
+        // let delta_toggle = self.ui_state.delta_toggle;
+        // let mut ui_state = self.ui_state.clone();
 
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {
@@ -253,8 +252,8 @@ impl Ui {
     fn sort_descending(&mut self) {
         // rust by default sorts values ascending, we need to sort and then reverse the vector
         self.sort_ascending();
-        let delta_toggle = self.ui_state.delta_toggle;
-        let mut ui_state = self.ui_state.clone();
+        // let delta_toggle = self.ui_state.delta_toggle;
+        // let mut ui_state = self.ui_state.clone();
 
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {

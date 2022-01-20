@@ -1,9 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use num::FromPrimitive;
 use serde::Deserialize;
-use strum_macros::{Display, ToString};
+use strum_macros::Display;
 use tui::style::Color;
 
 use super::{get_color, SortableByFocus};
@@ -15,6 +14,7 @@ pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
 pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 
 #[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationStats {
     kind: Option<OperationKind>,
     /// Minimum time when we saw this operation. Latencies are measured
@@ -29,6 +29,7 @@ pub struct OperationStats {
 }
 
 #[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeStats {
     received: Vec<OperationNodeCurrentHeadStats>,
     sent: Vec<OperationNodeCurrentHeadStats>,
@@ -41,6 +42,7 @@ pub struct OperationNodeStats {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeCurrentHeadStats {
     /// Latency from first time we have seen that operation.
     latency: i128,
@@ -49,6 +51,7 @@ pub struct OperationNodeCurrentHeadStats {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationValidationStats {
     started: Option<i128>,
     finished: Option<i128>,
@@ -475,7 +478,7 @@ pub struct OperationDetailSortable {
 }
 
 impl TuiTableData for OperationDetailSortable {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
+    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(7);
 
         final_vec.push((self.node_id.clone(), Color::Reset));

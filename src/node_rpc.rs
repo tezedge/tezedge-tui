@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use reqwest::Response;
-use slog::{info, Logger};
+use slog::Logger;
 use thiserror::Error;
 use url::Url;
 

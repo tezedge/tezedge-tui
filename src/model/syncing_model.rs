@@ -32,6 +32,7 @@ pub struct BlockInfo {
 
 #[derive(Clone, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct PeerMetrics {
     id: String,
     ip_address: String,
