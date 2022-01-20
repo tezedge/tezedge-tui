@@ -629,9 +629,7 @@ impl ExtendedTable {
         &self,
         content: &[T],
         delta_toggle: bool,
-        selected_style: Style,
     ) -> Vec<Row> {
-        let selected = self.selected;
         content
             .iter()
             .map(|item| {
@@ -642,22 +640,14 @@ impl ExtendedTable {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item.iter().enumerate().take(self.fixed_count).map(
-                    |(index, (content, color))| {
-                        if index == selected {
-                            Cell::from(content.clone()).style(selected_style)
-                        } else {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
-                        }
+                let fixed_cells = item.iter().take(self.fixed_count).map(
+                    |(content, color)| {
+                        Cell::from(content.clone()).style(Style::default().fg(*color))
                     },
                 );
-                let dynamic_cells = item.iter().enumerate().skip(self.first_rendered_index).map(
-                    |(index, (content, color))| {
-                        if index == selected {
-                            Cell::from(content.clone()).style(selected_style)
-                        } else {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
-                        }
+                let dynamic_cells = item.iter().skip(self.first_rendered_index).map(
+                    |(content, color)| {
+                        Cell::from(content.clone()).style(Style::default().fg(*color))
                     },
                 );
                 let cells = fixed_cells.chain(dynamic_cells);

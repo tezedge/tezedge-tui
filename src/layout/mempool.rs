@@ -138,7 +138,6 @@ impl MempoolScreen {
         let rows = ui_state.endorsement_table.renderable_rows(
             &data_state.current_head_endorsement_statuses,
             delta_toggle,
-            selected_style,
         );
 
         let table = Table::new(rows)

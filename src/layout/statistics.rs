@@ -118,7 +118,6 @@ impl StatisticsScreen {
         let rows = ui_state.main_operation_statistics_table.renderable_rows(
             &operations_statistics_sortable,
             delta_toggle,
-            selected_style,
         );
 
         let table = Table::new(rows)
@@ -163,7 +162,6 @@ impl StatisticsScreen {
             ui_state.details_operation_statistics_table.renderable_rows(
                 details,
                 delta_toggle,
-                selected_style,
             )
         } else {
             let details =
