@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, iter::FromIterator, sync::Arc};
 
 use itertools::Itertools;
 use slog::error;
@@ -75,14 +75,20 @@ impl State {
         self.cycle_data = chain_status.chain;
     }
 
-    pub async fn update_current_head_header(&mut self, node: &Node, sort_by: usize) {
+    pub async fn update_current_head_header(
+        &mut self,
+        node: &Node,
+        sort_by: usize,
+        sort_order: &SortOrder,
+        delta_toggle: bool,
+    ) {
         match node.call_rpc(RpcCall::CurrentHeadHeader, None).await {
             Ok(RpcResponse::CurrentHeadHeader(header)) => {
                 // only update the head and rights on head change
                 if header.level != self.current_head_header.level {
                     self.current_head_header = header;
                     self.update_head_endorsing_rights(node).await;
-                    self.reset_endorsers(sort_by);
+                    self.reset_endorsers(sort_by, sort_order, delta_toggle);
                 }
             }
             Err(e) => {
@@ -113,19 +119,28 @@ impl State {
         };
     }
 
-    fn reset_endorsers(&mut self, sort_by: usize) {
+    fn reset_endorsers(&mut self, sort_by: usize, sort_order: &SortOrder, delta_toggle: bool) {
         let mut statuses: EndorsementStatusSortableVec = self
             .endorsement_rights
             .iter()
             .map(|(k, slots)| EndorsementStatusSortable::new(k.to_string(), slots.len()))
             .collect();
 
-        statuses.sort_by_focus(sort_by, false); // TODO
+        statuses.sort_by_focus(sort_by, delta_toggle);
+        if let SortOrder::Descending = *sort_order {
+            statuses.reverse();
+        }
 
         self.current_head_endorsement_statuses = statuses;
     }
 
-    pub async fn update_endorsers(&mut self, node: &Node, sort_by: usize) {
+    pub async fn update_endorsers(
+        &mut self,
+        node: &Node,
+        sort_by: usize,
+        sort_order: &SortOrder,
+        delta_toggle: bool,
+    ) {
         let slot_mapped: BTreeMap<u32, EndorsementStatus> =
             match node.call_rpc(RpcCall::EndersementsStatus, None).await {
                 Ok(RpcResponse::EndorsementsStatus(statuses)) => {
@@ -175,7 +190,10 @@ impl State {
                 })
                 .collect();
 
-            endorsement_operation_time_statistics.sort_by_focus(sort_by, false); // TODO
+            endorsement_operation_time_statistics.sort_by_focus(sort_by, delta_toggle);
+            if let SortOrder::Descending = *sort_order {
+                endorsement_operation_time_statistics.reverse();
+            }
 
             self.current_head_endorsement_statuses = endorsement_operation_time_statistics;
             self.endoresement_status_summary = sumary;
@@ -229,7 +247,7 @@ impl State {
 pub struct UiState {
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
-    pub endorsement_table_state: TableState,
+    pub endorsement_table: ExtendedTable,
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
 
@@ -242,6 +260,36 @@ pub struct UiState {
 impl UiState {
     pub fn new() -> UiState {
         UiState {
+            endorsement_table: ExtendedTable::new(
+                vec![
+                    "Slots",
+                    "Baker",
+                    "Status",
+                    "Delta",
+                    "Receive hash",
+                    "Receive content",
+                    "Decode",
+                    "Precheck",
+                    "Apply",
+                    "Broadcast",
+                ]
+                .iter()
+                .map(|v| v.to_string())
+                .collect(),
+                vec![
+                    Constraint::Length(6),
+                    Constraint::Length(36),
+                    Constraint::Min(11),
+                    Constraint::Min(8),
+                    Constraint::Min(12),
+                    Constraint::Min(15),
+                    Constraint::Min(8),
+                    Constraint::Min(9),
+                    Constraint::Min(8),
+                    Constraint::Min(10),
+                ],
+                4,
+            ),
             main_operation_statistics_table: ExtendedTable::new(
                 vec![
                     "Datetime",
@@ -449,6 +497,22 @@ impl ExtendedTable {
             && self.rendered != self.headers.len()
         {
             self.first_rendered_index += 1;
+        }
+    }
+
+    pub fn sort_content<T: SortableByFocus>(
+        &mut self,
+        content: &mut T,
+        sort_by: usize,
+        sort_order: &SortOrder,
+        delta_toggle: bool,
+    ) {
+        self.sorted_by = Some(sort_by);
+        self.sort_order = sort_order.clone();
+
+        content.sort_by_focus(sort_by, delta_toggle);
+        if let SortOrder::Descending = *sort_order {
+            content.rev();
         }
     }
 

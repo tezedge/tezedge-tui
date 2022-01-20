@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use num::FromPrimitive;
 use serde::Deserialize;
 use strum_macros::{Display, ToString};
 use tui::style::Color;
 
-use super::SortableByFocus;
+use super::{get_color, SortableByFocus};
 
 // use super::convert_time_to_unit_string;
 
@@ -508,16 +509,6 @@ impl TuiTableData for OperationDetailSortable {
     }
 }
 
-fn get_color(value: i128) -> Color {
-    if value < 20000000 {
-        Color::Reset
-    } else if value < 50000000 {
-        Color::Rgb(255, 165, 0) // orange
-    } else {
-        Color::Red
-    }
-}
-
 impl SortableByFocus for OperationsStatsSortable {
     fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
         match focus_index {
@@ -567,6 +558,10 @@ impl SortableByFocus for OperationsStatsSortable {
             _ => {}
         }
     }
+
+    fn rev(&mut self) {
+        self.reverse()
+    }
 }
 
 impl SortableByFocus for OperationDetailsSortable {
@@ -581,5 +576,8 @@ impl SortableByFocus for OperationDetailsSortable {
             6 => self.sort_by_key(|k| k.sent),
             _ => {}
         }
+    }
+    fn rev(&mut self) {
+        self.reverse()
     }
 }

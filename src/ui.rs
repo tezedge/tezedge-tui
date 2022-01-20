@@ -133,12 +133,18 @@ impl Ui {
                     let mut state = self.state.write().unwrap();
                     state
                         .update_current_head_header(
-                            &self.node, 3, // TODO
+                            &self.node,
+                            ui_state.endorsement_table.selected(),
+                            ui_state.endorsement_table.sort_order(),
+                            ui_state.delta_toggle,
                         )
                         .await;
                     state
                         .update_endorsers(
-                            &self.node, 3, // TODO
+                            &self.node,
+                            ui_state.endorsement_table.selected(),
+                            ui_state.endorsement_table.sort_order(),
+                            ui_state.delta_toggle,
                         )
                         .await;
                 }
@@ -149,6 +155,7 @@ impl Ui {
     }
     fn table_next(&mut self) {
         match self.ui_state.active_widget {
+            ActiveWidget::EndorserTable => self.ui_state.endorsement_table.next(),
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state.main_operation_statistics_table.next()
             }
@@ -161,6 +168,7 @@ impl Ui {
 
     fn table_previous(&mut self) {
         match self.ui_state.active_widget {
+            ActiveWidget::EndorserTable => self.ui_state.endorsement_table.previous(),
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state.main_operation_statistics_table.previous()
             }
@@ -172,16 +180,40 @@ impl Ui {
     }
 
     fn sort_ascending(&mut self) {
+        let delta_toggle = self.ui_state.delta_toggle;
+        let mut ui_state = self.ui_state.clone();
+
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {
+                let selected = self.ui_state.endorsement_table.selected();
                 self.state
                     .write()
                     .map(|mut state| {
                         state
                             .current_head_endorsement_statuses
-                            .sort_by_focus(3, self.ui_state.delta_toggle)
+                            .sort_by_focus(selected, self.ui_state.delta_toggle)
                     })
                     .unwrap_or_default();
+                self.ui_state
+                    .endorsement_table
+                    .set_sort_order(SortOrder::Ascending);
+                self.ui_state
+                    .endorsement_table
+                    .set_sorted_by(Some(selected));
+                info!(self.log, "Table: {:?}", self.ui_state.endorsement_table);
+
+                // let selected = self.ui_state.endorsement_table.selected();
+                // self.state
+                //     .write()
+                //     .map(|mut state| {
+                //         ui_state.endorsement_table.sort_content(
+                //             &mut state.current_head_endorsement_statuses,
+                //             selected,
+                //             &SortOrder::Descending,
+                //             delta_toggle,
+                //         )
+                //     })
+                //     .unwrap_or_default();
             }
             ActiveWidget::StatisticsMainTable => {
                 self.state
@@ -221,13 +253,35 @@ impl Ui {
     fn sort_descending(&mut self) {
         // rust by default sorts values ascending, we need to sort and then reverse the vector
         self.sort_ascending();
+        let delta_toggle = self.ui_state.delta_toggle;
+        let mut ui_state = self.ui_state.clone();
 
         match self.ui_state.active_widget {
             ActiveWidget::EndorserTable => {
+                let selected = self.ui_state.endorsement_table.selected();
                 self.state
                     .write()
                     .map(|mut state| state.current_head_endorsement_statuses.reverse())
                     .unwrap_or_default();
+                self.ui_state
+                    .endorsement_table
+                    .set_sort_order(SortOrder::Descending);
+                self.ui_state
+                    .endorsement_table
+                    .set_sorted_by(Some(selected));
+                
+                // let selected = self.ui_state.endorsement_table.selected();
+                // self.state
+                //     .write()
+                //     .map(|mut state| {
+                //         ui_state.endorsement_table.sort_content(
+                //             &mut state.current_head_endorsement_statuses,
+                //             selected,
+                //             &SortOrder::Descending,
+                //             delta_toggle,
+                //         )
+                //     })
+                //     .unwrap_or_default();
             }
             ActiveWidget::StatisticsMainTable => {
                 let selected = self.ui_state.main_operation_statistics_table.selected();
@@ -294,10 +348,13 @@ impl Ui {
                 self.ui_state.peer_table_state.selected(),
             )),
             ActiveWidget::EndorserTable => {
-                self.ui_state.endorsement_table_state.select(previous_item(
-                    state.current_head_endorsement_statuses.len(),
-                    self.ui_state.endorsement_table_state.selected(),
-                ))
+                self.ui_state
+                    .endorsement_table
+                    .table_state
+                    .select(previous_item(
+                        state.current_head_endorsement_statuses.len(),
+                        self.ui_state.endorsement_table.table_state.selected(),
+                    ))
             }
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state
@@ -348,10 +405,15 @@ impl Ui {
                 state.peer_metrics.len(),
                 self.ui_state.peer_table_state.selected(),
             )),
-            ActiveWidget::EndorserTable => self.ui_state.endorsement_table_state.select(next_item(
-                state.current_head_endorsement_statuses.len(),
-                self.ui_state.endorsement_table_state.selected(),
-            )),
+            ActiveWidget::EndorserTable => {
+                self.ui_state
+                    .endorsement_table
+                    .table_state
+                    .select(next_item(
+                        state.current_head_endorsement_statuses.len(),
+                        self.ui_state.endorsement_table.table_state.selected(),
+                    ))
+            }
             ActiveWidget::StatisticsMainTable => {
                 self.ui_state
                     .main_operation_statistics_table

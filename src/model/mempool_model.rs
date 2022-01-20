@@ -1,8 +1,10 @@
 use std::{collections::BTreeMap, hash::Hash, str::FromStr};
 
 use serde::Deserialize;
+use tokio_tungstenite::tungstenite::util::NonBlockingError;
+use tui::style::Color;
 
-use super::{convert_time_to_unit_string, SortableByFocus};
+use super::{convert_time_to_unit_string, get_color, SortableByFocus, TuiTableData};
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
@@ -73,14 +75,21 @@ impl Default for EndorsementState {
 
 #[derive(Clone, Debug, Default)]
 pub struct EndorsementStatusSortable {
-    pub delta: u64,
-    pub decoded_time: u64,
-    pub received_hash_time: u64,
-    pub received_contents_time: u64,
-    pub applied_time: u64,
-    pub prechecked_time: u64,
-    pub broadcast_time: u64,
+    pub delta: Option<u64>,
+    pub decoded_time: Option<u64>,
+    pub received_hash_time: Option<u64>,
+    pub received_contents_time: Option<u64>,
+    pub applied_time: Option<u64>,
+    pub prechecked_time: Option<u64>,
+    pub broadcast_time: Option<u64>,
     pub state: EndorsementState,
+
+    // deltas
+    pub received_contents_time_delta: Option<u64>,
+    pub decoded_time_delta: Option<u64>,
+    pub prechecked_time_delta: Option<u64>,
+    pub applied_time_delta: Option<u64>,
+    pub broadcast_time_delta: Option<u64>,
 
     pub baker: String,
     pub slot_count: usize,
@@ -90,61 +99,74 @@ impl EndorsementStatus {
     // TODO: fix sorting, use Options
     pub fn to_sortable(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
         let delta = if let (Some(broadcast), Some(received)) =
-            (self.broadcast_time, self.received_contents_time)
+            (self.broadcast_time, self.received_hash_time)
         {
-            broadcast - received
+            Some(broadcast - received)
         } else {
-            0
+            None
         };
 
-        let received_hash_time = if let Some(received_hash_time) = self.received_hash_time {
-            received_hash_time
-        } else {
-            0
-        };
-
-        let received_contents_time =
-            if let Some(received_contents_time) = self.received_contents_time {
-                received_contents_time
+        let received_contents_time_delta =
+            if let (Some(received_contents_time), Some(received_hash_time)) =
+                (self.received_contents_time, self.received_hash_time)
+            {
+                Some(received_contents_time - received_hash_time)
             } else {
-                0
+                None
             };
 
-        let decoded_time = if let Some(decoded) = self.decoded_time {
-            decoded
+        let decoded_time_delta = if let (Some(decoded_time), Some(received_contents_time)) =
+            (self.decoded_time, self.received_contents_time)
+        {
+            Some(decoded_time - received_contents_time)
         } else {
-            0
+            None
         };
 
-        let prechecked_time = if let Some(prechecked) = self.prechecked_time {
-            prechecked
+        let prechecked_time_delta = if let (Some(prechecked_time), Some(decoded_time)) =
+            (self.prechecked_time, self.decoded_time)
+        {
+            Some(prechecked_time - decoded_time)
         } else {
-            0
+            None
         };
 
-        let applied_time = if let Some(applied) = self.applied_time {
-            applied
+        let applied_time_delta = if let (Some(applied_time), Some(decoded_time)) =
+            (self.applied_time, self.decoded_time)
+        {
+            Some(applied_time - decoded_time)
         } else {
-            0
+            None
         };
 
-        let broadcast_time = if let Some(broadcast) = self.broadcast_time {
-            broadcast
+        let broadcast_time_delta = if let (Some(broadcast_time), Some(applied_time)) =
+            (self.broadcast_time, self.applied_time)
+        {
+            Some(broadcast_time - applied_time)
+        } else if let (Some(broadcast_time), Some(prechecked_time)) =
+            (self.broadcast_time, self.prechecked_time)
+        {
+            Some(broadcast_time - prechecked_time)
         } else {
-            0
+            None
         };
 
         EndorsementStatusSortable {
             baker,
             slot_count,
             delta,
-            received_hash_time,
-            received_contents_time,
-            decoded_time,
-            prechecked_time,
-            applied_time,
-            broadcast_time,
+            received_hash_time: self.received_hash_time,
+            received_contents_time: self.received_contents_time,
+            decoded_time: self.decoded_time,
+            prechecked_time: self.prechecked_time,
+            applied_time: self.applied_time,
+            broadcast_time: self.broadcast_time,
             state: EndorsementState::from_str(&self.state).unwrap_or_default(),
+            received_contents_time_delta,
+            decoded_time_delta,
+            prechecked_time_delta,
+            applied_time_delta,
+            broadcast_time_delta,
         }
     }
 }
@@ -154,64 +176,125 @@ impl EndorsementStatusSortable {
         Self {
             baker,
             slot_count,
-            delta: u64::MAX,
-            received_contents_time: u64::MAX,
-            received_hash_time: u64::MAX,
-            decoded_time: u64::MAX,
-            prechecked_time: u64::MAX,
-            applied_time: u64::MAX,
-            broadcast_time: u64::MAX,
             ..Default::default()
         }
     }
+}
 
-    pub fn construct_tui_table_data(&self) -> Vec<String> {
+impl TuiTableData for EndorsementStatusSortable {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(9);
+        let missing_value = (String::from('-'), Color::DarkGray);
 
-        final_vec.push(self.slot_count.to_string());
-        final_vec.push(self.baker.clone());
-        final_vec.push(self.state.to_string());
+        final_vec.push((self.slot_count.to_string(), Color::White));
+        final_vec.push((self.baker.clone(), Color::White));
+        final_vec.push((self.state.to_string(), Color::Reset));
 
-        if self.broadcast_time != 0
-            && self.received_contents_time != 0
-            && self.broadcast_time != u64::MAX
-            && self.received_contents_time != u64::MAX
-        {
-            final_vec.push(convert_time_to_unit_string(
-                self.broadcast_time - self.received_contents_time,
-            ))
+        if let Some(delta) = self.delta {
+            final_vec.push((convert_time_to_unit_string(delta), get_color(delta)))
         } else {
-            final_vec.push(String::from('-'));
+            final_vec.push(missing_value.clone());
         }
 
-        if self.received_contents_time > 0 && self.received_contents_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.received_contents_time));
+        if let Some(received_hash_time) = self.received_hash_time {
+            final_vec.push((
+                convert_time_to_unit_string(received_hash_time),
+                get_color(received_hash_time),
+            ));
         } else {
-            final_vec.push(String::from('-'));
+            final_vec.push(missing_value.clone());
         }
 
-        if self.decoded_time > 0 && self.decoded_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.decoded_time));
-        } else {
-            final_vec.push(String::from('-'));
-        }
+        if delta_toggle {
+            if let Some(received_contents_time_delta) = self.received_contents_time_delta {
+                final_vec.push((
+                    convert_time_to_unit_string(received_contents_time_delta),
+                    get_color(received_contents_time_delta),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
 
-        if self.prechecked_time > 0 && self.prechecked_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.prechecked_time));
-        } else {
-            final_vec.push(String::from('-'));
-        }
+            if let Some(decoded_time_delta) = self.decoded_time_delta {
+                final_vec.push((
+                    convert_time_to_unit_string(decoded_time_delta),
+                    get_color(decoded_time_delta),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
 
-        if self.applied_time > 0 && self.applied_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.applied_time));
-        } else {
-            final_vec.push(String::from('-'));
-        }
+            if let Some(prechecked_time_delta) = self.prechecked_time_delta {
+                final_vec.push((
+                    convert_time_to_unit_string(prechecked_time_delta),
+                    get_color(prechecked_time_delta),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
 
-        if self.broadcast_time > 0 && self.broadcast_time != u64::MAX {
-            final_vec.push(convert_time_to_unit_string(self.broadcast_time));
+            if let Some(applied_time_delta) = self.applied_time_delta {
+                final_vec.push((
+                    convert_time_to_unit_string(applied_time_delta),
+                    get_color(applied_time_delta),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
+
+            if let Some(broadcast_time_delta) = self.broadcast_time_delta {
+                final_vec.push((
+                    convert_time_to_unit_string(broadcast_time_delta),
+                    get_color(broadcast_time_delta),
+                ));
+            } else {
+                final_vec.push(missing_value);
+            }
         } else {
-            final_vec.push(String::from('-'));
+            if let Some(received_contents_time) = self.received_contents_time {
+                final_vec.push((
+                    convert_time_to_unit_string(received_contents_time),
+                    get_color(received_contents_time),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
+
+            if let Some(decoded_time) = self.decoded_time {
+                final_vec.push((
+                    convert_time_to_unit_string(decoded_time),
+                    get_color(decoded_time),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
+
+            if let Some(prechecked_time) = self.prechecked_time {
+                final_vec.push((
+                    convert_time_to_unit_string(prechecked_time),
+                    get_color(prechecked_time),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
+
+            if let Some(applied_time) = self.applied_time {
+                final_vec.push((
+                    convert_time_to_unit_string(applied_time),
+                    get_color(applied_time),
+                ));
+            } else {
+                final_vec.push(missing_value.clone());
+            }
+
+            if let Some(broadcast_time) = self.broadcast_time {
+                final_vec.push((
+                    convert_time_to_unit_string(broadcast_time),
+                    get_color(broadcast_time),
+                ));
+            } else {
+                final_vec.push(missing_value);
+            }
         }
 
         final_vec
@@ -227,13 +310,18 @@ impl SortableByFocus for EndorsementStatusSortableVec {
             1 => self.sort_by_key(|k| k.baker.clone()),
             2 => self.sort_by_key(|k| k.state.clone()),
             3 => self.sort_by_key(|k| k.delta),
-            4 => self.sort_by_key(|k| k.received_contents_time),
-            5 => self.sort_by_key(|k| k.decoded_time),
-            6 => self.sort_by_key(|k| k.prechecked_time),
-            7 => self.sort_by_key(|k| k.applied_time),
-            8 => self.sort_by_key(|k| k.broadcast_time),
+            4 => self.sort_by_key(|k| k.received_hash_time),
+            5 => self.sort_by_key(|k| k.received_contents_time),
+            6 => self.sort_by_key(|k| k.decoded_time),
+            7 => self.sort_by_key(|k| k.prechecked_time),
+            8 => self.sort_by_key(|k| k.applied_time),
+            9 => self.sort_by_key(|k| k.broadcast_time),
             _ => {}
         }
+    }
+
+    fn rev(&mut self) {
+        self.reverse()
     }
 }
 
