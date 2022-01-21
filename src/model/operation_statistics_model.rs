@@ -2,17 +2,19 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
-use strum_macros::{Display, ToString};
+use strum_macros::Display;
 use tui::style::Color;
 
-use super::SortableByFocus;
+use super::{get_color, SortableByFocus};
 
 // use super::convert_time_to_unit_string;
 
 pub type OperationsStats = BTreeMap<String, OperationStats>;
 pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
+pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 
 #[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationStats {
     kind: Option<OperationKind>,
     /// Minimum time when we saw this operation. Latencies are measured
@@ -27,6 +29,7 @@ pub struct OperationStats {
 }
 
 #[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeStats {
     received: Vec<OperationNodeCurrentHeadStats>,
     sent: Vec<OperationNodeCurrentHeadStats>,
@@ -39,6 +42,7 @@ pub struct OperationNodeStats {
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeCurrentHeadStats {
     /// Latency from first time we have seen that operation.
     latency: i128,
@@ -47,6 +51,7 @@ pub struct OperationNodeCurrentHeadStats {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationValidationStats {
     started: Option<i128>,
     finished: Option<i128>,
@@ -299,8 +304,12 @@ impl OperationStats {
     }
 }
 
-impl OperationStatsSortable {
-    pub fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
+pub trait TuiTableData {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
+}
+
+impl TuiTableData for OperationStatsSortable {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(13);
 
         let datetime =
@@ -457,6 +466,7 @@ fn convert_time_to_unit_string(time: i128) -> String {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OperationDetailSortable {
     pub node_id: String,
     pub first_received: Option<i128>,
@@ -467,8 +477,8 @@ pub struct OperationDetailSortable {
     pub sent: usize,
 }
 
-impl OperationDetailSortable {
-    pub fn construct_tui_table_data(&self) -> Vec<(String, Color)> {
+impl TuiTableData for OperationDetailSortable {
+    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(7);
 
         final_vec.push((self.node_id.clone(), Color::Reset));
@@ -499,16 +509,6 @@ impl OperationDetailSortable {
         final_vec.push((self.sent.to_string(), Color::Reset));
 
         final_vec
-    }
-}
-
-fn get_color(value: i128) -> Color {
-    if value < 20000000 {
-        Color::Reset
-    } else if value < 50000000 {
-        Color::Rgb(255, 165, 0) // orange
-    } else {
-        Color::Red
     }
 }
 
@@ -560,5 +560,27 @@ impl SortableByFocus for OperationsStatsSortable {
             12 => self.sort_by_key(|k| k.kind),
             _ => {}
         }
+    }
+
+    fn rev(&mut self) {
+        self.reverse()
+    }
+}
+
+impl SortableByFocus for OperationDetailsSortable {
+    fn sort_by_focus(&mut self, focus_index: usize, _delta_toogle: bool) {
+        match focus_index {
+            0 => self.sort_by_key(|k| k.node_id.clone()),
+            1 => self.sort_by_key(|k| k.first_received),
+            2 => self.sort_by_key(|k| k.first_content_received),
+            3 => self.sort_by_key(|k| k.first_sent),
+            4 => self.sort_by_key(|k| k.received),
+            5 => self.sort_by_key(|k| k.content_received),
+            6 => self.sort_by_key(|k| k.sent),
+            _ => {}
+        }
+    }
+    fn rev(&mut self) {
+        self.reverse()
     }
 }

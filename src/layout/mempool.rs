@@ -5,8 +5,7 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    text::Spans,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, BorderType, Borders, Paragraph, Row, Table},
     Frame,
 };
 
@@ -104,7 +103,8 @@ impl MempoolScreen {
             "Baker",
             "Status",
             "Delta",
-            "Receive",
+            "Receive hash",
+            "Receive content",
             "Decode",
             "Precheck",
             "Apply",
@@ -115,7 +115,7 @@ impl MempoolScreen {
         .collect();
 
         // add ▼ to the selected sorted table
-        if let Some(v) = headers.get_mut(ui_state.endorsement_sorter_state.in_focus()) {
+        if let Some(v) = headers.get_mut(3) {
             *v = format!("{}▼", v)
         }
 
@@ -124,49 +124,32 @@ impl MempoolScreen {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
 
-        let header_cells = headers
-            .iter()
-            .map(|h| Cell::from(h.as_str()).style(Style::default()));
+        let renderable_constraints = ui_state
+            .endorsement_table
+            .renderable_constraints(f.size().width - 2);
+        let header_cells = ui_state
+            .endorsement_table
+            .renderable_headers(selected_style);
         let header = Row::new(header_cells)
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
 
-        let rows = data_state
-            .current_head_endorsement_statuses
-            .iter()
-            .map(|item| {
-                let item = item.construct_tui_table_data();
-                let height = item
-                    .iter()
-                    .map(|content| content.chars().filter(|c| *c == '\n').count())
-                    .max()
-                    .unwrap_or(0)
-                    + 1;
-                let cells = item.iter().map(|c| Cell::from(c.clone()));
-                Row::new(cells).height(height as u16)
-            });
+        let rows = ui_state.endorsement_table.renderable_rows(
+            &data_state.current_head_endorsement_statuses,
+            delta_toggle,
+        );
 
         let table = Table::new(rows)
             .header(header)
             .block(endorsers)
             .highlight_style(selected_style)
             .highlight_symbol(">> ")
-            .widths(&[
-                Constraint::Length(6),
-                Constraint::Length(36),
-                Constraint::Min(11),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(8),
-                Constraint::Min(9),
-                Constraint::Min(8),
-                Constraint::Min(10),
-            ]);
+            .widths(&renderable_constraints);
         f.render_stateful_widget(
             table,
             endorsements_chunk,
-            &mut ui_state.endorsement_table_state,
+            &mut ui_state.endorsement_table.table_state.clone(),
         );
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");

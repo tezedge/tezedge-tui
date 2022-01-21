@@ -11,7 +11,7 @@ pub use statistics::*;
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
@@ -23,16 +23,10 @@ use crate::model::{ActivePage, CurrentHeadHeader, UiState};
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
         .map(|t| {
-            Spans::from(vec![
-                // Span::styled(
-                //     t.shortcut.clone(),
-                //     Style::default().fg(Color::Yellow).bg(Color::Black),
-                // ),
-                Span::styled(
-                    t.to_string(),
-                    Style::default().fg(Color::White).bg(Color::Black),
-                ),
-            ])
+            Spans::from(vec![Span::styled(
+                t.to_string(),
+                Style::default().fg(Color::White).bg(Color::Black),
+            )])
         })
         .collect();
     let page_in_focus = ui_state.active_page.to_index();
@@ -55,8 +49,8 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
                 "Delta values"
             },
         ),
-        ("j", "Switch sort left"),
-        ("k", "Switch sort right"),
+        ("s", "Sort ascending"),
+        ("^s", "Sort descending"),
         ("←", "Table left"),
         ("→", "Table right"),
         ("↑", "Table up"),

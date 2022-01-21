@@ -2,6 +2,7 @@ pub mod mempool_model;
 pub use mempool_model::*;
 
 pub mod state;
+use num::FromPrimitive;
 pub use state::*;
 
 pub mod syncing_model;
@@ -9,9 +10,11 @@ pub use syncing_model::*;
 
 pub mod operation_statistics_model;
 pub use operation_statistics_model::*;
+use tui::style::Color;
 
 pub trait SortableByFocus {
     fn sort_by_focus(&mut self, focus_index: usize, delta_toogle: bool);
+    fn rev(&mut self);
 }
 
 pub fn convert_time_to_unit_string(time: u64) -> String {
@@ -28,5 +31,15 @@ pub fn convert_time_to_unit_string(time: u64) -> String {
         format!("{:.2}μs", time / MILLISECOND_FACTOR)
     } else {
         format!("{}ns", time)
+    }
+}
+
+fn get_color<T: FromPrimitive + PartialOrd>(value: T) -> Color {
+    if value < FromPrimitive::from_u64(20000000).unwrap() {
+        Color::Reset
+    } else if value < FromPrimitive::from_u64(50000000).unwrap() {
+        Color::Rgb(255, 165, 0) // orange
+    } else {
+        Color::Red
     }
 }
