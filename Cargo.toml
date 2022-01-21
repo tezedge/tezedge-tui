@@ -3,7 +3,7 @@ name = "tezedge-tui"
 description = "A terminal user interface for Tezedge"
 version = "0.1.0"
 authors = ["Adrian Nagy <adrian.nagy@viablesystems.io>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
