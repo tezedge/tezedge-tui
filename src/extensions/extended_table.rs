@@ -1,3 +1,12 @@
+use itertools::Itertools;
+use tui::{
+    layout::Constraint,
+    style::{Color, Style},
+    widgets::{Cell, Row, TableState},
+};
+
+const SIDE_PADDINGS: u16 = 1;
+const INITIAL_PADDING: u16 = 2;
 
 #[derive(Clone, Debug, Default)]
 pub struct ExtendedTable {
@@ -229,11 +238,7 @@ impl ExtendedTable {
         fixed_header_cells.chain(dynamic_header_cells).collect()
     }
 
-    pub fn renderable_rows<T: TuiTableData>(
-        &self,
-        content: &[T],
-        delta_toggle: bool,
-    ) -> Vec<Row> {
+    pub fn renderable_rows<T: TuiTableData>(&self, content: &[T], delta_toggle: bool) -> Vec<Row> {
         content
             .iter()
             .map(|item| {
@@ -244,19 +249,40 @@ impl ExtendedTable {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item.iter().take(self.fixed_count).map(
-                    |(content, color)| {
-                        Cell::from(content.clone()).style(Style::default().fg(*color))
-                    },
-                );
-                let dynamic_cells = item.iter().skip(self.first_rendered_index).map(
-                    |(content, color)| {
-                        Cell::from(content.clone()).style(Style::default().fg(*color))
-                    },
-                );
+                let fixed_cells = item.iter().take(self.fixed_count).map(|(content, color)| {
+                    Cell::from(content.clone()).style(Style::default().fg(*color))
+                });
+                let dynamic_cells =
+                    item.iter()
+                        .skip(self.first_rendered_index)
+                        .map(|(content, color)| {
+                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        });
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
             })
             .collect()
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+    Unsorted,
+}
+
+impl Default for SortOrder {
+    fn default() -> Self {
+        Self::Unsorted
+    }
+}
+
+pub trait TuiTableData {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
+}
+
+pub trait SortableByFocus {
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toogle: bool);
+    fn rev(&mut self);
 }

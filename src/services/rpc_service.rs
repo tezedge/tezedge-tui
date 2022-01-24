@@ -1,13 +1,17 @@
-use std::{fmt::Display, collections::{BTreeMap, HashMap}};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt::Display,
+};
 
-use reqwest::Response;
 use serde::Deserialize;
 use thiserror::Error;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
 use url::Url;
-use async_trait::async_trait;
 
-use super::{ServiceWorkerAsyncRequester, ServiceWorkerAsyncResponder, RequestTrySendError, ResponseTryRecvError};
+use super::{
+    worker_channel, RequestTrySendError, ResponseTryRecvError, ServiceWorkerAsyncRequester,
+    ServiceWorkerAsyncResponder,
+};
 
 pub type RpcRecvError = mpsc::error::TryRecvError;
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
@@ -17,25 +21,42 @@ pub type OperationsStats = BTreeMap<String, OperationStats>;
 type RpcWorkerRequester = ServiceWorkerAsyncRequester<RpcCall, RpcResponse>;
 type RpcWorkerResponder = ServiceWorkerAsyncResponder<RpcCall, RpcResponse>;
 
-#[async_trait]
 pub trait RpcService {
-    async fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>>;
-    async fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError>;
+    fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>>;
+    fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError>;
 }
 
 #[derive(Debug)]
 pub struct RpcServiceDefault {
     worker_channel: RpcWorkerRequester,
-    url: Url,
+    _url: Url,
 }
 
-#[async_trait]
+impl RpcServiceDefault {
+    pub fn new(bound: usize, url: Url) -> Self {
+        let (requester, responder) = worker_channel(bound);
+
+        let t_url = url.clone();
+        // thread::Builder::new()
+        //     .name("rpc-thread".to_owned())
+        //     .spawn(move || Self::run_worker(responder, t_url))
+        //     .unwrap();
+
+        tokio::task::spawn(async move { Self::run_worker(responder, t_url).await });
+
+        Self {
+            worker_channel: requester,
+            _url: url,
+        }
+    }
+}
+
 impl RpcService for RpcServiceDefault {
-    async fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>> {
+    fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>> {
         self.worker_channel.try_send(req)
     }
 
-    async fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError> {
+    fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError> {
         self.worker_channel.try_recv()
     }
 }
@@ -51,40 +72,45 @@ impl RpcServiceDefault {
 
             let res = reqwest::get(url)
                 .await
-                .map_err(|e| RpcError::RequestErrorDetailed(req.clone(), e)).unwrap();
+                .map_err(|e| RpcError::RequestErrorDetailed(req.clone(), e))
+                .unwrap();
             let deserialized = match req.target {
                 RpcTarget::EndorsementRights => {
                     let rights: EndorsementRights = res
                         .json()
                         .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e)).unwrap();
+                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
+                        .unwrap();
                     RpcResponse::EndorsementRights(rights)
                 }
                 RpcTarget::CurrentHeadHeader => {
                     let header: CurrentHeadHeader = res
                         .json()
                         .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e)).unwrap();
+                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
+                        .unwrap();
                     RpcResponse::CurrentHeadHeader(header)
                 }
                 RpcTarget::EndersementsStatus => {
                     let statuses: EndorsementStatuses = res
                         .json()
                         .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e)).unwrap();
+                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
+                        .unwrap();
                     RpcResponse::EndorsementsStatus(statuses)
                 }
                 RpcTarget::OperationsStats => {
                     let stats: OperationsStats = res
                         .json()
                         .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e)).unwrap();
+                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
+                        .unwrap();
                     RpcResponse::OperationsStats(stats)
                 }
             };
 
-            let _ = channel.send(deserialized);
-            // TODO: log errors here
+            let _ = channel.send(deserialized).await;
+            println!("Sent")
         }
     }
 }
@@ -101,8 +127,14 @@ pub enum RpcError {
 
 #[derive(Clone, Debug)]
 pub struct RpcCall {
-    target: RpcTarget,
-    query_arg: Option<String>
+    pub target: RpcTarget,
+    query_arg: Option<String>,
+}
+
+impl RpcCall {
+    pub fn new(target: RpcTarget, query_arg: Option<String>) -> Self {
+        Self { target, query_arg }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -122,14 +154,21 @@ pub enum RpcResponse {
     OperationsStats(OperationsStats),
 }
 
-
 impl Display for RpcCall {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.target {
-            RpcTarget::EndorsementRights => write!(f, "EndorsementRights - Query args: {:?}", self.query_arg),
-            RpcTarget::EndersementsStatus => write!(f, "EndersementsStatus - Query args: {:?}", self.query_arg),
-            RpcTarget::CurrentHeadHeader => write!(f, "CurrentHeadHeader - Query args: {:?}", self.query_arg),
-            RpcTarget::OperationsStats => write!(f, "OperationsStats - Query args: {:?}", self.query_arg),
+            RpcTarget::EndorsementRights => {
+                write!(f, "EndorsementRights - Query args: {:?}", self.query_arg)
+            }
+            RpcTarget::EndersementsStatus => {
+                write!(f, "EndersementsStatus - Query args: {:?}", self.query_arg)
+            }
+            RpcTarget::CurrentHeadHeader => {
+                write!(f, "CurrentHeadHeader - Query args: {:?}", self.query_arg)
+            }
+            RpcTarget::OperationsStats => {
+                write!(f, "OperationsStats - Query args: {:?}", self.query_arg)
+            }
         }
     }
 }
@@ -225,7 +264,9 @@ pub struct OperationValidationStats {
     result: Option<OperationValidationResult>,
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord,
+)]
 pub enum OperationKind {
     Endorsement,
     SeedNonceRevelation,

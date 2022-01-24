@@ -4,10 +4,12 @@ pub mod rpc_service;
 
 pub mod ws_service;
 
+pub mod tui_service;
+
 pub mod service_async_channel;
 pub use service_async_channel::*;
 
-use self::rpc_service::{RpcServiceDefault, RpcService};
+use self::rpc_service::{RpcService, RpcServiceDefault};
 
 pub trait Service: TimeService {
     type Rpc: RpcService;

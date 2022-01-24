@@ -1,7 +1,6 @@
 // Copyright (c) SimpleStaking, Viable Systems and Tezedge Contributors
 // SPDX-License-Identifier: MIT
 
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub type RequestTrySendError<T> = mpsc::error::TrySendError<T>;
@@ -26,19 +25,16 @@ pub struct ServiceWorkerAsyncRequester<Req, Resp> {
 
 impl<Req, Resp> ServiceWorkerAsyncRequester<Req, Resp> {
     pub fn try_send(&self, req: Req) -> Result<(), RequestTrySendError<Req>> {
-        Ok(self.sender.try_send(req)?)
+        self.sender.try_send(req)
     }
 
     pub fn try_recv(&mut self) -> Result<Resp, ResponseTryRecvError> {
-        Ok(self.receiver.try_recv()?)
+        self.receiver.try_recv()
     }
 }
 
 #[inline(always)]
-async fn responder_send<T>(
-    sender: &mpsc::Sender<T>,
-    msg: T,
-) -> Result<(), ResponseSendError<T>> {
+async fn responder_send<T>(sender: &mpsc::Sender<T>, msg: T) -> Result<(), ResponseSendError<T>> {
     sender.send(msg).await?;
     Ok(())
 }
