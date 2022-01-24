@@ -29,3 +29,7 @@ slog-term = "2.8"
 strum = "0.23"
 strum_macros = "0.23"
 num = "0.4"
+redux-rs = { git = "https://github.com/tezedge/redux-rs.git", tag = "tezedge-v1.11.0", features = ["serde"] }
+async-trait = "0.1"
+enum-kinds = "0.5.1"
+derive_more = "0.99.16"

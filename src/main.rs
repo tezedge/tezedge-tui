@@ -9,23 +9,27 @@ use tokio::time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-use crate::ui::Ui;
+// use crate::ui::Ui;
 
 pub mod configuration;
-pub mod layout;
-pub mod model;
-pub mod node_rpc;
-pub mod ui;
-pub mod websocket;
+// pub mod layout;
+// pub mod model;
+// pub mod node_rpc;
+// pub mod ui;
+// pub mod websocket;
+
+pub mod services;
+pub mod automaton;
+pub mod action;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let tui_args = configuration::TuiArgs::parse();
 
-    let mut ui = Ui::new(&tui_args);
-    let ws_handle = websocket::spawn_ws_reader(ui.state.clone(), tui_args.websocket)
-        .await
-        .expect("Failed to connect to websocket.");
+    // let mut ui = Ui::new(&tui_args);
+    // let ws_handle = websocket::spawn_ws_reader(ui.state.clone(), tui_args.websocket)
+    //     .await
+    //     .expect("Failed to connect to websocket.");
 
     // Setup terminal
     enable_raw_mode()?;
@@ -36,9 +40,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create the tui app
-    let res = ui.run_tui(&mut terminal, Duration::from_secs(1)).await;
+    // let res = ui.run_tui(&mut terminal, Duration::from_secs(1)).await;
 
-    drop(ws_handle);
+    // drop(ws_handle);
     // restore the terminal after exit
     disable_raw_mode()?;
     execute!(
@@ -48,9 +52,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    if let Err(err) = res {
-        println!("{:?}", err)
-    }
+    // if let Err(err) = res {
+    //     println!("{:?}", err)
+    // }
 
     Ok(())
 }

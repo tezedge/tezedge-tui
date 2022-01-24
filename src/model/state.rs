@@ -399,7 +399,7 @@ impl Default for SortOrder {
 pub struct ExtendedTable {
     pub table_state: TableState,
 
-    /// The header strings of the table in order
+    /// The header strings of the table in left to rigth order
     headers: Vec<String>,
 
     modified_headers: Vec<String>,
