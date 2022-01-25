@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
-use tui::style::Color;
+use tui::{layout::Constraint, style::Color};
 
 use crate::extensions::{
     convert_time_to_unit_string, get_color, ExtendedTable, SortableByFocus, TuiTableData,
@@ -11,7 +11,7 @@ pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
     pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
@@ -19,6 +19,48 @@ pub struct EndrosementsState {
 
     // ui specific states
     pub endorsement_table: ExtendedTable,
+}
+
+impl Default for EndrosementsState {
+    fn default() -> Self {
+        let endorsement_table = ExtendedTable::new(
+            vec![
+                "Slots",
+                "Baker",
+                "Status",
+                "Delta",
+                "Receive hash",
+                "Receive content",
+                "Decode",
+                "Precheck",
+                "Apply",
+                "Broadcast",
+            ]
+            .iter()
+            .map(|v| v.to_string())
+            .collect(),
+            vec![
+                Constraint::Length(6),
+                Constraint::Length(36),
+                Constraint::Min(11),
+                Constraint::Min(8),
+                Constraint::Min(12),
+                Constraint::Min(15),
+                Constraint::Min(8),
+                Constraint::Min(9),
+                Constraint::Min(8),
+                Constraint::Min(10),
+            ],
+            4,
+        );
+
+        Self {
+            endorsement_table,
+            current_head_endorsement_statuses: Vec::new(),
+            endoresement_status_summary: BTreeMap::new(),
+            endorsement_rights: BTreeMap::new(),
+        }
+    }
 }
 
 impl SortableByFocus for EndorsementStatusSortableVec {

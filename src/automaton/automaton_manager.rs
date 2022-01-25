@@ -11,7 +11,9 @@ use slog::Logger;
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
-    endorsements::{CurrentHeadHeaderGetAction, EndorsementsRightsGetAction},
+    endorsements::{
+        CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
+    },
     services::{
         rpc_service::RpcServiceDefault,
         tui_service::{TuiService, TuiServiceDefault},
@@ -51,6 +53,7 @@ impl<Serv: Service> Automaton<Serv> {
                         block: self.store.state().current_head_header.hash.clone(),
                         level: self.store.state().current_head_header.level,
                     });
+                    self.store.dispatch(EndorsementsStatusesGetAction {});
                 }
                 Some(TuiEvent::Input(key, modifier)) => match key {
                     KeyCode::Char('q') => {

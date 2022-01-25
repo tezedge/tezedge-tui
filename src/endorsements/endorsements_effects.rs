@@ -22,6 +22,11 @@ where
                 ),
             });
         }
+        Action::EndorsementsStatusesGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::EndersementsStatus, None),
+            });
+        }
         Action::CurrentHeadHeaderGet(_) => {
             store.dispatch(RpcRequestAction {
                 call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),

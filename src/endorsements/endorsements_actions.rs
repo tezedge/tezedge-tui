@@ -29,6 +29,15 @@ impl EnablingCondition<State> for EndorsementsRightsReceivedAction {
 }
 
 #[derive(Debug, Clone)]
+pub struct EndorsementsStatusesGetAction {}
+
+impl EnablingCondition<State> for EndorsementsStatusesGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct EndorsementsStatusesReceivedAction {
     pub endorsements_statuses: EndorsementStatuses,
 }

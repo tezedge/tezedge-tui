@@ -6,7 +6,7 @@ use crate::{
     endorsements::{
         CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, DrawEndorsementsScreenAction,
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
     },
     rpc::{RpcRequestAction, RpcResponseAction},
     terminal_ui::DrawScreenAction,
@@ -47,6 +47,7 @@ pub enum Action {
 
     EndorsementsRightsGet(EndorsementsRightsGetAction),
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),
+    EndorsementsStatusesGet(EndorsementsStatusesGetAction),
     EndorsementsStatusesReceived(EndorsementsStatusesReceivedAction),
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
