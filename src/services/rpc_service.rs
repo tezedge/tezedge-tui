@@ -4,6 +4,7 @@ use std::{
 };
 
 use serde::Deserialize;
+use slog::{warn, Logger};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use url::Url;
@@ -33,16 +34,17 @@ pub struct RpcServiceDefault {
 }
 
 impl RpcServiceDefault {
-    pub fn new(bound: usize, url: Url) -> Self {
+    pub fn new(bound: usize, url: Url, log: &Logger) -> Self {
         let (requester, responder) = worker_channel(bound);
 
         let t_url = url.clone();
+        let t_log = log.clone();
         // thread::Builder::new()
         //     .name("rpc-thread".to_owned())
         //     .spawn(move || Self::run_worker(responder, t_url))
         //     .unwrap();
 
-        tokio::task::spawn(async move { Self::run_worker(responder, t_url).await });
+        tokio::task::spawn(async move { Self::run_worker(responder, &t_url, &t_log).await });
 
         Self {
             worker_channel: requester,
@@ -62,54 +64,58 @@ impl RpcService for RpcServiceDefault {
 }
 
 impl RpcServiceDefault {
-    // TODO: replace unwraps with proper Error handling
-    async fn run_worker(mut channel: RpcWorkerResponder, url: Url) {
+    async fn run_worker(mut channel: RpcWorkerResponder, url: &Url, log: &Logger) {
         while let Ok(req) = channel.recv().await {
-            let mut url = url.join(req.to_url()).unwrap();
-            if let Some(query) = req.query_arg.clone() {
-                url = url.join(&query).unwrap();
-            }
-
-            let res = reqwest::get(url)
-                .await
-                .map_err(|e| RpcError::RequestErrorDetailed(req.clone(), e))
-                .unwrap();
-            let deserialized = match req.target {
-                RpcTarget::EndorsementRights => {
-                    let rights: EndorsementRights = res
-                        .json()
-                        .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
-                        .unwrap();
-                    RpcResponse::EndorsementRights(rights)
+            match Self::call_rpc(req, url).await {
+                Ok(response) => {
+                    let _ = channel.send(response).await;
                 }
-                RpcTarget::CurrentHeadHeader => {
-                    let header: CurrentHeadHeader = res
-                        .json()
-                        .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
-                        .unwrap();
-                    RpcResponse::CurrentHeadHeader(header)
-                }
-                RpcTarget::EndersementsStatus => {
-                    let statuses: EndorsementStatuses = res
-                        .json()
-                        .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
-                        .unwrap();
-                    RpcResponse::EndorsementsStatus(statuses)
-                }
-                RpcTarget::OperationsStats => {
-                    let stats: OperationsStats = res
-                        .json()
-                        .await
-                        .map_err(|e| RpcError::RequestErrorDetailed(req, e))
-                        .unwrap();
-                    RpcResponse::OperationsStats(stats)
+                Err(e) => {
+                    warn!(log, "Rpc failed: {}", e)
                 }
             };
+        }
+    }
 
-            let _ = channel.send(deserialized).await;
+    async fn call_rpc(request: RpcCall, url: &Url) -> Result<RpcResponse, RpcError> {
+        let mut url = url.join(request.to_url()).unwrap();
+        if let Some(query) = request.query_arg.clone() {
+            url = url.join(&query).unwrap();
+        }
+
+        let response = reqwest::get(url)
+            .await
+            .map_err(|e| RpcError::RequestErrorDetailed(request.clone(), e))?;
+
+        match request.target {
+            RpcTarget::EndorsementRights => {
+                let rights: EndorsementRights = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::EndorsementRights(rights))
+            }
+            RpcTarget::CurrentHeadHeader => {
+                let header: CurrentHeadHeader = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::CurrentHeadHeader(header))
+            }
+            RpcTarget::EndersementsStatus => {
+                let statuses: EndorsementStatuses = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::EndorsementsStatus(statuses))
+            }
+            RpcTarget::OperationsStats => {
+                let stats: OperationsStats = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::OperationsStats(stats))
+            }
         }
     }
 }

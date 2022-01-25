@@ -9,10 +9,10 @@ pub use crate::services::{Service, ServiceDefault};
 use crate::{
     endorsements::{CurrentHeadHeaderGetAction, EndorsementsRightsGetAction},
     services::{rpc_service::RpcServiceDefault, tui_service::TuiServiceDefault},
-    terminal_ui::{TuiEvent, DrawScreenAction},
+    terminal_ui::{DrawScreenAction, TuiEvent},
 };
 
-use super::{effects, reducer, Action, State, ShutdownAction};
+use super::{effects, reducer, Action, ShutdownAction, State};
 
 pub type Store<Service> = redux_rs::Store<State, Service, Action>;
 
@@ -33,16 +33,12 @@ impl<Serv: Service> Automaton<Serv> {
         Self { store }
     }
 
-    pub async fn make_progress(
-        &mut self,
-        events: &mut mpsc::Receiver<TuiEvent>,
-    ) {
+    pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
         // let events = self.store.service().tui().receiver();
         loop {
             self.store.dispatch(DrawScreenAction {});
             match events.recv().await {
                 Some(TuiEvent::Tick) => {
-                    println!("Tick");
                     self.store.dispatch(CurrentHeadHeaderGetAction {});
                     self.store.dispatch(EndorsementsRightsGetAction {
                         block: self.store.state().current_head_header.hash.clone(),
@@ -52,11 +48,9 @@ impl<Serv: Service> Automaton<Serv> {
                 Some(TuiEvent::Input(key, modifier)) => match key {
                     KeyCode::Char('q') => {
                         self.store.dispatch(ShutdownAction {});
-                        return
-                    },
-                    KeyCode::Down => {
-                        println!("Key down");
+                        return;
                     }
+                    KeyCode::Down => {}
                     _ => {}
                 },
                 _ => {}
@@ -86,11 +80,14 @@ impl AutomatonManager {
     const AUTOMATON_QUEUE_MAX_CAPACITY: usize = 100_000;
 
     pub fn new(url: Url, log: Logger) -> Self {
-        let rpc_service = RpcServiceDefault::new(4096, url);
+        let rpc_service = RpcServiceDefault::new(4096, url, &log);
         let tui_service = TuiServiceDefault::new();
         let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
 
-        let service = ServiceDefault { rpc: rpc_service, tui: tui_service };
+        let service = ServiceDefault {
+            rpc: rpc_service,
+            tui: tui_service,
+        };
 
         let initial_state = State::default();
 
@@ -109,9 +106,7 @@ impl AutomatonManager {
         if let Some(AutomatonThreadHandle::NotRunning(mut automaton, mut tui_event_receiver)) =
             self.automaton_thread_handle.take()
         {
-            automaton
-                .make_progress(&mut tui_event_receiver)
-                .await;
+            automaton.make_progress(&mut tui_event_receiver).await;
         }
     }
 }
