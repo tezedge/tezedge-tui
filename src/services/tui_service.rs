@@ -1,21 +1,17 @@
 use std::io;
 use std::{io::Stdout, time::Duration};
 
-use async_trait::async_trait;
 use crossterm::event::{self, Event, KeyCode, EnableMouseCapture};
 use crossterm::execute;
 use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen};
 use tokio::sync::mpsc;
 use tui::{
-    backend::{Backend, CrosstermBackend},
-    terminal::CompletedFrame,
+    backend::{CrosstermBackend},
     Terminal,
 };
 
-use crate::endorsements::EndorsementsScreen;
-use crate::{automaton::State, extensions::Renderable, terminal_ui::TuiEvent};
+use crate::terminal_ui::TuiEvent;
 
-use super::ResponseTryRecvError;
 
 pub struct TuiServiceDefault {
     pub terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -33,7 +29,6 @@ impl TuiService for TuiServiceDefault {
 
 impl TuiServiceDefault {
     pub fn new() -> Self {
-        let stdout = std::io::stdout();
         enable_raw_mode();
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture);

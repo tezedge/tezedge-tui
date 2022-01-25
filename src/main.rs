@@ -1,14 +1,6 @@
 use automaton::AutomatonManager;
 use clap::Parser;
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use std::{error::Error, io};
-use tokio::time::Duration;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use std::error::Error;
 
 // use crate::ui::Ui;
 

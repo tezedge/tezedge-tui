@@ -9,8 +9,6 @@ pub mod tui_service;
 pub mod service_async_channel;
 pub use service_async_channel::*;
 
-use crate::extensions::Renderable;
-
 use self::{rpc_service::{RpcService, RpcServiceDefault}, tui_service::{TuiServiceDefault, TuiService}};
 
 pub trait Service: TimeService {

@@ -1,5 +1,3 @@
-use std::net::Shutdown;
-
 use derive_more::From;
 use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};

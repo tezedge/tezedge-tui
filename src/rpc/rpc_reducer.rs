@@ -3,7 +3,7 @@ use crate::automaton::{Action, ActionWithMeta, State};
 use super::RpcState;
 
 pub fn rpc_reducer(state: &mut State, action: &ActionWithMeta) {
-    let action_time = action.time_as_nanos();
+    // let action_time = action.time_as_nanos();
 
     match &action.action {
         Action::RpcRequest(_) => match state.rpc_state {

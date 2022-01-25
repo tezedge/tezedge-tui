@@ -1,5 +1,5 @@
-pub mod automaton;
-pub use automaton::*;
+pub mod automaton_manager;
+pub use automaton_manager::*;
 
 pub mod action;
 pub use action::*;

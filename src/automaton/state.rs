@@ -1,10 +1,6 @@
-use std::collections::BTreeMap;
-
-use strum_macros::{Display, EnumIter};
-use tui::widgets::TableState;
 
 use crate::{
-    endorsements::EndrosementsState, extensions::ExtendedTable, rpc::RpcState,
+    endorsements::EndrosementsState, rpc::RpcState,
     services::rpc_service::CurrentHeadHeader, terminal_ui::UiState,
 };
 

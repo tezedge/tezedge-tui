@@ -1,13 +1,11 @@
 use crate::{
-    automaton::{action, Action, ActionWithMeta, Store},
+    automaton::{Action, ActionWithMeta, Store},
     rpc::RpcRequestAction,
     services::{
-        rpc_service::{RpcCall, RpcService, RpcTarget},
-        Service, tui_service::TuiService,
-    }, extensions::Renderable,
+        rpc_service::{RpcCall, RpcTarget},
+        Service,
+    },
 };
-
-use super::EndorsementsScreen;
 
 pub fn endorsement_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where

@@ -4,7 +4,6 @@ use std::str::FromStr;
 use tui::backend::CrosstermBackend;
 use tui::style::Modifier;
 use tui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     widgets::{Block, BorderType, Borders, Paragraph, Row, Table},

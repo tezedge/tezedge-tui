@@ -1,14 +1,13 @@
 use crossterm::event::KeyCode;
 use std::time::{Duration, SystemTime};
 use tokio::sync::mpsc;
-use tui::{backend::Backend, Terminal};
 use url::Url;
 
 use slog::Logger;
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
-    endorsements::{CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsScreen},
+    endorsements::{CurrentHeadHeaderGetAction, EndorsementsRightsGetAction},
     services::{rpc_service::RpcServiceDefault, tui_service::TuiServiceDefault},
     terminal_ui::{TuiEvent, DrawScreenAction},
 };
