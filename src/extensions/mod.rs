@@ -2,7 +2,7 @@ pub mod extended_table;
 use std::io::Stdout;
 
 pub use extended_table::*;
-use num::FromPrimitive;
+use num::{FromPrimitive, ToPrimitive};
 use tui::{backend::CrosstermBackend, style::Color, Frame};
 
 use crate::automaton::State;
@@ -21,18 +21,26 @@ pub fn get_color<T: FromPrimitive + PartialOrd>(value: T) -> Color {
     }
 }
 
-pub fn convert_time_to_unit_string(time: u64) -> String {
-    let time = time as f64;
-    const MILLISECOND_FACTOR: f64 = 1000.0;
-    const MICROSECOND_FACTOR: f64 = 1000000.0;
-    const NANOSECOND_FACTOR: f64 = 1000000000.0;
+pub fn convert_time_to_unit_string<T>(time: T) -> String
+where
+    T: ToPrimitive + PartialOrd + std::ops::Div<Output = T> + std::fmt::Display,
+{
+    let time = if let Some(time) = time.to_f64() {
+        time
+    } else {
+        return String::from("NaN")
+    };
 
-    if time >= NANOSECOND_FACTOR {
-        format!("{:.2}s", time / NANOSECOND_FACTOR)
-    } else if time >= MICROSECOND_FACTOR {
-        format!("{:.2}ms", time / MICROSECOND_FACTOR)
-    } else if time >= MILLISECOND_FACTOR {
-        format!("{:.2}μs", time / MILLISECOND_FACTOR)
+    let millisecond_factor: f64 = 1000.0.to_f64().unwrap();
+    let microsecond_factor: f64 = 1000000.0.to_f64().unwrap();
+    let nanosecond_factor: f64 = 1000000000.0.to_f64().unwrap();
+
+    if time >= nanosecond_factor {
+        format!("{:.2}s", time / nanosecond_factor)
+    } else if time >= microsecond_factor {
+        format!("{:.2}ms", time / microsecond_factor)
+    } else if time >= millisecond_factor {
+        format!("{:.2}μs", time / millisecond_factor)
     } else {
         format!("{}ns", time)
     }
