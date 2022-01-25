@@ -27,9 +27,7 @@ where
                 call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
             });
         }
-        Action::DrawEndorsementsScreen(_) => {
-            
-        }
+        Action::DrawEndorsementsScreen(_) => {}
         _ => {}
     }
 }

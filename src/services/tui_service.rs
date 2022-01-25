@@ -1,17 +1,13 @@
 use std::io;
 use std::{io::Stdout, time::Duration};
 
-use crossterm::event::{self, Event, KeyCode, EnableMouseCapture};
+use crossterm::event::{self, EnableMouseCapture, Event, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen};
 use tokio::sync::mpsc;
-use tui::{
-    backend::{CrosstermBackend},
-    Terminal,
-};
+use tui::{backend::CrosstermBackend, Terminal};
 
 use crate::terminal_ui::TuiEvent;
-
 
 pub struct TuiServiceDefault {
     pub terminal: Terminal<CrosstermBackend<Stdout>>,

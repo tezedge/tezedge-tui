@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // drop(ws_handle);
     // restore the terminal after exit
     // disable_raw_mode()?;
-    
+
     // terminal.show_cursor()?;
 
     // if let Err(err) = res {

@@ -4,13 +4,12 @@ pub use redux_rs::{ActionId, EnablingCondition};
 
 use crate::{
     endorsements::{
-        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
-        EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction, DrawEndorsementsScreenAction,
+        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, DrawEndorsementsScreenAction,
+        EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
+        EndorsementsStatusesReceivedAction,
     },
     rpc::{RpcRequestAction, RpcResponseAction},
-    terminal_ui::{
-        DrawScreenAction,
-    },
+    terminal_ui::DrawScreenAction,
 };
 
 use super::State;

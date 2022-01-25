@@ -1,7 +1,6 @@
-
 use crate::{
-    endorsements::EndrosementsState, rpc::RpcState,
-    services::rpc_service::CurrentHeadHeader, terminal_ui::UiState,
+    endorsements::EndrosementsState, rpc::RpcState, services::rpc_service::CurrentHeadHeader,
+    terminal_ui::UiState,
 };
 
 #[derive(Debug, Clone, Default)]

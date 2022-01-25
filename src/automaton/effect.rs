@@ -1,5 +1,6 @@
 use crate::{
-    endorsements::endorsements_effects::endorsement_effects, rpc::rpc_effects::rpc_effects, terminal_ui::tui_effects,
+    endorsements::endorsements_effects::endorsement_effects, rpc::rpc_effects::rpc_effects,
+    terminal_ui::tui_effects,
 };
 
 use super::{ActionWithMeta, Service, Store};

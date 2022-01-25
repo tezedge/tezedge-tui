@@ -1,8 +1,14 @@
-use crossterm::{execute, event::DisableMouseCapture, terminal::{LeaveAlternateScreen, disable_raw_mode}};
+use crossterm::{
+    event::DisableMouseCapture,
+    execute,
+    terminal::{disable_raw_mode, LeaveAlternateScreen},
+};
 
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
-    services::{Service, tui_service::TuiService}, endorsements::EndorsementsScreen, extensions::Renderable,
+    endorsements::EndorsementsScreen,
+    extensions::Renderable,
+    services::{tui_service::TuiService, Service},
 };
 
 use super::ActivePage;
@@ -18,18 +24,18 @@ where
                 ActivePage::Mempool => {
                     let state = store.state().clone();
                     // TODO: error handling
-                    store.service().tui().terminal().draw(|f| EndorsementsScreen::draw_screen(&state, f));
-                },
+                    store
+                        .service()
+                        .tui()
+                        .terminal()
+                        .draw(|f| EndorsementsScreen::draw_screen(&state, f));
+                }
                 ActivePage::Statistics => todo!(),
             }
         }
         Action::Shutdown(_) => {
             let backend_mut = store.service().tui().terminal().backend_mut();
-            execute!(
-                backend_mut,
-                LeaveAlternateScreen,
-                DisableMouseCapture
-            );
+            execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture);
             disable_raw_mode();
             store.service().tui().terminal().show_cursor();
         }
