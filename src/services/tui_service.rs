@@ -25,9 +25,10 @@ impl TuiService for TuiServiceDefault {
 
 impl TuiServiceDefault {
     pub fn new() -> Self {
-        enable_raw_mode();
+        enable_raw_mode().expect("Failed to enable raw mode");
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen, EnableMouseCapture);
+        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
+            .expect("Failed to execute EnterAlternateScreen + EnableMouseCapture");
         let backend = CrosstermBackend::new(stdout);
 
         let terminal = Terminal::new(backend).expect("Error initializing terminal");

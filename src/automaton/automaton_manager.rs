@@ -1,4 +1,8 @@
-use crossterm::event::KeyCode;
+use crossterm::{
+    event::{DisableMouseCapture, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, LeaveAlternateScreen},
+};
 use std::time::{Duration, SystemTime};
 use tokio::sync::mpsc;
 use url::Url;
@@ -8,7 +12,10 @@ use slog::Logger;
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
     endorsements::{CurrentHeadHeaderGetAction, EndorsementsRightsGetAction},
-    services::{rpc_service::RpcServiceDefault, tui_service::TuiServiceDefault},
+    services::{
+        rpc_service::RpcServiceDefault,
+        tui_service::{TuiService, TuiServiceDefault},
+    },
     terminal_ui::{DrawScreenAction, TuiEvent},
 };
 
@@ -107,6 +114,12 @@ impl AutomatonManager {
             self.automaton_thread_handle.take()
         {
             automaton.make_progress(&mut tui_event_receiver).await;
+
+            // cleanup the terminal on shutdown
+            let backend_mut = automaton.store.service().tui().terminal().backend_mut();
+            execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture);
+            disable_raw_mode();
+            automaton.store.service().tui().terminal().show_cursor();
         }
     }
 }

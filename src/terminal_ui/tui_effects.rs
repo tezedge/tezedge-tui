@@ -1,9 +1,3 @@
-use crossterm::{
-    event::DisableMouseCapture,
-    execute,
-    terminal::{disable_raw_mode, LeaveAlternateScreen},
-};
-
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
     endorsements::EndorsementsScreen,
@@ -33,12 +27,7 @@ where
                 ActivePage::Statistics => todo!(),
             }
         }
-        Action::Shutdown(_) => {
-            let backend_mut = store.service().tui().terminal().backend_mut();
-            execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture);
-            disable_raw_mode();
-            store.service().tui().terminal().show_cursor();
-        }
+        Action::Shutdown(_) => {}
         _ => {}
     }
 }
