@@ -3,9 +3,11 @@ use crate::{
     rpc::RpcRequestAction,
     services::{
         rpc_service::{RpcCall, RpcService, RpcTarget},
-        Service,
-    },
+        Service, tui_service::TuiService,
+    }, extensions::Renderable,
 };
+
+use super::EndorsementsScreen;
 
 pub fn endorsement_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -21,6 +23,14 @@ where
                     Some(format!("?level{}&block={}", action.level, action.block)),
                 ),
             });
+        }
+        Action::CurrentHeadHeaderGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
+            });
+        }
+        Action::DrawEndorsementsScreen(_) => {
+            
         }
         _ => {}
     }

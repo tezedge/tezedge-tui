@@ -159,7 +159,7 @@ impl ExtendedTable {
         self.modified_headers = headers;
     }
 
-    pub fn renderable_constraints(&mut self, max_size: u16) -> Vec<Constraint> {
+    pub fn renderable_constraints(&self, max_size: u16) -> Vec<Constraint> {
         let mut acc: u16 = INITIAL_PADDING
             + self
                 .constraints
@@ -203,7 +203,8 @@ impl ExtendedTable {
 
         to_render.extend(dynamic_to_render);
 
-        self.rendered = to_render.len();
+        // TODO
+        // self.rendered = to_render.len();
         to_render
     }
 

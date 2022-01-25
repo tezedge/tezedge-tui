@@ -9,3 +9,6 @@ pub use endorsements_reducer::*;
 
 pub mod endorsements_effects;
 pub use endorsements_effects::*;
+
+pub mod endorsements_view;
+pub use endorsements_view::*;

@@ -1,7 +1,15 @@
 pub mod extended_table;
+use std::io::Stdout;
+
 pub use extended_table::*;
 use num::FromPrimitive;
-use tui::style::Color;
+use tui::{backend::CrosstermBackend, style::Color, Frame};
+
+use crate::automaton::State;
+
+pub trait Renderable {
+    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>);
+}
 
 pub fn get_color<T: FromPrimitive + PartialOrd>(value: T) -> Color {
     if value < FromPrimitive::from_u64(20000000).unwrap() {

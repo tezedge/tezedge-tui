@@ -2,7 +2,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{
     automaton::State,
-    services::rpc_service::{EndorsementRights, EndorsementStatuses},
+    services::rpc_service::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses},
 };
 
 #[derive(Debug, Clone)]
@@ -34,6 +34,37 @@ pub struct EndorsementsStatusesReceivedAction {
 }
 
 impl EnablingCondition<State> for EndorsementsStatusesReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadHeaderGetAction {}
+
+impl EnablingCondition<State> for CurrentHeadHeaderGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadHeaderRecievedAction {
+    pub current_head_header: CurrentHeadHeader,
+}
+
+impl EnablingCondition<State> for CurrentHeadHeaderRecievedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DrawEndorsementsScreenAction {
+    pub current_head_header: CurrentHeadHeader,
+}
+
+impl EnablingCondition<State> for DrawEndorsementsScreenAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

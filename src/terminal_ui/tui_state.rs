@@ -4,6 +4,7 @@ use tui::widgets::TableState;
 
 use crate::extensions::ExtendedTable;
 
+#[derive(Debug, Clone, Default)]
 pub struct UiState {
     // TUI states - states refering to the view part
     pub peer_table_state: TableState,
@@ -25,6 +26,7 @@ pub enum ActiveWidget {
     StatisticsDetailsTable,
 }
 
+// TODO: make enum contain the screen struct?
 #[derive(Debug, Clone, EnumIter, Display)]
 pub enum ActivePage {
     Synchronization,
@@ -44,7 +46,7 @@ impl ActivePage {
 
 impl Default for ActivePage {
     fn default() -> Self {
-        ActivePage::Synchronization
+        ActivePage::Mempool
     }
 }
 

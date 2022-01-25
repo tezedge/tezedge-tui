@@ -3,7 +3,10 @@ use std::collections::BTreeMap;
 use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
 
-use crate::{endorsements::EndrosementsState, extensions::ExtendedTable, rpc::RpcState};
+use crate::{
+    endorsements::EndrosementsState, extensions::ExtendedTable, rpc::RpcState,
+    services::rpc_service::CurrentHeadHeader, terminal_ui::UiState,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
@@ -18,7 +21,7 @@ pub struct State {
     // info for the period blocks
     // pub block_metrics: Vec<BlockMetrics>,
     // pub cycle_data: Vec<Cycle>,
-    // pub current_head_header: CurrentHeadHeader,
+    pub current_head_header: CurrentHeadHeader,
     pub endorsmenents: EndrosementsState,
 
     // pub operations_statistics: (OperationsStats, OperationsStatsSortable),
@@ -28,6 +31,8 @@ pub struct State {
     pub delta_toggle: bool,
 
     pub rpc_state: RpcState,
+
+    pub ui: UiState,
 }
 
 impl State {}

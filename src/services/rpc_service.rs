@@ -110,7 +110,6 @@ impl RpcServiceDefault {
             };
 
             let _ = channel.send(deserialized).await;
-            println!("Sent")
         }
     }
 }

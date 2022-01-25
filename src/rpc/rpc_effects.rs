@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
-    endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction},
+    endorsements::{
+        CurrentHeadHeaderRecievedAction, EndorsementsRightsReceivedAction,
+        EndorsementsStatusesReceivedAction,
+    },
     services::{
         rpc_service::{RpcResponse, RpcService},
         Service,
@@ -22,13 +25,11 @@ where
 
             // TODO: move this to different action + create wakeup event
             while let Ok(response) = store.service().rpc().response_try_recv() {
-                println!("Got response");
                 store.dispatch(RpcResponseAction { response });
             }
         }
         Action::RpcResponse(action) => match &action.response {
             RpcResponse::EndorsementRights(rights) => {
-                println!("Got response action");
                 let _ = store.dispatch(EndorsementsRightsReceivedAction {
                     endorsement_rights: rights.clone(),
                 });
@@ -38,7 +39,11 @@ where
                     endorsements_statuses: endorsements_statuses.clone(),
                 });
             }
-            RpcResponse::CurrentHeadHeader(_) => todo!(),
+            RpcResponse::CurrentHeadHeader(current_head_header) => {
+                let _ = store.dispatch(CurrentHeadHeaderRecievedAction {
+                    current_head_header: current_head_header.clone(),
+                });
+            }
             RpcResponse::OperationsStats(_) => todo!(),
         },
         _ => {}

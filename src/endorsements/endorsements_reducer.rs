@@ -10,7 +10,9 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
         Action::RpcResponse(action) => {}
         Action::EndorsementsRightsReceived(action) => {
             state.endorsmenents.endorsement_rights = action.endorsement_rights.clone();
-            println!("Rigths received");
+        }
+        Action::CurrentHeadHeaderReceived(action) => {
+            state.current_head_header = action.current_head_header.clone();
         }
         _ => {}
     }

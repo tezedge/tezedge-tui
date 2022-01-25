@@ -1,13 +1,18 @@
+use std::net::Shutdown;
+
 use derive_more::From;
 use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};
 
 use crate::{
     endorsements::{
-        EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesReceivedAction,
+        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
+        EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction, DrawEndorsementsScreenAction,
     },
     rpc::{RpcRequestAction, RpcResponseAction},
+    terminal_ui::{
+        DrawScreenAction,
+    },
 };
 
 use super::State;
@@ -22,6 +27,14 @@ impl EnablingCondition<State> for InitAction {
         false
     }
 }
+#[derive(Debug, Clone)]
+pub struct ShutdownAction {}
+
+impl EnablingCondition<State> for ShutdownAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        false
+    }
+}
 
 #[derive(EnumKind, strum_macros::AsRefStr, strum_macros::IntoStaticStr, From, Debug, Clone)]
 #[enum_kind(
@@ -30,6 +43,7 @@ impl EnablingCondition<State> for InitAction {
 )]
 pub enum Action {
     Init(InitAction),
+    Shutdown(ShutdownAction),
 
     RpcRequest(RpcRequestAction),
     RpcResponse(RpcResponseAction),
@@ -37,6 +51,13 @@ pub enum Action {
     EndorsementsRightsGet(EndorsementsRightsGetAction),
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),
     EndorsementsStatusesReceived(EndorsementsStatusesReceivedAction),
+    CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
+    CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
+
+    DrawScreen(DrawScreenAction),
+    DrawEndorsementsScreen(DrawEndorsementsScreenAction),
+    // DrawStatisticsScreen(DrawStatisticsScreenAction),
+    // DrawSyncingScreen(DrawSyncingScreenAction),
 }
 
 impl Action {
