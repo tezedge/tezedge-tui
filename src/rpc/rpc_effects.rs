@@ -4,6 +4,7 @@ use crate::{
         CurrentHeadHeaderRecievedAction, EndorsementsRightsReceivedAction,
         EndorsementsStatusesReceivedAction,
     },
+    operations::OperationsStatisticsReceivedAction,
     services::{
         rpc_service::{RpcResponse, RpcService},
         Service,
@@ -42,7 +43,11 @@ where
                     current_head_header: current_head_header.clone(),
                 });
             }
-            RpcResponse::OperationsStats(_) => todo!(),
+            RpcResponse::OperationsStats(operations_statistics) => {
+                let _ = store.dispatch(OperationsStatisticsReceivedAction {
+                    operations_statistics: operations_statistics.clone(),
+                });
+            }
         },
         _ => {}
     }

@@ -14,11 +14,12 @@ use crate::{
     endorsements::{
         CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
     },
+    operations::OperationsStatisticsGetAction,
     services::{
         rpc_service::RpcServiceDefault,
         tui_service::{TuiService, TuiServiceDefault},
     },
-    terminal_ui::{DrawScreenAction, TuiEvent},
+    terminal_ui::{ActivePage, ChangeScreenAction, DrawScreenAction, TuiEvent},
 };
 
 use super::{effects, reducer, Action, ShutdownAction, State};
@@ -59,6 +60,17 @@ impl<Serv: Service> Automaton<Serv> {
                     KeyCode::Char('q') => {
                         self.store.dispatch(ShutdownAction {});
                         return;
+                    }
+                    KeyCode::F(2) => {
+                        self.store.dispatch(ChangeScreenAction {
+                            screen: ActivePage::Mempool,
+                        });
+                    }
+                    KeyCode::F(3) => {
+                        self.store.dispatch(OperationsStatisticsGetAction {});
+                        self.store.dispatch(ChangeScreenAction {
+                            screen: ActivePage::Statistics,
+                        });
                     }
                     KeyCode::Down => {}
                     _ => {}

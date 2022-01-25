@@ -143,6 +143,7 @@ impl ExtendedTable {
         }
     }
 
+    // TODO: do this in a way it doesn't take a mutable reference
     pub fn highlight_sorting(&mut self) {
         let mut headers = self.headers.clone();
 

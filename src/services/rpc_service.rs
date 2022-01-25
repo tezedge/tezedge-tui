@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    fmt::Display,
-};
+use std::fmt::Display;
 
 use serde::Deserialize;
 use slog::{warn, Logger};
@@ -9,7 +6,10 @@ use thiserror::Error;
 use tokio::sync::mpsc;
 use url::Url;
 
-use crate::endorsements::EndorsementStatus;
+use crate::{
+    endorsements::{EndorsementRights, EndorsementStatuses},
+    operations::OperationsStats,
+};
 
 use super::{
     worker_channel, RequestTrySendError, ResponseTryRecvError, ServiceWorkerAsyncRequester,
@@ -17,9 +17,6 @@ use super::{
 };
 
 pub type RpcRecvError = mpsc::error::TryRecvError;
-pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
-pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
-pub type OperationsStats = BTreeMap<String, OperationStats>;
 
 type RpcWorkerRequester = ServiceWorkerAsyncRequester<RpcCall, RpcResponse>;
 type RpcWorkerResponder = ServiceWorkerAsyncResponder<RpcCall, RpcResponse>;
@@ -207,92 +204,4 @@ pub struct CurrentHeadHeader {
     pub priority: i32,
     pub proof_of_work_nonce: String,
     pub liquidity_baking_escape_vote: bool,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-#[allow(dead_code)] // TODO: make BE send only the relevant data
-pub struct OperationStats {
-    kind: Option<OperationKind>,
-    /// Minimum time when we saw this operation. Latencies are measured
-    /// from this point.
-    min_time: Option<u64>,
-    first_block_timestamp: Option<u64>,
-    validation_started: Option<i128>,
-    /// (time_validation_finished, validation_result, prevalidation_duration)
-    validation_result: Option<(i128, OperationValidationResult, Option<i128>, Option<i128>)>,
-    validations: Vec<OperationValidationStats>,
-    nodes: HashMap<String, OperationNodeStats>,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-#[allow(dead_code)] // TODO: make BE send only the relevant data
-pub struct OperationNodeStats {
-    received: Vec<OperationNodeCurrentHeadStats>,
-    sent: Vec<OperationNodeCurrentHeadStats>,
-
-    content_requested: Vec<i128>,
-    content_received: Vec<i128>,
-
-    content_requested_remote: Vec<i128>,
-    content_sent: Vec<i128>,
-}
-
-#[derive(Deserialize, Debug, Clone, Default)]
-#[allow(dead_code)] // TODO: make BE send only the relevant data
-pub struct OperationNodeCurrentHeadStats {
-    /// Latency from first time we have seen that operation.
-    latency: i128,
-    block_level: i32,
-    block_timestamp: i64,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)] // TODO: make BE send only the relevant data
-pub struct OperationValidationStats {
-    started: Option<i128>,
-    finished: Option<i128>,
-    preapply_started: Option<i128>,
-    preapply_ended: Option<i128>,
-    current_head_level: Option<i32>,
-    result: Option<OperationValidationResult>,
-}
-
-#[derive(
-    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord,
-)]
-pub enum OperationKind {
-    Endorsement,
-    SeedNonceRevelation,
-    DoubleEndorsement,
-    DoubleBaking,
-    Activation,
-    Proposals,
-    Ballot,
-    EndorsementWithSlot,
-    FailingNoop,
-    Reveal,
-    Transaction,
-    Origination,
-    Delegation,
-    RegisterConstant,
-    Unknown,
-    Default,
-}
-
-impl Default for OperationKind {
-    fn default() -> Self {
-        OperationKind::Default
-    }
-}
-
-#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display)]
-pub enum OperationValidationResult {
-    Applied,
-    Refused,
-    BranchRefused,
-    BranchDelayed,
-    Prechecked,
-    PrecheckRefused,
-    Prevalidate,
-    Default,
 }

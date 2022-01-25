@@ -2,6 +2,7 @@ use crate::{
     automaton::{Action, ActionWithMeta, Store},
     endorsements::EndorsementsScreen,
     extensions::Renderable,
+    operations::StatisticsScreen,
     services::{tui_service::TuiService, Service},
 };
 
@@ -24,7 +25,14 @@ where
                         .terminal()
                         .draw(|f| EndorsementsScreen::draw_screen(&state, f));
                 }
-                ActivePage::Statistics => todo!(),
+                ActivePage::Statistics => {
+                    let state = store.state().clone();
+                    store
+                        .service()
+                        .tui()
+                        .terminal()
+                        .draw(|f| StatisticsScreen::draw_screen(&state, f));
+                }
             }
         }
         Action::Shutdown(_) => {}

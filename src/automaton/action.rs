@@ -8,8 +8,9 @@ use crate::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
         EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
     },
+    operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction},
-    terminal_ui::DrawScreenAction,
+    terminal_ui::{ChangeScreenAction, DrawScreenAction},
 };
 
 use super::State;
@@ -52,6 +53,10 @@ pub enum Action {
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
 
+    OperationsStatisticsGet(OperationsStatisticsGetAction),
+    OperationsStatisticsReceived(OperationsStatisticsReceivedAction),
+
+    ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),
     DrawEndorsementsScreen(DrawEndorsementsScreenAction),
     // DrawStatisticsScreen(DrawStatisticsScreenAction),

@@ -1,9 +1,8 @@
 use redux_rs::EnablingCondition;
 
-use crate::{
-    automaton::State,
-    services::rpc_service::{CurrentHeadHeader, EndorsementRights, EndorsementStatuses},
-};
+use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
+
+use super::{EndorsementRights, EndorsementStatuses};
 
 #[derive(Debug, Clone)]
 pub struct EndorsementsRightsGetAction {

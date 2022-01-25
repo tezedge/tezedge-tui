@@ -18,6 +18,7 @@ pub mod rpc;
 pub mod services;
 // pub mod ui_deprecated;
 pub mod common;
+pub mod operations;
 pub mod terminal_ui;
 
 #[tokio::main]

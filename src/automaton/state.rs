@@ -1,6 +1,6 @@
 use crate::{
-    endorsements::EndrosementsState, rpc::RpcState, services::rpc_service::CurrentHeadHeader,
-    terminal_ui::UiState,
+    endorsements::EndrosementsState, operations::OperationsStatisticsState, rpc::RpcState,
+    services::rpc_service::CurrentHeadHeader, terminal_ui::UiState,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -19,7 +19,7 @@ pub struct State {
     pub current_head_header: CurrentHeadHeader,
     pub endorsmenents: EndrosementsState,
 
-    // pub operations_statistics: (OperationsStats, OperationsStatsSortable),
+    pub operations_statistics: OperationsStatisticsState,
     // pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
     pub statistics_pending: bool,
 
