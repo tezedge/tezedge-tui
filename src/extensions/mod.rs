@@ -28,19 +28,19 @@ where
     let time = if let Some(time) = time.to_f64() {
         time
     } else {
-        return String::from("NaN")
+        return String::from("NaN");
     };
 
-    let millisecond_factor: f64 = 1000.0.to_f64().unwrap();
-    let microsecond_factor: f64 = 1000000.0.to_f64().unwrap();
-    let nanosecond_factor: f64 = 1000000000.0.to_f64().unwrap();
+    const MILLISECOND_FACTOR: f64 = 1000.0;
+    const MICROSECOND_FACTOR: f64 = 1000000.0;
+    const NANOSECOND_FACTOR: f64 = 1000000000.0;
 
-    if time >= nanosecond_factor {
-        format!("{:.2}s", time / nanosecond_factor)
-    } else if time >= microsecond_factor {
-        format!("{:.2}ms", time / microsecond_factor)
-    } else if time >= millisecond_factor {
-        format!("{:.2}μs", time / millisecond_factor)
+    if time >= NANOSECOND_FACTOR {
+        format!("{:.2}s", time / NANOSECOND_FACTOR)
+    } else if time >= MICROSECOND_FACTOR {
+        format!("{:.2}ms", time / MICROSECOND_FACTOR)
+    } else if time >= MILLISECOND_FACTOR {
+        format!("{:.2}μs", time / MILLISECOND_FACTOR)
     } else {
         format!("{}ns", time)
     }
