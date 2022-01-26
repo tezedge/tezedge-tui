@@ -7,7 +7,7 @@ use crate::{
     synchronization::SynchronizationScreen,
 };
 
-use super::ActivePage;
+use super::{ActivePage, DrawScreenSuccessAction};
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -15,14 +15,14 @@ where
 {
     match &action.action {
         Action::DrawScreen(_) => {
-            match store.state().ui.active_page {
+            let res = match store.state().ui.active_page {
                 ActivePage::Synchronization => {
                     let state = store.state().clone();
                     store
                         .service()
                         .tui()
                         .terminal()
-                        .draw(|f| SynchronizationScreen::draw_screen(&state, f));
+                        .draw(|f| SynchronizationScreen::draw_screen(&state, f))
                 }
                 ActivePage::Mempool => {
                     let state = store.state().clone();
@@ -31,7 +31,7 @@ where
                         .service()
                         .tui()
                         .terminal()
-                        .draw(|f| EndorsementsScreen::draw_screen(&state, f));
+                        .draw(|f| EndorsementsScreen::draw_screen(&state, f))
                 }
                 ActivePage::Statistics => {
                     let state = store.state().clone();
@@ -39,8 +39,17 @@ where
                         .service()
                         .tui()
                         .terminal()
-                        .draw(|f| StatisticsScreen::draw_screen(&state, f));
+                        .draw(|f| StatisticsScreen::draw_screen(&state, f))
                 }
+            };
+            match res {
+                Ok(_) => {
+                    let width = store.service().tui().terminal().size().unwrap().width;
+                    store.dispatch(DrawScreenSuccessAction {
+                        screen_width: width,
+                    });
+                }
+                Err(_) => todo!(),
             }
         }
         Action::Shutdown(_) => {}

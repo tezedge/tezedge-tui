@@ -4,13 +4,16 @@ pub use redux_rs::{ActionId, EnablingCondition};
 
 use crate::{
     endorsements::{
-        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, DrawEndorsementsScreenAction,
-        EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
+        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
+        EndorsementsRightsReceivedAction, EndorsementsStatusesGetAction,
+        EndorsementsStatusesReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction},
-    terminal_ui::{ChangeScreenAction, DrawScreenAction},
+    terminal_ui::{
+        ChangeScreenAction, DrawScreenAction, DrawScreenFailiureAction, DrawScreenSuccessAction,
+        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiDeltaToggleKeyPushedAction, TuiWidgetSelectionKeyPushedAction, TuiUpKeyPushedAction, TuiDownKeyPushedAction,
+    },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
 
@@ -62,9 +65,15 @@ pub enum Action {
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),
-    DrawEndorsementsScreen(DrawEndorsementsScreenAction),
-    // DrawStatisticsScreen(DrawStatisticsScreenAction),
-    // DrawSyncingScreen(DrawSyncingScreenAction),
+    DrawScreenSuccess(DrawScreenSuccessAction),
+    DrawScreenFailiure(DrawScreenFailiureAction),
+    TuiRightKeyPushed(TuiRightKeyPushedAction),
+    TuiLeftKeyPushed(TuiLeftKeyPushedAction),
+    TuiUpKeyPushedAction(TuiUpKeyPushedAction),
+    TuiDownKeyPushedAction(TuiDownKeyPushedAction),
+    TuiSortKeyPushed(TuiSortKeyPushedAction),
+    TuiDeltaToggleKeyPushed(TuiDeltaToggleKeyPushedAction),
+    TuiWidgetSelectionKeyPushed(TuiWidgetSelectionKeyPushedAction),
 }
 
 impl Action {

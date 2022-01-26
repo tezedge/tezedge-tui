@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{DisableMouseCapture, KeyCode},
+    event::{DisableMouseCapture, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
@@ -20,7 +20,10 @@ use crate::{
         tui_service::{TuiService, TuiServiceDefault},
         ws_service::WebsocketServiceDefault,
     },
-    terminal_ui::{ActivePage, ChangeScreenAction, DrawScreenAction, TuiEvent},
+    terminal_ui::{
+        ActivePage, ChangeScreenAction, DrawScreenAction, TuiEvent, TuiLeftKeyPushedAction,
+        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiDeltaToggleKeyPushedAction, TuiWidgetSelectionKeyPushedAction, TuiDownKeyPushedAction, TuiUpKeyPushedAction,
+    },
     websocket::WebsocketReadAction,
 };
 
@@ -46,7 +49,6 @@ impl<Serv: Service> Automaton<Serv> {
     }
 
     pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
-        // let events = self.store.service().tui().receiver();
         loop {
             self.store.dispatch(DrawScreenAction {});
             match events.recv().await {
@@ -64,6 +66,14 @@ impl<Serv: Service> Automaton<Serv> {
                         self.store.dispatch(ShutdownAction {});
                         return;
                     }
+                    KeyCode::Char('s') => {
+                        self.store.dispatch(TuiSortKeyPushedAction {
+                            modifier
+                        });
+                    }
+                    KeyCode::Char('d') => {
+                        self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
+                    }
                     KeyCode::F(1) => {
                         self.store.dispatch(ChangeScreenAction {
                             screen: ActivePage::Synchronization,
@@ -80,7 +90,21 @@ impl<Serv: Service> Automaton<Serv> {
                             screen: ActivePage::Statistics,
                         });
                     }
-                    KeyCode::Down => {}
+                    KeyCode::Tab => {
+                        self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
+                    }
+                    KeyCode::Right => {
+                        self.store.dispatch(TuiRightKeyPushedAction {});
+                    }
+                    KeyCode::Left => {
+                        self.store.dispatch(TuiLeftKeyPushedAction {});
+                    }
+                    KeyCode::Down => {
+                        self.store.dispatch(TuiDownKeyPushedAction {});
+                    }
+                    KeyCode::Up => {
+                        self.store.dispatch(TuiUpKeyPushedAction {});
+                    }
                     _ => {}
                 },
                 _ => {}

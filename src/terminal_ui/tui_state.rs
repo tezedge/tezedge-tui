@@ -15,6 +15,7 @@ pub struct UiState {
     pub details_operation_statistics_table: ExtendedTable,
     pub main_operation_statistics_table: ExtendedTable,
     pub current_details_length: usize,
+    pub screen_width: u16,
 }
 
 #[derive(Debug, Clone)]
