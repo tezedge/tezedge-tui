@@ -19,7 +19,10 @@ pub mod services;
 // pub mod ui_deprecated;
 pub mod common;
 pub mod operations;
+pub mod synchronization;
 pub mod terminal_ui;
+// pub mod websocket_deprecated;
+pub mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -38,7 +41,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // let backend = CrosstermBackend::new(stdout);
     // let mut terminal = Terminal::new(backend)?;
 
-    let mut automaton_manager = AutomatonManager::new(tui_args.node, create_file_logger("tui.log"));
+    let mut automaton_manager = AutomatonManager::new(
+        tui_args.node,
+        tui_args.websocket,
+        create_file_logger("tui.log"),
+    );
     automaton_manager.start().await;
 
     // create the tui app

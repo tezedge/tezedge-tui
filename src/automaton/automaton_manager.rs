@@ -18,8 +18,10 @@ use crate::{
     services::{
         rpc_service::RpcServiceDefault,
         tui_service::{TuiService, TuiServiceDefault},
+        ws_service::WebsocketServiceDefault,
     },
     terminal_ui::{ActivePage, ChangeScreenAction, DrawScreenAction, TuiEvent},
+    websocket::WebsocketReadAction,
 };
 
 use super::{effects, reducer, Action, ShutdownAction, State};
@@ -49,6 +51,7 @@ impl<Serv: Service> Automaton<Serv> {
             self.store.dispatch(DrawScreenAction {});
             match events.recv().await {
                 Some(TuiEvent::Tick) => {
+                    self.store.dispatch(WebsocketReadAction {});
                     self.store.dispatch(CurrentHeadHeaderGetAction {});
                     self.store.dispatch(EndorsementsRightsGetAction {
                         block: self.store.state().current_head_header.hash.clone(),
@@ -60,6 +63,11 @@ impl<Serv: Service> Automaton<Serv> {
                     KeyCode::Char('q') => {
                         self.store.dispatch(ShutdownAction {});
                         return;
+                    }
+                    KeyCode::F(1) => {
+                        self.store.dispatch(ChangeScreenAction {
+                            screen: ActivePage::Synchronization,
+                        });
                     }
                     KeyCode::F(2) => {
                         self.store.dispatch(ChangeScreenAction {
@@ -101,17 +109,19 @@ pub struct AutomatonManager {
 impl AutomatonManager {
     const AUTOMATON_QUEUE_MAX_CAPACITY: usize = 100_000;
 
-    pub fn new(url: Url, log: Logger) -> Self {
-        let rpc_service = RpcServiceDefault::new(4096, url, &log);
+    pub fn new(rpc_url: Url, websocket_url: Url, log: Logger) -> Self {
+        let rpc_service = RpcServiceDefault::new(4096, rpc_url, &log);
+        let websocket_service = WebsocketServiceDefault::new(4096, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
         let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
 
         let service = ServiceDefault {
             rpc: rpc_service,
             tui: tui_service,
+            ws: websocket_service,
         };
 
-        let initial_state = State::default();
+        let initial_state = State::new(log.clone());
 
         let automaton = Automaton::new(initial_state, service);
 

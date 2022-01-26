@@ -4,6 +4,7 @@ use crate::{
     extensions::Renderable,
     operations::StatisticsScreen,
     services::{tui_service::TuiService, Service},
+    synchronization::SynchronizationScreen,
 };
 
 use super::ActivePage;
@@ -15,7 +16,14 @@ where
     match &action.action {
         Action::DrawScreen(_) => {
             match store.state().ui.active_page {
-                ActivePage::Synchronization => todo!(),
+                ActivePage::Synchronization => {
+                    let state = store.state().clone();
+                    store
+                        .service()
+                        .tui()
+                        .terminal()
+                        .draw(|f| SynchronizationScreen::draw_screen(&state, f));
+                }
                 ActivePage::Mempool => {
                     let state = store.state().clone();
                     // TODO: error handling

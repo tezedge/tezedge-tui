@@ -11,6 +11,7 @@ use crate::{
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction},
     terminal_ui::{ChangeScreenAction, DrawScreenAction},
+    websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
 
 use super::State;
@@ -45,6 +46,9 @@ pub enum Action {
 
     RpcRequest(RpcRequestAction),
     RpcResponse(RpcResponseAction),
+
+    WebsocketRead(WebsocketReadAction),
+    WebsocketMessageReceived(WebsocketMessageReceivedAction),
 
     EndorsementsRightsGet(EndorsementsRightsGetAction),
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),

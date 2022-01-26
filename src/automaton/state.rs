@@ -1,33 +1,41 @@
+use slog::Logger;
+
 use crate::{
     endorsements::EndrosementsState, operations::OperationsStatisticsState, rpc::RpcState,
-    services::rpc_service::CurrentHeadHeader, terminal_ui::UiState,
+    services::rpc_service::CurrentHeadHeader, synchronization::SynchronizationState,
+    terminal_ui::UiState,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct State {
-    // info for the syncing and apllication blocks
-    // pub incoming_transfer: IncomingTransferMetrics,
-    // pub aplication_status: BlockApplicationStatus,
     pub last_applied_level: i32,
-
-    // info for the peer table on syncing screen
-    // pub peer_metrics: PeerTableData,
-
-    // info for the period blocks
-    // pub block_metrics: Vec<BlockMetrics>,
-    // pub cycle_data: Vec<Cycle>,
     pub current_head_header: CurrentHeadHeader,
-    pub endorsmenents: EndrosementsState,
 
+    pub synchronization: SynchronizationState,
+    pub endorsmenents: EndrosementsState,
     pub operations_statistics: OperationsStatisticsState,
-    // pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
-    pub statistics_pending: bool,
 
     pub delta_toggle: bool,
 
     pub rpc_state: RpcState,
 
     pub ui: UiState,
+
+    pub log: Logger,
 }
 
-impl State {}
+impl State {
+    pub fn new(log: Logger) -> Self {
+        Self {
+            log,
+            delta_toggle: true,
+            current_head_header: Default::default(),
+            last_applied_level: Default::default(),
+            synchronization: Default::default(),
+            endorsmenents: Default::default(),
+            operations_statistics: Default::default(),
+            rpc_state: Default::default(),
+            ui: Default::default(),
+        }
+    }
+}
