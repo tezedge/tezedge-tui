@@ -3,7 +3,7 @@ use std::{io::Stdout, time::Duration};
 
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::execute;
-use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen};
+use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode};
 use tokio::sync::mpsc;
 use tui::{backend::CrosstermBackend, Terminal};
 
@@ -15,11 +15,22 @@ pub struct TuiServiceDefault {
 
 pub trait TuiService {
     fn terminal(&mut self) -> &mut Terminal<CrosstermBackend<Stdout>>;
+    fn restore_terminal(&mut self);
 }
 
 impl TuiService for TuiServiceDefault {
     fn terminal(&mut self) -> &mut Terminal<CrosstermBackend<Stdout>> {
         &mut self.terminal
+    }
+
+    /// Restore terminal to its state before the app has launched
+    fn restore_terminal(&mut self) {
+        execute!(self.terminal.backend_mut(), LeaveAlternateScreen)
+            .expect("Error occured while restoring terminal. Please restart your session.");
+        disable_raw_mode().expect("Error while dissabling raw mode. Please restart your session");
+        self.terminal
+            .show_cursor()
+            .expect("Error while restoring cursor. Please restart your session");
     }
 }
 

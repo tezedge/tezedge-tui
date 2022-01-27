@@ -1,7 +1,5 @@
 use crossterm::{
     event::KeyCode,
-    execute,
-    terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
 use std::time::{Duration, SystemTime};
 use tokio::sync::mpsc;
@@ -155,23 +153,6 @@ impl AutomatonManager {
             .make_progress(&mut self.tui_event_receiver)
             .await;
 
-        // cleanup the terminal on shutdown
-        let backend_mut = self
-            .automaton
-            .store
-            .service()
-            .tui()
-            .terminal()
-            .backend_mut();
-        execute!(backend_mut, LeaveAlternateScreen)
-            .expect("Error occured while restoring terminal. Please restart your session.");
-        disable_raw_mode().expect("Error while dissabling raw mode. Please restart your session");
-        self.automaton
-            .store
-            .service()
-            .tui()
-            .terminal()
-            .show_cursor()
-            .expect("Error while restoring cursor. Please restart your session");
+        self.automaton.store.service().tui().restore_terminal();
     }
 }
