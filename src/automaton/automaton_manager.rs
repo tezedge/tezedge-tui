@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{DisableMouseCapture, KeyCode},
+    event::KeyCode,
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
@@ -163,7 +163,7 @@ impl AutomatonManager {
             .tui()
             .terminal()
             .backend_mut();
-        execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture)
+        execute!(backend_mut, LeaveAlternateScreen)
             .expect("Error occured while restoring terminal. Please restart your session.");
         disable_raw_mode().expect("Error while dissabling raw mode. Please restart your session");
         self.automaton
