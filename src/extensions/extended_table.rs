@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use tui::{
     layout::Constraint,
-    style::{Color, Style},
+    style::Style,
     widgets::{Cell, Row, TableState},
 };
 
@@ -251,14 +251,14 @@ impl ExtendedTable {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item.iter().take(self.fixed_count).map(|(content, color)| {
-                    Cell::from(content.clone()).style(Style::default().fg(*color))
+                let fixed_cells = item.iter().take(self.fixed_count).map(|(content, style)| {
+                    Cell::from(content.clone()).style(*style)
                 });
                 let dynamic_cells =
                     item.iter()
                         .skip(self.first_rendered_index)
-                        .map(|(content, color)| {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
+                        .map(|(content, style)| {
+                            Cell::from(content.clone()).style(*style)
                         });
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
@@ -281,7 +281,7 @@ impl Default for SortOrder {
 }
 
 pub trait TuiTableData {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)>;
 }
 
 pub trait SortableByFocus {

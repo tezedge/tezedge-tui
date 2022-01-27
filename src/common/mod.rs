@@ -2,7 +2,7 @@ use itertools::Itertools;
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect, Alignment},
     style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
@@ -90,13 +90,12 @@ pub fn create_header_bar<B: Backend>(
     f: &mut Frame<B>,
 ) {
     // wrap the header info in borders
-    let block = Block::default().borders(Borders::ALL).title("Current Head");
+    let block = Block::default().borders(Borders::BOTTOM);
     f.render_widget(block, header_chunk);
 
     let header_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(67), Constraint::Length(16), Constraint::Length(18)])
         .split(header_chunk);
 
     let block_hash = Paragraph::new(Spans::from(vec![
@@ -105,7 +104,7 @@ pub fn create_header_bar<B: Backend>(
             format!("{} ", header.hash),
             Style::default().fg(Color::Reset),
         ),
-    ]));
+    ])).alignment(Alignment::Left);
 
     f.render_widget(block_hash, header_chunks[0]);
 
@@ -115,17 +114,24 @@ pub fn create_header_bar<B: Backend>(
             format!("{} ", header.level),
             Style::default().fg(Color::Reset),
         ),
-    ]));
+    ])).alignment(Alignment::Center);
 
     f.render_widget(block_level, header_chunks[1]);
+
+    // show only the shorter version of the protocol
+    let protocol_short = if !header.protocol.is_empty() {
+        header.protocol.split_at(8).0.to_string()
+    } else {
+        header.protocol.to_owned()
+    };
 
     let block_protocol = Paragraph::new(Spans::from(vec![
         Span::styled("Protocol: ", Style::default().fg(Color::Gray)),
         Span::styled(
-            format!("{} ", header.protocol),
+            format!("{} ", protocol_short),
             Style::default().fg(Color::Reset),
         ),
-    ]));
+    ])).alignment(Alignment::Right);
 
     f.render_widget(block_protocol, header_chunks[2]);
 }

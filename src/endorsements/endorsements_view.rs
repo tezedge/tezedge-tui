@@ -1,12 +1,12 @@
 use std::io::Stdout;
-use std::str::FromStr;
 
 use tui::backend::CrosstermBackend;
 use tui::style::Modifier;
+use tui::text::{Spans, Span};
 use tui::{
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Block, BorderType, Borders, Paragraph, Row, Table},
+    widgets::{Block, Borders, Paragraph, Row, Table},
     Frame,
 };
 
@@ -27,7 +27,6 @@ impl Renderable for EndorsementsScreen {
         // TODO: placeholder for mempool page
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
             .constraints([
                 Constraint::Min(5),
                 Constraint::Length(3),
@@ -38,8 +37,8 @@ impl Renderable for EndorsementsScreen {
         let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(5),
-                Constraint::Length(4),
+                Constraint::Length(2),
+                Constraint::Length(2),
                 Constraint::Min(1),
             ])
             .split(page_chunks[0])
@@ -52,76 +51,77 @@ impl Renderable for EndorsementsScreen {
         create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
-        let summary_elements_constraits = std::iter::repeat(Constraint::Percentage(16))
-            .take(6)
-            .collect::<Vec<_>>();
 
-        let endorsement_statuses: Vec<String> = vec![
-            "Missing",
-            "Broadcast",
-            "Applied",
-            "Prechecked",
-            "Decoded",
-            "Received",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
+        let separator = Span::styled(" — ", Style::default().fg(Color::Gray));
 
-        let sumary_blocks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(summary_elements_constraits)
-            .split(summary_chunk);
+        let filled_style = Style::default().fg(Color::Reset);
+        let empty_style = Style::default().fg(Color::Gray);
 
-        for (i, title) in endorsement_statuses.iter().enumerate() {
-            let block_text = Paragraph::new(format!(
-                "{}\n{}",
-                title,
-                state
-                    .endorsmenents
-                    .endoresement_status_summary
-                    .get(
-                        &EndorsementState::from_str(&title.to_ascii_lowercase())
-                            .unwrap_or_default()
-                    )
-                    .unwrap_or(&0)
-            ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .style(Style::default().bg(Color::Black).fg(Color::White)),
-            )
-            .alignment(Alignment::Center);
-            f.render_widget(block_text, sumary_blocks[i])
-        }
+        // TODO: make an iteration?
+        let (missing_count, missing_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Missing) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
 
+        let (broadcast_count, broadcast_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Broadcast) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
+
+        let (applied_count, applied_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Applied) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
+
+        let (prechecked_count, prechecked_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Prechecked) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
+
+        let (decoded_count, decoded_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Decoded) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
+
+        let (received_count, received_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Received) {
+            (count.to_string(), filled_style)
+        } else {
+            (String::from("0"), empty_style)
+        };
+
+        let summary = Paragraph::new(Spans::from(vec![
+            Span::styled("Missing: ", missing_style),
+            Span::styled(missing_count, EndorsementState::Missing.get_style_fg()),
+            separator.clone(),
+            Span::styled("Broadcast: ", broadcast_style),
+            Span::styled(broadcast_count, EndorsementState::Broadcast.get_style_fg()),
+            separator.clone(),
+            Span::styled("Applied: ", applied_style),
+            Span::styled(applied_count, EndorsementState::Applied.get_style_fg()),
+            separator.clone(),
+            Span::styled("Prechecked: ", prechecked_style),
+            Span::styled(prechecked_count, EndorsementState::Prechecked.get_style_fg()),
+            separator.clone(),
+            Span::styled("Decoded: ", decoded_style),
+            Span::styled(decoded_count, EndorsementState::Decoded.get_style_fg()),
+            separator,
+            Span::styled("Received: ", received_style),
+            Span::styled(received_count, EndorsementState::Received.get_style_fg()),
+        ]));
+
+        f.render_widget(summary, summary_chunk);
+        
         // ======================== ENDORSERS ========================
-        let mut headers: Vec<String> = [
-            "Slots",
-            "Baker",
-            "Status",
-            "Delta",
-            "Receive hash",
-            "Receive content",
-            "Decode",
-            "Precheck",
-            "Apply",
-            "Broadcast",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
-
-        // add ▼ to the selected sorted table
-        if let Some(v) = headers.get_mut(3) {
-            *v = format!("{}▼", v)
-        }
 
         let endorsers = Block::default().borders(Borders::ALL);
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let normal_style = Style::default().bg(Color::Blue);
+        let normal_style = Style::default();
 
         let renderable_constraints = state
             .endorsmenents
