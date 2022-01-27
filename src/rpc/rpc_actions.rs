@@ -26,3 +26,12 @@ impl EnablingCondition<State> for RpcResponseAction {
         true
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct RpcResponseReadAction {}
+
+impl EnablingCondition<State> for RpcResponseReadAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}

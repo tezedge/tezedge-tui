@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use serde::Deserialize;
-use slog::{warn, Logger};
+use slog::{info, warn, Logger};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use url::Url;
@@ -60,6 +60,7 @@ impl RpcService for RpcServiceDefault {
 
 impl RpcServiceDefault {
     async fn run_worker(mut channel: RpcWorkerResponder, url: &Url, log: &Logger) {
+        info!(log, "Rpc service started. Rpc url: {}", url);
         while let Ok(req) = channel.recv().await {
             match Self::call_rpc(req, url).await {
                 Ok(response) => {

@@ -2,14 +2,14 @@ use automaton::AutomatonManager;
 use clap::Parser;
 use std::error::Error;
 
-pub mod configuration;
 pub mod automaton;
+pub mod common;
+pub mod configuration;
 pub mod endorsements;
 pub mod extensions;
+pub mod operations;
 pub mod rpc;
 pub mod services;
-pub mod common;
-pub mod operations;
 pub mod synchronization;
 pub mod terminal_ui;
 pub mod websocket;

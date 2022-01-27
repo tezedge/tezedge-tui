@@ -12,6 +12,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
         Action::ChangeScreen(action) => {
             state.ui.active_page = action.screen.clone();
 
+            // after we change the screen, we need to set the active widget
             match action.screen {
                 ActivePage::Synchronization => state.ui.active_widget = ActiveWidget::PeriodInfo,
                 ActivePage::Mempool => state.ui.active_widget = ActiveWidget::EndorserTable,
@@ -74,118 +75,142 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .previous(),
             _ => {}
         },
-        Action::TuiDownKeyPushedAction(_) => {
-            match state.ui.active_widget {
-                ActiveWidget::PeriodInfo => {},
-                ActiveWidget::PeerTable => state.synchronization.peer_table_state.select(next_item(
-                    state.synchronization.peer_metrics.len(),
-                    state.synchronization.peer_table_state.selected(),
+        Action::TuiDownKeyPushedAction(_) => match state.ui.active_widget {
+            ActiveWidget::PeriodInfo => {}
+            ActiveWidget::PeerTable => state.synchronization.peer_table_state.select(next_item(
+                state.synchronization.peer_metrics.len(),
+                state.synchronization.peer_table_state.selected(),
+            )),
+            ActiveWidget::EndorserTable => state
+                .endorsmenents
+                .endorsement_table
+                .table_state
+                .select(next_item(
+                    state.endorsmenents.current_head_endorsement_statuses.len(),
+                    state.endorsmenents.endorsement_table.table_state.selected(),
                 )),
-                ActiveWidget::EndorserTable => {
-                    state.endorsmenents
-                        .endorsement_table
-                        .table_state
-                        .select(next_item(
-                            state.endorsmenents.current_head_endorsement_statuses.len(),
-                            state.endorsmenents.endorsement_table.table_state.selected(),
-                        ))
-                }
-                ActiveWidget::StatisticsMainTable => {
-                    state.operations_statistics
-                        .main_operation_statistics_table
-                        .table_state
-                        .select(next_item(
-                            state.operations_statistics.operations_statistics_sortable.len(),
-                            state.operations_statistics
-                                .main_operation_statistics_table
-                                .table_state
-                                .selected(),
-                        ));
-    
-                    if let Some(index) = state.operations_statistics
-                        .main_operation_statistics_table
-                        .table_state
-                        .selected() {
-                            let hash = state.operations_statistics.operations_statistics_sortable[index].hash.clone();
-
-                            if let Some(stats) = state.operations_statistics.operations_statistics.get(&hash) {
-                                state.operations_statistics.selected_operation_details = Some(stats.to_operations_details());
-                            }
-                        }
-                }
-                ActiveWidget::StatisticsDetailsTable => state.operations_statistics
-                    .details_operation_statistics_table
+            ActiveWidget::StatisticsMainTable => {
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
                     .table_state
                     .select(next_item(
                         state
                             .operations_statistics
-                            .selected_operation_details
-                            .as_ref()
-                            .unwrap_or(&Vec::new())
+                            .operations_statistics_sortable
                             .len(),
-                        state.operations_statistics
-                            .details_operation_statistics_table
+                        state
+                            .operations_statistics
+                            .main_operation_statistics_table
                             .table_state
                             .selected(),
-                    )),
+                    ));
+
+                if let Some(index) = state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .table_state
+                    .selected()
+                {
+                    let hash = state.operations_statistics.operations_statistics_sortable[index]
+                        .hash
+                        .clone();
+
+                    if let Some(stats) =
+                        state.operations_statistics.operations_statistics.get(&hash)
+                    {
+                        state.operations_statistics.selected_operation_details =
+                            Some(stats.to_operations_details());
+                    }
+                }
             }
-        }
-        Action::TuiUpKeyPushedAction(_) => {
-            match state.ui.active_widget {
-                ActiveWidget::PeriodInfo => {},
-                ActiveWidget::PeerTable => state.synchronization.peer_table_state.select(previous_item(
+            ActiveWidget::StatisticsDetailsTable => state
+                .operations_statistics
+                .details_operation_statistics_table
+                .table_state
+                .select(next_item(
+                    state
+                        .operations_statistics
+                        .selected_operation_details
+                        .as_ref()
+                        .unwrap_or(&Vec::new())
+                        .len(),
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .table_state
+                        .selected(),
+                )),
+        },
+        Action::TuiUpKeyPushedAction(_) => match state.ui.active_widget {
+            ActiveWidget::PeriodInfo => {}
+            ActiveWidget::PeerTable => {
+                state.synchronization.peer_table_state.select(previous_item(
                     state.synchronization.peer_metrics.len(),
                     state.synchronization.peer_table_state.selected(),
+                ))
+            }
+            ActiveWidget::EndorserTable => state
+                .endorsmenents
+                .endorsement_table
+                .table_state
+                .select(previous_item(
+                    state.endorsmenents.current_head_endorsement_statuses.len(),
+                    state.endorsmenents.endorsement_table.table_state.selected(),
                 )),
-                ActiveWidget::EndorserTable => {
-                    state.endorsmenents
-                        .endorsement_table
-                        .table_state
-                        .select(previous_item(
-                            state.endorsmenents.current_head_endorsement_statuses.len(),
-                            state.endorsmenents.endorsement_table.table_state.selected(),
-                        ))
-                }
-                ActiveWidget::StatisticsMainTable => {
-                    state.operations_statistics
-                        .main_operation_statistics_table
-                        .table_state
-                        .select(previous_item(
-                            state.operations_statistics.operations_statistics_sortable.len(),
-                            state.operations_statistics
-                                .main_operation_statistics_table
-                                .table_state
-                                .selected(),
-                        ));
-    
-                    if let Some(index) = state.operations_statistics
-                        .main_operation_statistics_table
-                        .table_state
-                        .selected() {
-                            let hash = state.operations_statistics.operations_statistics_sortable[index].hash.clone();
-
-                            if let Some(stats) = state.operations_statistics.operations_statistics.get(&hash) {
-                                state.operations_statistics.selected_operation_details = Some(stats.to_operations_details());
-                            }
-                        }
-                }
-                ActiveWidget::StatisticsDetailsTable => state.operations_statistics
-                    .details_operation_statistics_table
+            ActiveWidget::StatisticsMainTable => {
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
                     .table_state
                     .select(previous_item(
                         state
                             .operations_statistics
-                            .selected_operation_details
-                            .as_ref()
-                            .unwrap_or(&Vec::new())
+                            .operations_statistics_sortable
                             .len(),
-                        state.operations_statistics
-                            .details_operation_statistics_table
+                        state
+                            .operations_statistics
+                            .main_operation_statistics_table
                             .table_state
                             .selected(),
-                    )),
+                    ));
+
+                if let Some(index) = state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .table_state
+                    .selected()
+                {
+                    let hash = state.operations_statistics.operations_statistics_sortable[index]
+                        .hash
+                        .clone();
+
+                    if let Some(stats) =
+                        state.operations_statistics.operations_statistics.get(&hash)
+                    {
+                        state.operations_statistics.selected_operation_details =
+                            Some(stats.to_operations_details());
+                    }
+                }
             }
-        }
+            ActiveWidget::StatisticsDetailsTable => state
+                .operations_statistics
+                .details_operation_statistics_table
+                .table_state
+                .select(previous_item(
+                    state
+                        .operations_statistics
+                        .selected_operation_details
+                        .as_ref()
+                        .unwrap_or(&Vec::new())
+                        .len(),
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .table_state
+                        .selected(),
+                )),
+        },
         Action::TuiSortKeyPushed(action) => match state.ui.active_widget {
             ActiveWidget::EndorserTable => {}
             ActiveWidget::StatisticsMainTable => {
@@ -213,24 +238,22 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
         Action::TuiDeltaToggleKeyPushed(_) => {
             state.delta_toggle = !state.delta_toggle;
         }
-        Action::TuiWidgetSelectionKeyPushed(_) => {
-            match state.ui.active_page {
-                ActivePage::Synchronization => match state.ui.active_widget {
-                    ActiveWidget::PeriodInfo => state.ui.active_widget = ActiveWidget::PeerTable,
-                    _ => state.ui.active_widget = ActiveWidget::PeriodInfo,
-                },
-                ActivePage::Mempool => state.ui.active_widget = ActiveWidget::EndorserTable,
-                ActivePage::Statistics => match state.ui.active_widget {
-                    ActiveWidget::StatisticsMainTable => {
-                        state.ui.active_widget = ActiveWidget::StatisticsDetailsTable
-                    }
-                    ActiveWidget::StatisticsDetailsTable => {
-                        state.ui.active_widget = ActiveWidget::StatisticsMainTable
-                    }
-                    _ => state.ui.active_widget = ActiveWidget::StatisticsMainTable,
-                },
-            }
-        }
+        Action::TuiWidgetSelectionKeyPushed(_) => match state.ui.active_page {
+            ActivePage::Synchronization => match state.ui.active_widget {
+                ActiveWidget::PeriodInfo => state.ui.active_widget = ActiveWidget::PeerTable,
+                _ => state.ui.active_widget = ActiveWidget::PeriodInfo,
+            },
+            ActivePage::Mempool => state.ui.active_widget = ActiveWidget::EndorserTable,
+            ActivePage::Statistics => match state.ui.active_widget {
+                ActiveWidget::StatisticsMainTable => {
+                    state.ui.active_widget = ActiveWidget::StatisticsDetailsTable
+                }
+                ActiveWidget::StatisticsDetailsTable => {
+                    state.ui.active_widget = ActiveWidget::StatisticsMainTable
+                }
+                _ => state.ui.active_widget = ActiveWidget::StatisticsMainTable,
+            },
+        },
         Action::Init(_) => {}
         _ => {}
     }

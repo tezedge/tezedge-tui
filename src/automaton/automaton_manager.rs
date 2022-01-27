@@ -15,14 +15,16 @@ use crate::{
         CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
     },
     operations::OperationsStatisticsGetAction,
+    rpc::RpcResponseReadAction,
     services::{
         rpc_service::RpcServiceDefault,
         tui_service::{TuiService, TuiServiceDefault},
         ws_service::WebsocketServiceDefault,
     },
     terminal_ui::{
-        ActivePage, ChangeScreenAction, DrawScreenAction, TuiEvent, TuiLeftKeyPushedAction,
-        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiDeltaToggleKeyPushedAction, TuiWidgetSelectionKeyPushedAction, TuiDownKeyPushedAction, TuiUpKeyPushedAction,
+        ActivePage, ChangeScreenAction, DrawScreenAction, TuiDeltaToggleKeyPushedAction,
+        TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
+        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -44,6 +46,7 @@ impl<Serv: Service> Automaton<Serv> {
 
     pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
         loop {
+            self.store.dispatch(RpcResponseReadAction {});
             self.store.dispatch(DrawScreenAction {});
             match events.recv().await {
                 Some(TuiEvent::Tick) => {
@@ -61,9 +64,7 @@ impl<Serv: Service> Automaton<Serv> {
                         return;
                     }
                     KeyCode::Char('s') => {
-                        self.store.dispatch(TuiSortKeyPushedAction {
-                            modifier
-                        });
+                        self.store.dispatch(TuiSortKeyPushedAction { modifier });
                     }
                     KeyCode::Char('d') => {
                         self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
@@ -128,7 +129,8 @@ impl AutomatonManager {
 
     pub fn new(rpc_url: Url, websocket_url: Url, log: Logger) -> Self {
         let rpc_service = RpcServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, rpc_url, &log);
-        let websocket_service = WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
+        let websocket_service =
+            WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
         let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
 
@@ -149,12 +151,27 @@ impl AutomatonManager {
     }
 
     pub async fn start(&mut self) {
-        self.automaton.make_progress(&mut self.tui_event_receiver).await;
+        self.automaton
+            .make_progress(&mut self.tui_event_receiver)
+            .await;
 
         // cleanup the terminal on shutdown
-        let backend_mut = self.automaton.store.service().tui().terminal().backend_mut();
-        execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture).expect("Error occured while restoring terminal. Please restart your session.");
+        let backend_mut = self
+            .automaton
+            .store
+            .service()
+            .tui()
+            .terminal()
+            .backend_mut();
+        execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture)
+            .expect("Error occured while restoring terminal. Please restart your session.");
         disable_raw_mode().expect("Error while dissabling raw mode. Please restart your session");
-        self.automaton.store.service().tui().terminal().show_cursor().expect("Error while restoring cursor. Please restart your session");
+        self.automaton
+            .store
+            .service()
+            .tui()
+            .terminal()
+            .show_cursor()
+            .expect("Error while restoring cursor. Please restart your session");
     }
 }

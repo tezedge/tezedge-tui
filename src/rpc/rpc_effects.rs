@@ -21,34 +21,34 @@ where
         Action::RpcRequest(action) => {
             // TODO: error action/state
             let _ = store.service().rpc().request_send(action.call.clone());
-
-            // TODO: move this to different action + create wakeup event
-            while let Ok(response) = store.service().rpc().response_try_recv() {
-                store.dispatch(RpcResponseAction { response });
-            }
         }
         Action::RpcResponse(action) => match &action.response {
             RpcResponse::EndorsementRights(rights) => {
-                let _ = store.dispatch(EndorsementsRightsReceivedAction {
+                store.dispatch(EndorsementsRightsReceivedAction {
                     endorsement_rights: rights.clone(),
                 });
             }
             RpcResponse::EndorsementsStatus(endorsements_statuses) => {
-                let _ = store.dispatch(EndorsementsStatusesReceivedAction {
+                store.dispatch(EndorsementsStatusesReceivedAction {
                     endorsements_statuses: endorsements_statuses.clone(),
                 });
             }
             RpcResponse::CurrentHeadHeader(current_head_header) => {
-                let _ = store.dispatch(CurrentHeadHeaderRecievedAction {
+                store.dispatch(CurrentHeadHeaderRecievedAction {
                     current_head_header: current_head_header.clone(),
                 });
             }
             RpcResponse::OperationsStats(operations_statistics) => {
-                let _ = store.dispatch(OperationsStatisticsReceivedAction {
+                store.dispatch(OperationsStatisticsReceivedAction {
                     operations_statistics: operations_statistics.clone(),
                 });
             }
         },
+        Action::RpcResponseRead(_) => {
+            while let Ok(response) = store.service().rpc().response_try_recv() {
+                store.dispatch(RpcResponseAction { response });
+            }
+        }
         _ => {}
     }
 }

@@ -9,10 +9,12 @@ use crate::{
         EndorsementsStatusesReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
-    rpc::{RpcRequestAction, RpcResponseAction},
+    rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},
     terminal_ui::{
         ChangeScreenAction, DrawScreenAction, DrawScreenFailiureAction, DrawScreenSuccessAction,
-        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiDeltaToggleKeyPushedAction, TuiWidgetSelectionKeyPushedAction, TuiUpKeyPushedAction, TuiDownKeyPushedAction,
+        TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiLeftKeyPushedAction,
+        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
+        TuiWidgetSelectionKeyPushedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -49,6 +51,7 @@ pub enum Action {
 
     RpcRequest(RpcRequestAction),
     RpcResponse(RpcResponseAction),
+    RpcResponseRead(RpcResponseReadAction),
 
     WebsocketRead(WebsocketReadAction),
     WebsocketMessageReceived(WebsocketMessageReceivedAction),
