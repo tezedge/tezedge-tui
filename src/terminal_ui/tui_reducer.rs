@@ -15,7 +15,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
             // after we change the screen, we need to set the active widget
             match action.screen {
                 ActivePage::Synchronization => state.ui.active_widget = ActiveWidget::PeriodInfo,
-                ActivePage::Mempool => state.ui.active_widget = ActiveWidget::EndorserTable,
+                ActivePage::Endorsements => state.ui.active_widget = ActiveWidget::EndorserTable,
                 ActivePage::Statistics => {
                     state.ui.active_widget = ActiveWidget::StatisticsMainTable
                 }
@@ -26,7 +26,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
 
             match state.ui.active_page {
                 ActivePage::Synchronization => {}
-                ActivePage::Mempool => {
+                ActivePage::Endorsements => {
                     let renderable = state
                         .endorsmenents
                         .endorsement_table
@@ -243,7 +243,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 ActiveWidget::PeriodInfo => state.ui.active_widget = ActiveWidget::PeerTable,
                 _ => state.ui.active_widget = ActiveWidget::PeriodInfo,
             },
-            ActivePage::Mempool => state.ui.active_widget = ActiveWidget::EndorserTable,
+            ActivePage::Endorsements => state.ui.active_widget = ActiveWidget::EndorserTable,
             ActivePage::Statistics => match state.ui.active_widget {
                 ActiveWidget::StatisticsMainTable => {
                     state.ui.active_widget = ActiveWidget::StatisticsDetailsTable

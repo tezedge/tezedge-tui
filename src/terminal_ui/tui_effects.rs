@@ -24,7 +24,7 @@ where
                         .terminal()
                         .draw(|f| SynchronizationScreen::draw_screen(&state, f))
                 }
-                ActivePage::Mempool => {
+                ActivePage::Endorsements => {
                     let state = store.state().clone();
                     // TODO: error handling
                     store

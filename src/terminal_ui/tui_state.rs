@@ -26,7 +26,7 @@ pub enum ActiveWidget {
 #[derive(Debug, Clone, EnumIter, Display)]
 pub enum ActivePage {
     Synchronization,
-    Mempool,
+    Endorsements,
     Statistics,
 }
 
@@ -34,7 +34,7 @@ impl ActivePage {
     pub fn to_index(&self) -> usize {
         match self {
             ActivePage::Synchronization => 0,
-            ActivePage::Mempool => 1,
+            ActivePage::Endorsements => 1,
             ActivePage::Statistics => 2,
         }
     }
@@ -42,7 +42,7 @@ impl ActivePage {
 
 impl Default for ActivePage {
     fn default() -> Self {
-        ActivePage::Mempool
+        ActivePage::Endorsements
     }
 }
 

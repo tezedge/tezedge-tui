@@ -76,7 +76,7 @@ impl<Serv: Service> Automaton<Serv> {
                     }
                     KeyCode::F(2) => {
                         self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Mempool,
+                            screen: ActivePage::Endorsements,
                         });
                     }
                     KeyCode::F(3) => {
