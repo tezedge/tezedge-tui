@@ -2,8 +2,6 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
 
-use crate::extensions::ExtendedTable;
-
 #[derive(Debug, Clone, Default)]
 pub struct UiState {
     // TUI states - states refering to the view part
@@ -11,9 +9,6 @@ pub struct UiState {
     // pub period_info_state: PeriodInfoState,
     pub active_page: ActivePage,
     pub active_widget: ActiveWidget,
-
-    pub details_operation_statistics_table: ExtendedTable,
-    pub main_operation_statistics_table: ExtendedTable,
     pub current_details_length: usize,
     pub screen_width: u16,
 }

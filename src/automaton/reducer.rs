@@ -1,7 +1,7 @@
 use redux_rs::chain_reducers;
 
 use crate::{
-    endorsements::endorsementrs_reducer, operations::operations_reducer, rpc::rpc_reducer,
+    endorsements::endorsementrs_reducer, operations::operations_reducer,
     synchronization::synchronization_reducer, terminal_ui::tui_reducer,
 };
 
@@ -12,7 +12,6 @@ pub fn reducer(state: &mut State, action: &ActionWithMeta) {
         state,
         action,
         tui_reducer,
-        rpc_reducer,
         synchronization_reducer,
         endorsementrs_reducer,
         operations_reducer

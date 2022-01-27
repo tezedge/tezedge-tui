@@ -1,7 +1,7 @@
 use slog::Logger;
 
 use crate::{
-    endorsements::EndrosementsState, operations::OperationsStatisticsState, rpc::RpcState,
+    endorsements::EndrosementsState, operations::OperationsStatisticsState,
     services::rpc_service::CurrentHeadHeader, synchronization::SynchronizationState,
     terminal_ui::UiState,
 };
@@ -16,8 +16,6 @@ pub struct State {
     pub operations_statistics: OperationsStatisticsState,
 
     pub delta_toggle: bool,
-
-    pub rpc_state: RpcState,
 
     pub ui: UiState,
 
@@ -34,7 +32,6 @@ impl State {
             synchronization: Default::default(),
             endorsmenents: Default::default(),
             operations_statistics: Default::default(),
-            rpc_state: Default::default(),
             ui: Default::default(),
         }
     }

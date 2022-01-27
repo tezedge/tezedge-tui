@@ -49,7 +49,7 @@ impl Renderable for EndorsementsScreen {
 
         // ======================== HEADER ========================
         let header = &state.current_head_header;
-        create_header_bar(header_chunk, &header, f);
+        create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
         let summary_elements_constraits = std::iter::repeat(Constraint::Percentage(16))

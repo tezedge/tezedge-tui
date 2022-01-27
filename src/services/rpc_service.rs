@@ -38,10 +38,6 @@ impl RpcServiceDefault {
 
         let t_url = url.clone();
         let t_log = log.clone();
-        // thread::Builder::new()
-        //     .name("rpc-thread".to_owned())
-        //     .spawn(move || Self::run_worker(responder, t_url))
-        //     .unwrap();
 
         tokio::task::spawn(async move { Self::run_worker(responder, &t_url, &t_log).await });
 

@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{DisableMouseCapture, KeyCode, KeyModifiers},
+    event::{DisableMouseCapture, KeyCode},
     execute,
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
@@ -31,18 +31,12 @@ use super::{effects, reducer, Action, ShutdownAction, State};
 
 pub type Store<Service> = redux_rs::Store<State, Service, Action>;
 
-enum AutomatonThreadHandle {
-    Running(std::thread::JoinHandle<()>),
-    NotRunning(Automaton<ServiceDefault>, mpsc::Receiver<TuiEvent>),
-}
 pub struct Automaton<Serv> {
-    /// Container for internal events.
-    // events: Events,
     store: Store<Serv>,
 }
 
 impl<Serv: Service> Automaton<Serv> {
-    pub fn new(initial_state: State, service: Serv /*events: Events*/) -> Self {
+    pub fn new(initial_state: State, service: Serv) -> Self {
         let store = Store::new(reducer, effects, service, SystemTime::now(), initial_state);
 
         Self { store }
@@ -119,23 +113,22 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            // events: self.events.clone(),
             store: self.store.clone(),
         }
     }
 }
 
 pub struct AutomatonManager {
-    automaton_thread_handle: Option<AutomatonThreadHandle>,
-    log: Logger,
+    automaton: Automaton<ServiceDefault>,
+    tui_event_receiver: mpsc::Receiver<TuiEvent>,
 }
 
 impl AutomatonManager {
-    const AUTOMATON_QUEUE_MAX_CAPACITY: usize = 100_000;
+    const MPCS_QUEUE_MAX_CAPACITY: usize = 4096;
 
     pub fn new(rpc_url: Url, websocket_url: Url, log: Logger) -> Self {
-        let rpc_service = RpcServiceDefault::new(4096, rpc_url, &log);
-        let websocket_service = WebsocketServiceDefault::new(4096, websocket_url, &log);
+        let rpc_service = RpcServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, rpc_url, &log);
+        let websocket_service = WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
         let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
 
@@ -150,25 +143,18 @@ impl AutomatonManager {
         let automaton = Automaton::new(initial_state, service);
 
         Self {
-            log,
-            automaton_thread_handle: Some(AutomatonThreadHandle::NotRunning(
-                automaton,
-                tui_event_receiver,
-            )),
+            automaton,
+            tui_event_receiver,
         }
     }
 
     pub async fn start(&mut self) {
-        if let Some(AutomatonThreadHandle::NotRunning(mut automaton, mut tui_event_receiver)) =
-            self.automaton_thread_handle.take()
-        {
-            automaton.make_progress(&mut tui_event_receiver).await;
+        self.automaton.make_progress(&mut self.tui_event_receiver).await;
 
-            // cleanup the terminal on shutdown
-            let backend_mut = automaton.store.service().tui().terminal().backend_mut();
-            execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture);
-            disable_raw_mode();
-            automaton.store.service().tui().terminal().show_cursor();
-        }
+        // cleanup the terminal on shutdown
+        let backend_mut = self.automaton.store.service().tui().terminal().backend_mut();
+        execute!(backend_mut, LeaveAlternateScreen, DisableMouseCapture).expect("Error occured while restoring terminal. Please restart your session.");
+        disable_raw_mode().expect("Error while dissabling raw mode. Please restart your session");
+        self.automaton.store.service().tui().terminal().show_cursor().expect("Error while restoring cursor. Please restart your session");
     }
 }

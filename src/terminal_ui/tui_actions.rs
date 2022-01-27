@@ -1,6 +1,5 @@
 use crossterm::event::KeyModifiers;
 use redux_rs::EnablingCondition;
-use tui::terminal::CompletedFrame;
 
 use crate::automaton::State;
 
@@ -29,7 +28,7 @@ impl EnablingCondition<State> for DrawScreenSuccessAction {
 #[derive(Debug, Clone)]
 pub struct DrawScreenFailiureAction {
     // TODO: return proper error variants
-    error: String,
+    _error: String,
 }
 
 impl EnablingCondition<State> for DrawScreenFailiureAction {
