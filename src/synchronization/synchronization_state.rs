@@ -1,6 +1,55 @@
 use serde::Deserialize;
+use tui::widgets::TableState;
 
 pub type PeerTableData = Vec<[String; 4]>;
+
+#[derive(Debug, Clone, Default)]
+pub struct SynchronizationState {
+    // info for the syncing and apllication blocks
+    pub incoming_transfer: IncomingTransferMetrics,
+    pub aplication_status: BlockApplicationStatus,
+    // info for the peer table on syncing screen
+    pub peer_metrics: Vec<PeerMetrics>,
+
+    // info for the period blocks
+    pub block_metrics: Vec<BlockStatus>,
+    pub cycle_data: Vec<Cycle>,
+
+    // ui specific states
+    pub peer_table_state: TableState,
+    pub period_info_state: PeriodInfoState,
+}
+
+#[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
+pub struct PeriodInfoState {
+    pub container_count: usize,
+    pub displayable_container_count: usize,
+    pub selected: Option<usize>,
+    offset: usize,
+}
+
+impl PeriodInfoState {
+    pub fn select(&mut self, selected: Option<usize>) {
+        self.selected = selected;
+    }
+
+    pub fn selected(&self) -> Option<usize> {
+        self.selected
+    }
+
+    pub fn offset(&self) -> usize {
+        if let Some(selected) = self.selected {
+            if selected >= self.displayable_container_count {
+                selected - self.displayable_container_count
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    }
+}
 
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -54,7 +103,7 @@ impl PeerMetrics {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct BlockMetrics {
+pub struct BlockStatus {
     pub group: i32,
     pub numbers_of_blocks: i32,
     pub finished_blocks: i32,
@@ -62,7 +111,7 @@ pub struct BlockMetrics {
     pub download_duration: Option<f32>,
 }
 
-impl BlockMetrics {
+impl BlockStatus {
     pub fn all_downloaded(&self) -> bool {
         self.finished_blocks >= self.numbers_of_blocks
     }
@@ -95,7 +144,7 @@ impl Cycle {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainStatus {
     pub chain: Vec<Cycle>,

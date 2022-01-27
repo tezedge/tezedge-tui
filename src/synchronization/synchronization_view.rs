@@ -1,8 +1,10 @@
+use std::io::Stdout;
+
 use conv::ValueFrom;
 
+use tui::backend::CrosstermBackend;
 use tui::style::Modifier;
 use tui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     text::Spans,
@@ -10,21 +12,17 @@ use tui::{
     Frame,
 };
 
-use crate::model::{ActiveWidget, StateRef, UiState};
+use crate::automaton::State;
+use crate::common::{create_help_bar, create_pages_tabs};
+use crate::extensions::Renderable;
+use crate::terminal_ui::ActiveWidget;
 
-use super::{create_help_bar, create_pages_tabs};
+pub struct SynchronizationScreen {}
 
-pub struct SyncingScreen {}
-
-impl SyncingScreen {
-    pub fn draw_syncing_screen<B: Backend>(
-        data_state: &StateRef,
-        ui_state: &mut UiState,
-        f: &mut Frame<B>,
-    ) {
-        let data_state = data_state.read().unwrap();
-        let widget_in_focus = &ui_state.active_widget;
-        let delta_toggle = ui_state.delta_toggle;
+impl Renderable for SynchronizationScreen {
+    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+        let widget_in_focus = &state.ui.active_widget;
+        let delta_toggle = state.delta_toggle;
 
         let size = f.size();
 
@@ -58,7 +56,7 @@ impl SyncingScreen {
             .borders(Borders::ALL);
         // f.render_widget(headers_and_operations_block, top_chunks[0]);
 
-        let syncing_eta = if let Some(eta) = data_state.incoming_transfer.eta {
+        let syncing_eta = if let Some(eta) = state.synchronization.incoming_transfer.eta {
             eta
         } else {
             0.0
@@ -68,18 +66,18 @@ impl SyncingScreen {
             Spans::from(format!(
                 "{:.2}% {}",
                 calculate_percentage(
-                    data_state.incoming_transfer.current_block_count,
-                    data_state.incoming_transfer.downloaded_blocks
+                    state.synchronization.incoming_transfer.current_block_count,
+                    state.synchronization.incoming_transfer.downloaded_blocks
                 ),
                 convert_eta(syncing_eta)
             )),
             Spans::from(format!(
                 "{} level",
-                data_state.incoming_transfer.downloaded_blocks
+                state.synchronization.incoming_transfer.downloaded_blocks
             )),
             Spans::from(format!(
                 "{:.2} blocks / s",
-                data_state.incoming_transfer.download_rate
+                state.synchronization.incoming_transfer.download_rate
             )),
         ])
         .style(Style::default())
@@ -94,10 +92,18 @@ impl SyncingScreen {
             .borders(Borders::ALL);
         // f.render_widget(applying, top_chunks[1]);
 
-        let application_eta = if data_state.aplication_status.current_application_speed != 0.0 {
-            (data_state.incoming_transfer.current_block_count
-                - data_state.last_applied_level as usize) as f32
-                / data_state.aplication_status.current_application_speed
+        let application_eta = if state
+            .synchronization
+            .aplication_status
+            .current_application_speed
+            != 0.0
+        {
+            (state.synchronization.incoming_transfer.current_block_count
+                - state.last_applied_level as usize) as f32
+                / state
+                    .synchronization
+                    .aplication_status
+                    .current_application_speed
                 * 60.0
         } else {
             0.0
@@ -107,15 +113,19 @@ impl SyncingScreen {
             Spans::from(format!(
                 "{:.2}% {}",
                 calculate_percentage(
-                    data_state.incoming_transfer.current_block_count,
-                    data_state.last_applied_level as usize
+                    state.synchronization.incoming_transfer.current_block_count,
+                    state.last_applied_level as usize
                 ),
                 convert_eta(application_eta)
             )),
-            Spans::from(format!("{} level", data_state.last_applied_level)),
+            Spans::from(format!("{} level", state.last_applied_level)),
             Spans::from(format!(
                 "{:.2} blocks / s",
-                data_state.aplication_status.current_application_speed / 60.0
+                state
+                    .synchronization
+                    .aplication_status
+                    .current_application_speed
+                    / 60.0
             )),
         ])
         .style(Style::default())
@@ -141,15 +151,15 @@ impl SyncingScreen {
         let horizontal_padding =
             (page_chunks[1].width - (period_count_per_page_on_width * period_block_width)) / 2;
 
-        let cycle_count = data_state.cycle_data.len();
+        let cycle_count = state.synchronization.cycle_data.len();
         let period_count = cycle_count / cycle_per_period;
         // let period_count = divide_round_up(cycle_count, cycle_per_period);
 
         // selected period container state
-        ui_state.period_info_state.displayable_container_count =
-            period_count_per_page_on_heigth.into();
-        ui_state.period_info_state.container_count =
-            period_count / period_count_per_page_on_width as usize;
+        // ui_state.period_info_state.displayable_container_count =
+        //     period_count_per_page_on_heigth.into();
+        // ui_state.period_info_state.container_count =
+        //     period_count / period_count_per_page_on_width as usize;
         // ui.ui_state.period_info_state.container_count = divide_round_up(period_count, period_count_per_page_on_width as usize);
 
         // if let Some(selected_container) = ui.ui_state.period_info_state.selected {
@@ -183,7 +193,7 @@ impl SyncingScreen {
 
         // TODO: more appropriate approach
         // do not render while we have no data
-        if data_state.block_metrics.is_empty() {
+        if state.synchronization.block_metrics.is_empty() {
             return;
         }
 
@@ -196,9 +206,10 @@ impl SyncingScreen {
                 ])
                 .split(container)[0];
 
-            if let Some(selected_container) = ui_state.period_info_state.selected {
+            if let Some(selected_container) = state.synchronization.period_info_state.selected {
                 if matches!(widget_in_focus, ActiveWidget::PeriodInfo)
-                    && selected_container == container_index + ui_state.period_info_state.offset()
+                    && selected_container
+                        == container_index + state.synchronization.period_info_state.offset()
                 {
                     let block = Block::default()
                         .borders(Borders::ALL)
@@ -226,7 +237,7 @@ impl SyncingScreen {
 
             for (period_index, period) in periods.into_iter().enumerate() {
                 // only render periods that are present on the netrwork
-                if (container_index + ui_state.period_info_state.offset())
+                if (container_index + state.synchronization.period_info_state.offset())
                     * period_count_per_page_on_width as usize
                     + period_index
                     > period_count
@@ -253,7 +264,7 @@ impl SyncingScreen {
 
                 for (cycle_index, cycle) in cycles.into_iter().enumerate() {
                     let cycle_data_index = ((container_index
-                        + ui_state.period_info_state.offset())
+                        + state.synchronization.period_info_state.offset())
                         * period_count_per_page_on_width as usize
                         * cycle_per_period)
                         + (period_index * cycle_per_period)
@@ -286,15 +297,21 @@ impl SyncingScreen {
                                 .style(Style::default().bg(Color::Black).fg(Color::White)),
                         )
                         .alignment(Alignment::Center)
-                        .style(if data_state.block_metrics.len() <= cycle_data_index {
-                            default_style
-                        } else if data_state.cycle_data[cycle_data_index].all_applied() {
-                            applied_style
-                        } else if data_state.block_metrics[cycle_data_index].all_downloaded() {
-                            dowloaded_style
-                        } else {
-                            default_style
-                        });
+                        .style(
+                            if state.synchronization.block_metrics.len() <= cycle_data_index {
+                                default_style
+                            } else if state.synchronization.cycle_data[cycle_data_index]
+                                .all_applied()
+                            {
+                                applied_style
+                            } else if state.synchronization.block_metrics[cycle_data_index]
+                                .all_downloaded()
+                            {
+                                dowloaded_style
+                            } else {
+                                default_style
+                            },
+                        );
                     // render the "text" (padded background)
                     f.render_widget(cycle_block_text, cycle);
                 }
@@ -326,7 +343,8 @@ impl SyncingScreen {
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
-        let rows = data_state.peer_metrics.iter().map(|item| {
+        let rows = state.synchronization.peer_metrics.iter().map(|item| {
+            let item = item.to_table_representation();
             let height = item
                 .iter()
                 .map(|content| content.chars().filter(|c| *c == '\n').count())
@@ -348,13 +366,17 @@ impl SyncingScreen {
                 Constraint::Percentage(25),
             ]);
         if matches!(widget_in_focus, ActiveWidget::PeerTable) {
-            f.render_stateful_widget(table, page_chunks[2], &mut ui_state.peer_table_state);
+            f.render_stateful_widget(
+                table,
+                page_chunks[2],
+                &mut state.synchronization.peer_table_state.clone(),
+            );
         } else {
             f.render_widget(table, page_chunks[2]);
         }
 
         // ======================== PAGES TABS ========================
-        let tabs = create_pages_tabs(ui_state);
+        let tabs = create_pages_tabs(&state.ui);
         f.render_widget(tabs, page_chunks[3]);
 
         // ======================== HELP BAR ========================

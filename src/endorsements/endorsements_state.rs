@@ -1,15 +1,119 @@
-use std::{collections::BTreeMap, hash::Hash, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
-use tui::style::Color;
+use tui::{layout::Constraint, style::Color};
 
-use super::{convert_time_to_unit_string, get_color, SortableByFocus, TuiTableData};
+use crate::extensions::{
+    convert_time_to_unit_string, get_color, ExtendedTable, SortableByFocus, TuiTableData,
+};
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
+pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
-// TODO: update accordingly
-pub type EndorsementRightsTableData = Vec<Vec<String>>;
+#[derive(Debug, Clone)]
+pub struct EndrosementsState {
+    pub endorsement_rights: EndorsementRights,
+    pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
+    pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
+
+    // ui specific states
+    pub endorsement_table: ExtendedTable,
+}
+
+impl Default for EndrosementsState {
+    fn default() -> Self {
+        let endorsement_table = ExtendedTable::new(
+            vec![
+                "Slots",
+                "Baker",
+                "Status",
+                "Delta",
+                "Receive hash",
+                "Receive content",
+                "Decode",
+                "Precheck",
+                "Apply",
+                "Broadcast",
+            ]
+            .iter()
+            .map(|v| v.to_string())
+            .collect(),
+            vec![
+                Constraint::Length(6),
+                Constraint::Length(36),
+                Constraint::Min(11),
+                Constraint::Min(8),
+                Constraint::Min(12),
+                Constraint::Min(15),
+                Constraint::Min(8),
+                Constraint::Min(9),
+                Constraint::Min(8),
+                Constraint::Min(10),
+            ],
+            4,
+        );
+
+        Self {
+            endorsement_table,
+            current_head_endorsement_statuses: Vec::new(),
+            endoresement_status_summary: BTreeMap::new(),
+            endorsement_rights: BTreeMap::new(),
+        }
+    }
+}
+
+impl SortableByFocus for EndorsementStatusSortableVec {
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
+        match focus_index {
+            0 => self.sort_by_key(|k| k.slot_count),
+            1 => self.sort_by_key(|k| k.baker.clone()),
+            2 => self.sort_by_key(|k| k.state.clone()),
+            3 => self.sort_by_key(|k| k.delta),
+            4 => self.sort_by_key(|k| k.received_hash_time),
+            5 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.received_contents_time_delta
+                } else {
+                    k.received_contents_time
+                }
+            }),
+            6 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.decoded_time_delta
+                } else {
+                    k.decoded_time
+                }
+            }),
+            7 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.prechecked_time_delta
+                } else {
+                    k.prechecked_time
+                }
+            }),
+            8 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.applied_time_delta
+                } else {
+                    k.applied_time
+                }
+            }),
+            9 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.broadcast_time_delta
+                } else {
+                    k.broadcast_time
+                }
+            }),
+            _ => {}
+        }
+    }
+
+    fn rev(&mut self) {
+        self.reverse()
+    }
+}
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct EndorsementStatus {
@@ -33,43 +137,6 @@ pub enum EndorsementState {
     Prechecked = 3,
     Decoded = 4,
     Received = 5,
-}
-
-pub struct InvalidVariantError {}
-
-impl FromStr for EndorsementState {
-    type Err = InvalidVariantError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "missing" => Ok(EndorsementState::Missing),
-            "broadcast" => Ok(EndorsementState::Broadcast),
-            "applied" => Ok(EndorsementState::Applied),
-            "prechecked" => Ok(EndorsementState::Prechecked),
-            "decoded" => Ok(EndorsementState::Decoded),
-            "received" => Ok(EndorsementState::Received),
-            _ => Err(InvalidVariantError {}),
-        }
-    }
-}
-
-impl ToString for EndorsementState {
-    fn to_string(&self) -> String {
-        match self {
-            EndorsementState::Missing => String::from("missing"),
-            EndorsementState::Broadcast => String::from("broadcast"),
-            EndorsementState::Applied => String::from("broadcast"),
-            EndorsementState::Prechecked => String::from("prechecked"),
-            EndorsementState::Decoded => String::from("decoded"),
-            EndorsementState::Received => String::from("received"),
-        }
-    }
-}
-
-impl Default for EndorsementState {
-    fn default() -> Self {
-        Self::Missing
-    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -300,44 +367,39 @@ impl TuiTableData for EndorsementStatusSortable {
     }
 }
 
-pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
+pub struct InvalidVariantError {}
 
-impl SortableByFocus for EndorsementStatusSortableVec {
-    fn sort_by_focus(&mut self, focus_index: usize, _delta_toggle: bool) {
-        match focus_index {
-            0 => self.sort_by_key(|k| k.slot_count),
-            1 => self.sort_by_key(|k| k.baker.clone()),
-            2 => self.sort_by_key(|k| k.state.clone()),
-            3 => self.sort_by_key(|k| k.delta),
-            4 => self.sort_by_key(|k| k.received_hash_time),
-            5 => self.sort_by_key(|k| k.received_contents_time),
-            6 => self.sort_by_key(|k| k.decoded_time),
-            7 => self.sort_by_key(|k| k.prechecked_time),
-            8 => self.sort_by_key(|k| k.applied_time),
-            9 => self.sort_by_key(|k| k.broadcast_time),
-            _ => {}
+impl FromStr for EndorsementState {
+    type Err = InvalidVariantError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "missing" => Ok(EndorsementState::Missing),
+            "broadcast" => Ok(EndorsementState::Broadcast),
+            "applied" => Ok(EndorsementState::Applied),
+            "prechecked" => Ok(EndorsementState::Prechecked),
+            "decoded" => Ok(EndorsementState::Decoded),
+            "received" => Ok(EndorsementState::Received),
+            _ => Err(InvalidVariantError {}),
         }
-    }
-
-    fn rev(&mut self) {
-        self.reverse()
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct CurrentHeadHeader {
-    pub level: i32,
-    pub hash: String,
-    pub timestamp: String,
-    pub chain_id: String,
-    pub predecessor: String,
-    pub validation_pass: u8,
-    pub operations_hash: String,
-    pub fitness: Vec<String>,
-    pub context: String,
-    pub protocol: String,
-    pub signature: String,
-    pub priority: i32,
-    pub proof_of_work_nonce: String,
-    pub liquidity_baking_escape_vote: bool,
+impl ToString for EndorsementState {
+    fn to_string(&self) -> String {
+        match self {
+            EndorsementState::Missing => String::from("missing"),
+            EndorsementState::Broadcast => String::from("broadcast"),
+            EndorsementState::Applied => String::from("broadcast"),
+            EndorsementState::Prechecked => String::from("prechecked"),
+            EndorsementState::Decoded => String::from("decoded"),
+            EndorsementState::Received => String::from("received"),
+        }
+    }
+}
+
+impl Default for EndorsementState {
+    fn default() -> Self {
+        Self::Missing
+    }
 }

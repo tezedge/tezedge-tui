@@ -1,13 +1,4 @@
-pub mod syncing;
 use itertools::Itertools;
-pub use syncing::*;
-
-pub mod mempool;
-pub use mempool::*;
-
-pub mod statistics;
-pub use statistics::*;
-
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
@@ -18,7 +9,10 @@ use tui::{
     Frame,
 };
 
-use crate::model::{ActivePage, CurrentHeadHeader, UiState};
+use crate::{
+    services::rpc_service::CurrentHeadHeader,
+    terminal_ui::{ActivePage, UiState},
+};
 
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()

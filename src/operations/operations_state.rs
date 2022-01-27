@@ -2,16 +2,94 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
-use strum_macros::Display;
-use tui::style::Color;
+use tui::{layout::Constraint, style::Color};
 
-use super::{get_color, SortableByFocus};
-
-// use super::convert_time_to_unit_string;
+use crate::extensions::{
+    convert_time_to_unit_string, get_color, ExtendedTable, SortableByFocus, TuiTableData,
+};
 
 pub type OperationsStats = BTreeMap<String, OperationStats>;
 pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
 pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
+
+#[derive(Clone, Debug)]
+pub struct OperationsStatisticsState {
+    pub operations_statistics: OperationsStats,
+    pub operations_statistics_sortable: OperationsStatsSortable,
+    pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
+
+    // ui specific states
+    pub main_operation_statistics_table: ExtendedTable,
+    pub details_operation_statistics_table: ExtendedTable,
+}
+
+impl Default for OperationsStatisticsState {
+    fn default() -> Self {
+        let main_operation_statistics_table = ExtendedTable::new(
+            vec![
+                "Datetime",
+                "Hash",
+                "Nodes",
+                "Delta",
+                "Received",
+                "Content Received",
+                "Validation Started",
+                "Preapply Started",
+                "Preapply Finished",
+                "Validation Finished",
+                "Validation Length",
+                "Sent",
+                "Kind",
+            ]
+            .iter()
+            .map(|v| v.to_string())
+            .collect(),
+            vec![
+                Constraint::Min(22),
+                Constraint::Min(9),
+                Constraint::Min(6),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(17),
+                Constraint::Min(19),
+                Constraint::Min(17),
+                Constraint::Min(18),
+                Constraint::Min(20),
+                Constraint::Min(18),
+                Constraint::Min(9),
+                Constraint::Min(19),
+            ],
+            3,
+        );
+        let details_operation_statistics_table = ExtendedTable::new(
+            vec![
+                "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
+            ]
+            .iter()
+            .map(|v| v.to_string())
+            .collect(),
+            // TODO: expand for the sort symbol
+            vec![
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+                Constraint::Min(9),
+            ],
+            3,
+        );
+
+        Self {
+            main_operation_statistics_table,
+            details_operation_statistics_table,
+            operations_statistics: OperationsStats::default(),
+            operations_statistics_sortable: OperationsStatsSortable::default(),
+            selected_operation_details: None,
+        }
+    }
+}
 
 #[derive(Deserialize, Clone, Debug)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
@@ -61,7 +139,9 @@ pub struct OperationValidationStats {
     result: Option<OperationValidationResult>,
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, Display, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord,
+)]
 pub enum OperationKind {
     Endorsement,
     SeedNonceRevelation,
@@ -87,7 +167,7 @@ impl Default for OperationKind {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, Display)]
+#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display)]
 pub enum OperationValidationResult {
     Applied,
     Refused,
@@ -99,21 +179,49 @@ pub enum OperationValidationResult {
     Default,
 }
 
-// impl ToString for OperationValidationResult {
-//     fn to_string(&self) -> String {
-//         match self {
-//             OperationValidationResult::Applied => String::from("Applied"),
-//             OperationValidationResult::Refused => String::from("Refused"),
-//             OperationValidationResult::BranchRefused => String::from("BranchRefused"),
-//             OperationValidationResult::BranchDelayed => String::from("BranchDelayed"),
-//             OperationValidationResult::Default => String::from("-"),
-//         }
-//     }
-// }
+#[derive(Clone, Debug)]
+pub struct OperationDetailSortable {
+    pub node_id: String,
+    pub first_received: Option<i128>,
+    pub first_content_received: Option<i128>,
+    pub first_sent: Option<i128>,
+    pub received: usize,
+    pub content_received: usize,
+    pub sent: usize,
+}
 
-impl Default for OperationValidationResult {
-    fn default() -> Self {
-        OperationValidationResult::Default
+impl TuiTableData for OperationDetailSortable {
+    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Color)> {
+        let mut final_vec = Vec::with_capacity(7);
+
+        final_vec.push((self.node_id.clone(), Color::Reset));
+
+        if let Some(first_received) = self.first_received {
+            final_vec.push((convert_time_to_unit_string(first_received), Color::Reset));
+        } else {
+            final_vec.push((String::from('-'), Color::DarkGray));
+        }
+
+        if let Some(first_content_received) = self.first_content_received {
+            final_vec.push((
+                convert_time_to_unit_string(first_content_received),
+                Color::Reset,
+            ));
+        } else {
+            final_vec.push((String::from('-'), Color::DarkGray));
+        }
+
+        if let Some(first_sent) = self.first_sent {
+            final_vec.push((convert_time_to_unit_string(first_sent), Color::Reset));
+        } else {
+            final_vec.push((String::from('-'), Color::DarkGray));
+        }
+
+        final_vec.push((self.received.to_string(), Color::Reset));
+        final_vec.push((self.content_received.to_string(), Color::Reset));
+        final_vec.push((self.sent.to_string(), Color::Reset));
+
+        final_vec
     }
 }
 
@@ -304,10 +412,6 @@ impl OperationStats {
     }
 }
 
-pub trait TuiTableData {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
-}
-
 impl TuiTableData for OperationStatsSortable {
     fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
         let mut final_vec = Vec::with_capacity(13);
@@ -443,70 +547,6 @@ impl TuiTableData for OperationStatsSortable {
         } else {
             final_vec.push((String::from('-'), Color::DarkGray));
         }
-
-        final_vec
-    }
-}
-
-// TODO: fix this duplicate fn
-fn convert_time_to_unit_string(time: i128) -> String {
-    let time = time as f64;
-    const MILLISECOND_FACTOR: f64 = 1000.0;
-    const MICROSECOND_FACTOR: f64 = 1000000.0;
-    const NANOSECOND_FACTOR: f64 = 1000000000.0;
-
-    if time >= NANOSECOND_FACTOR {
-        format!("{:.2}s", time / NANOSECOND_FACTOR)
-    } else if time >= MICROSECOND_FACTOR {
-        format!("{:.2}ms", time / MICROSECOND_FACTOR)
-    } else if time >= MILLISECOND_FACTOR {
-        format!("{:.2}μs", time / MILLISECOND_FACTOR)
-    } else {
-        format!("{}ns", time)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct OperationDetailSortable {
-    pub node_id: String,
-    pub first_received: Option<i128>,
-    pub first_content_received: Option<i128>,
-    pub first_sent: Option<i128>,
-    pub received: usize,
-    pub content_received: usize,
-    pub sent: usize,
-}
-
-impl TuiTableData for OperationDetailSortable {
-    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Color)> {
-        let mut final_vec = Vec::with_capacity(7);
-
-        final_vec.push((self.node_id.clone(), Color::Reset));
-
-        if let Some(first_received) = self.first_received {
-            final_vec.push((convert_time_to_unit_string(first_received), Color::Reset));
-        } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
-        }
-
-        if let Some(first_content_received) = self.first_content_received {
-            final_vec.push((
-                convert_time_to_unit_string(first_content_received),
-                Color::Reset,
-            ));
-        } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
-        }
-
-        if let Some(first_sent) = self.first_sent {
-            final_vec.push((convert_time_to_unit_string(first_sent), Color::Reset));
-        } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
-        }
-
-        final_vec.push((self.received.to_string(), Color::Reset));
-        final_vec.push((self.content_received.to_string(), Color::Reset));
-        final_vec.push((self.sent.to_string(), Color::Reset));
 
         final_vec
     }

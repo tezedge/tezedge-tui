@@ -1,8 +1,9 @@
+use std::io::Stdout;
 use std::str::FromStr;
 
+use tui::backend::CrosstermBackend;
 use tui::style::Modifier;
 use tui::{
-    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     widgets::{Block, BorderType, Borders, Paragraph, Row, Table},
@@ -11,20 +12,17 @@ use tui::{
 
 use itertools::Itertools;
 
-use crate::model::{EndorsementState, StateRef, UiState};
+use crate::automaton::State;
+use crate::common::{create_header_bar, create_help_bar, create_pages_tabs};
+use crate::extensions::Renderable;
 
-use super::{create_header_bar, create_help_bar, create_pages_tabs};
-pub struct MempoolScreen {}
+use super::EndorsementState;
+pub struct EndorsementsScreen {}
 
-impl MempoolScreen {
-    pub fn draw_mempool_screen<B: Backend>(
-        data_state: &StateRef,
-        ui_state: &mut UiState,
-        f: &mut Frame<B>,
-    ) {
-        let data_state = data_state.read().unwrap();
+impl Renderable for EndorsementsScreen {
+    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
-        let delta_toggle = ui_state.delta_toggle;
+        let delta_toggle = state.delta_toggle;
 
         // TODO: placeholder for mempool page
         let page_chunks = Layout::default()
@@ -50,7 +48,7 @@ impl MempoolScreen {
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
         // ======================== HEADER ========================
-        let header = &data_state.current_head_header;
+        let header = &state.current_head_header;
         create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
@@ -79,7 +77,8 @@ impl MempoolScreen {
             let block_text = Paragraph::new(format!(
                 "{}\n{}",
                 title,
-                data_state
+                state
+                    .endorsmenents
                     .endoresement_status_summary
                     .get(
                         &EndorsementState::from_str(&title.to_ascii_lowercase())
@@ -124,10 +123,12 @@ impl MempoolScreen {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let normal_style = Style::default().bg(Color::Blue);
 
-        let renderable_constraints = ui_state
+        let renderable_constraints = state
+            .endorsmenents
             .endorsement_table
             .renderable_constraints(f.size().width - 2);
-        let header_cells = ui_state
+        let header_cells = state
+            .endorsmenents
             .endorsement_table
             .renderable_headers(selected_style);
         let header = Row::new(header_cells)
@@ -135,8 +136,8 @@ impl MempoolScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = ui_state.endorsement_table.renderable_rows(
-            &data_state.current_head_endorsement_statuses,
+        let rows = state.endorsmenents.endorsement_table.renderable_rows(
+            &state.endorsmenents.current_head_endorsement_statuses,
             delta_toggle,
         );
 
@@ -149,14 +150,14 @@ impl MempoolScreen {
         f.render_stateful_widget(
             table,
             endorsements_chunk,
-            &mut ui_state.endorsement_table.table_state.clone(),
+            &mut state.endorsmenents.endorsement_table.table_state.clone(),
         );
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);
 
         // ======================== PAGES TABS ========================
-        let tabs = create_pages_tabs(ui_state);
+        let tabs = create_pages_tabs(&state.ui);
         f.render_widget(tabs, page_chunks[1]);
 
         // ======================== HELP BAR ========================
