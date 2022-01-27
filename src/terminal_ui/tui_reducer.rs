@@ -2,7 +2,7 @@ use crossterm::event::KeyModifiers;
 
 use crate::{
     automaton::{Action, ActionWithMeta, State},
-    extensions::SortableByFocus,
+    extensions::{SortOrder, SortableByFocus},
 };
 
 use super::{ActivePage, ActiveWidget};
@@ -212,7 +212,26 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 )),
         },
         Action::TuiSortKeyPushed(action) => match state.ui.active_widget {
-            ActiveWidget::EndorserTable => {}
+            ActiveWidget::EndorserTable => {
+                let selected = state.endorsmenents.endorsement_table.selected();
+                state
+                    .endorsmenents
+                    .current_head_endorsement_statuses
+                    .sort_by_focus(selected, state.delta_toggle);
+
+                state
+                    .endorsmenents
+                    .endorsement_table
+                    .set_sort_order(SortOrder::Ascending);
+
+                if let KeyModifiers::CONTROL = action.modifier {
+                    state.endorsmenents.current_head_endorsement_statuses.rev();
+                    state
+                        .endorsmenents
+                        .endorsement_table
+                        .set_sort_order(SortOrder::Descending);
+                }
+            }
             ActiveWidget::StatisticsMainTable => {
                 state
                     .operations_statistics
@@ -232,7 +251,23 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .rev();
                 }
             }
-            ActiveWidget::StatisticsDetailsTable => {}
+            ActiveWidget::StatisticsDetailsTable => {
+                if let Some(operation_details) =
+                    &mut state.operations_statistics.selected_operation_details
+                {
+                    operation_details.sort_by_focus(
+                        state
+                            .operations_statistics
+                            .main_operation_statistics_table
+                            .selected(),
+                        state.delta_toggle,
+                    );
+                    // sort descending
+                    if let KeyModifiers::CONTROL = action.modifier {
+                        operation_details.rev();
+                    }
+                }
+            }
             _ => {}
         },
         Action::TuiDeltaToggleKeyPushed(_) => {

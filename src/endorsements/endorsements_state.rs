@@ -64,18 +64,48 @@ impl Default for EndrosementsState {
 }
 
 impl SortableByFocus for EndorsementStatusSortableVec {
-    fn sort_by_focus(&mut self, focus_index: usize, _delta_toggle: bool) {
+    fn sort_by_focus(&mut self, focus_index: usize, delta_toggle: bool) {
         match focus_index {
             0 => self.sort_by_key(|k| k.slot_count),
             1 => self.sort_by_key(|k| k.baker.clone()),
             2 => self.sort_by_key(|k| k.state.clone()),
             3 => self.sort_by_key(|k| k.delta),
             4 => self.sort_by_key(|k| k.received_hash_time),
-            5 => self.sort_by_key(|k| k.received_contents_time),
-            6 => self.sort_by_key(|k| k.decoded_time),
-            7 => self.sort_by_key(|k| k.prechecked_time),
-            8 => self.sort_by_key(|k| k.applied_time),
-            9 => self.sort_by_key(|k| k.broadcast_time),
+            5 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.received_contents_time_delta
+                } else {
+                    k.received_contents_time
+                }
+            }),
+            6 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.decoded_time_delta
+                } else {
+                    k.decoded_time
+                }
+            }),
+            7 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.prechecked_time_delta
+                } else {
+                    k.prechecked_time
+                }
+            }),
+            8 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.applied_time_delta
+                } else {
+                    k.applied_time
+                }
+            }),
+            9 => self.sort_by_key(|k| {
+                if delta_toggle {
+                    k.broadcast_time_delta
+                } else {
+                    k.broadcast_time
+                }
+            }),
             _ => {}
         }
     }
