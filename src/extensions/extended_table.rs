@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use tui::{
     layout::Constraint,
-    style::Style,
+    style::{Style, Color, Modifier},
     widgets::{Cell, Row, TableState},
 };
 
@@ -218,9 +218,9 @@ impl ExtendedTable {
             .take(self.fixed_count)
             .map(|(index, h)| {
                 if index == selected {
-                    Cell::from(h.as_str()).style(selected_style)
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(selected_style)
                 } else {
-                    Cell::from(h.as_str()).style(Style::default())
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(Style::default().fg(Color::White).add_modifier(Modifier::DIM))
                 }
             });
 
@@ -231,9 +231,9 @@ impl ExtendedTable {
             .skip(self.first_rendered_index)
             .map(|(index, h)| {
                 if index == selected {
-                    Cell::from(h.as_str()).style(selected_style)
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(selected_style)
                 } else {
-                    Cell::from(h.as_str()).style(Style::default())
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(Style::default().fg(Color::White).add_modifier(Modifier::DIM))
                 }
             });
 

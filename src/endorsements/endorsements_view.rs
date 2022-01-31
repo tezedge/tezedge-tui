@@ -29,14 +29,14 @@ impl Renderable for EndorsementsScreen {
 
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(5), Constraint::Length(3)])
+            .constraints([Constraint::Min(5), Constraint::Length(1)])
             .split(size);
 
         let (header_chunk, summary_chunk, help_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(2),
-                Constraint::Length(2),
+                Constraint::Length(1),
                 Constraint::Length(2),
                 Constraint::Min(1),
             ])
@@ -51,10 +51,10 @@ impl Renderable for EndorsementsScreen {
 
         // ======================== SUMARY ========================
 
-        let separator = Span::styled(" — ", Style::default().fg(Color::Gray));
+        let separator = Span::styled(" — ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM));
 
         let filled_style = Style::default().fg(Color::White);
-        let empty_style = Style::default().fg(Color::Gray);
+        let empty_style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
 
         // TODO: make an iteration?
         let (missing_count, missing_style) = if let Some(count) = state
@@ -149,8 +149,8 @@ impl Renderable for EndorsementsScreen {
 
         let endorsers = Block::default().borders(Borders::ALL);
 
-        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let normal_style = Style::default();
+        let selected_style = Style::default().remove_modifier(Modifier::DIM);
+        let normal_style = Style::default().fg(Color::Gray);
 
         let renderable_constraints = state
             .endorsmenents

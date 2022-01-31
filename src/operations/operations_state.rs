@@ -4,7 +4,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
 use tui::{
     layout::Constraint,
-    style::{Color, Style},
+    style::{Color, Style, Modifier},
 };
 
 use crate::extensions::{
@@ -427,9 +427,9 @@ impl TuiTableData for OperationStatsSortable {
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
                 .format("%H:%M:%S, %Y-%m-%d");
 
-        final_vec.push((datetime.to_string(), Style::default().fg(Color::Gray)));
+        final_vec.push((datetime.to_string(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)));
         final_vec.push((self.hash.clone(), Style::default().fg(Color::White)));
-        final_vec.push((self.nodes.to_string(), Style::default().fg(Color::Gray)));
+        final_vec.push((self.nodes.to_string(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)));
 
         if let Some(delta) = self.delta {
             final_vec.push((convert_time_to_unit_string(delta), get_time_style(delta)));

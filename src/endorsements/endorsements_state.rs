@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, str::FromStr};
 use serde::Deserialize;
 use tui::{
     layout::Constraint,
-    style::{Color, Style},
+    style::{Color, Style, Modifier},
 };
 
 use crate::extensions::{
@@ -257,9 +257,9 @@ impl TuiTableData for EndorsementStatusSortable {
 
         final_vec.push((
             self.slot_count.to_string(),
-            Style::default().fg(Color::White),
+            Style::default().fg(Color::White).add_modifier(Modifier::DIM),
         ));
-        final_vec.push((self.baker.clone(), Style::default().fg(Color::White)));
+        final_vec.push((self.baker.clone(), Style::default().fg(Color::White).add_modifier(Modifier::DIM)));
         final_vec.push((self.state.to_string(), self.state.get_style()));
 
         if let Some(delta) = self.delta {

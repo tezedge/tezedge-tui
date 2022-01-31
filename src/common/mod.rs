@@ -51,7 +51,7 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
             vec![
                 Span::styled(*key, Style::default().fg(Color::White)),
                 Span::from(" "),
-                Span::styled(*help, Style::default().fg(Color::Gray)),
+                Span::styled(*help, Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
                 Span::from(" "),
             ]
         })
@@ -82,24 +82,22 @@ pub fn create_header_bar<B: Backend>(
         .split(header_chunk);
 
     let block_hash = Paragraph::new(Spans::from(vec![
-        Span::styled("Block hash: ", Style::default().fg(Color::Gray)),
+        Span::styled("Block hash: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
         Span::styled(
             format!("{} ", header.hash),
             Style::default().fg(Color::White),
         ),
-    ]))
-    .alignment(Alignment::Left);
+    ]));
 
     f.render_widget(block_hash, header_chunks[0]);
 
     let block_level = Paragraph::new(Spans::from(vec![
-        Span::styled("Level: ", Style::default().fg(Color::Gray)),
+        Span::styled("Level: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
         Span::styled(
             format!("{} ", header.level),
             Style::default().fg(Color::White),
         ),
-    ]))
-    .alignment(Alignment::Center);
+    ]));
 
     f.render_widget(block_level, header_chunks[1]);
 
@@ -111,13 +109,12 @@ pub fn create_header_bar<B: Backend>(
     };
 
     let block_protocol = Paragraph::new(Spans::from(vec![
-        Span::styled("Protocol: ", Style::default().fg(Color::Gray)),
+        Span::styled("Protocol: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
         Span::styled(
             format!("{} ", protocol_short),
             Style::default().fg(Color::White),
         ),
-    ]))
-    .alignment(Alignment::Right);
+    ]));
 
     f.render_widget(block_protocol, header_chunks[2]);
 }
