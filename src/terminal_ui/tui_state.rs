@@ -38,6 +38,13 @@ impl ActivePage {
             ActivePage::Statistics => 2,
         }
     }
+    pub fn hotkey(&self) -> String {
+         match self {
+             ActivePage::Synchronization => String::from("F1"),
+             ActivePage::Endorsements => String::from("F2"),
+             ActivePage::Statistics => String::from("F3"),
+         }
+    }
 }
 
 impl Default for ActivePage {
@@ -48,7 +55,7 @@ impl Default for ActivePage {
 
 impl Default for ActiveWidget {
     fn default() -> Self {
-        ActiveWidget::PeriodInfo
+        ActiveWidget::EndorserTable
     }
 }
 

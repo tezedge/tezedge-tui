@@ -2,7 +2,7 @@ use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Style, Modifier},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
     Frame,
@@ -16,16 +16,17 @@ use crate::{
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
         .map(|t| {
-            Spans::from(vec![Span::styled(
-                t.to_string(),
-                Style::default().fg(Color::White).bg(Color::Black),
+            Spans::from(vec![Span::styled(t.hotkey(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+                Span::styled(
+                t.to_string().to_ascii_uppercase(),
+                Style::default().fg(Color::White),
             )])
         })
         .collect();
     let page_in_focus = ui_state.active_page.to_index();
     Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL))
-        .highlight_style(Style::default().fg(Color::Black).bg(Color::Gray))
+        .highlight_style(Style::default().fg(Color::White).bg(Color::DarkGray).remove_modifier(Modifier::DIM))
+        .divider(" ")
         .select(page_in_focus)
 }
 

@@ -24,6 +24,9 @@ impl Renderable for EndorsementsScreen {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 
+        let background = Block::default().style(Style::default().bg(Color::Rgb(31, 30, 30)));
+        f.render_widget(background, size);
+
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(5), Constraint::Length(3)])
