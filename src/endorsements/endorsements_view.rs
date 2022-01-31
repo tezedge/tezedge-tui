@@ -2,7 +2,7 @@ use std::io::Stdout;
 
 use tui::backend::CrosstermBackend;
 use tui::style::Modifier;
-use tui::text::{Spans, Span};
+use tui::text::{Span, Spans};
 use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
@@ -54,41 +54,65 @@ impl Renderable for EndorsementsScreen {
 
         let separator = Span::styled(" — ", Style::default().fg(Color::Gray));
 
-        let filled_style = Style::default().fg(Color::Reset);
+        let filled_style = Style::default().fg(Color::White);
         let empty_style = Style::default().fg(Color::Gray);
 
         // TODO: make an iteration?
-        let (missing_count, missing_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Missing) {
+        let (missing_count, missing_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Missing)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
         };
 
-        let (broadcast_count, broadcast_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Broadcast) {
+        let (broadcast_count, broadcast_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Broadcast)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
         };
 
-        let (applied_count, applied_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Applied) {
+        let (applied_count, applied_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Applied)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
         };
 
-        let (prechecked_count, prechecked_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Prechecked) {
+        let (prechecked_count, prechecked_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Prechecked)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
         };
 
-        let (decoded_count, decoded_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Decoded) {
+        let (decoded_count, decoded_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Decoded)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
         };
 
-        let (received_count, received_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&EndorsementState::Received) {
+        let (received_count, received_style) = if let Some(count) = state
+            .endorsmenents
+            .endoresement_status_summary
+            .get(&EndorsementState::Received)
+        {
             (count.to_string(), filled_style)
         } else {
             (String::from("0"), empty_style)
@@ -105,7 +129,10 @@ impl Renderable for EndorsementsScreen {
             Span::styled(applied_count, EndorsementState::Applied.get_style_fg()),
             separator.clone(),
             Span::styled("Prechecked: ", prechecked_style),
-            Span::styled(prechecked_count, EndorsementState::Prechecked.get_style_fg()),
+            Span::styled(
+                prechecked_count,
+                EndorsementState::Prechecked.get_style_fg(),
+            ),
             separator.clone(),
             Span::styled("Decoded: ", decoded_style),
             Span::styled(decoded_count, EndorsementState::Decoded.get_style_fg()),
@@ -115,7 +142,7 @@ impl Renderable for EndorsementsScreen {
         ]));
 
         f.render_widget(summary, summary_chunk);
-        
+
         // ======================== ENDORSERS ========================
 
         let endorsers = Block::default().borders(Borders::ALL);

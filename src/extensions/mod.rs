@@ -3,7 +3,11 @@ use std::io::Stdout;
 
 pub use extended_table::*;
 use num::{FromPrimitive, ToPrimitive};
-use tui::{backend::CrosstermBackend, style::{Color, Style}, Frame};
+use tui::{
+    backend::CrosstermBackend,
+    style::{Color, Style},
+    Frame,
+};
 
 use crate::automaton::State;
 
@@ -14,7 +18,7 @@ pub trait Renderable {
 pub fn get_time_style<T: FromPrimitive + PartialOrd>(value: T) -> Style {
     let style = Style::default();
     if value < FromPrimitive::from_u64(20000000).unwrap() {
-        style.fg(Color::Reset)
+        style.fg(Color::White)
     } else if value < FromPrimitive::from_u64(50000000).unwrap() {
         style.fg(Color::Rgb(255, 165, 0)) // orange
     } else {

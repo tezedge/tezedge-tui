@@ -251,15 +251,14 @@ impl ExtendedTable {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item.iter().take(self.fixed_count).map(|(content, style)| {
-                    Cell::from(content.clone()).style(*style)
-                });
-                let dynamic_cells =
-                    item.iter()
-                        .skip(self.first_rendered_index)
-                        .map(|(content, style)| {
-                            Cell::from(content.clone()).style(*style)
-                        });
+                let fixed_cells = item
+                    .iter()
+                    .take(self.fixed_count)
+                    .map(|(content, style)| Cell::from(content.clone()).style(*style));
+                let dynamic_cells = item
+                    .iter()
+                    .skip(self.first_rendered_index)
+                    .map(|(content, style)| Cell::from(content.clone()).style(*style));
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
             })

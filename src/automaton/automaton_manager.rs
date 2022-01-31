@@ -1,6 +1,4 @@
-use crossterm::{
-    event::KeyCode,
-};
+use crossterm::event::KeyCode;
 use std::time::{Duration, SystemTime};
 use tokio::sync::mpsc;
 use url::Url;

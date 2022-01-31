@@ -1,7 +1,10 @@
 use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
-use tui::{layout::Constraint, style::{Color, Style}};
+use tui::{
+    layout::Constraint,
+    style::{Color, Style},
+};
 
 use crate::extensions::{
     convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData,
@@ -252,7 +255,10 @@ impl TuiTableData for EndorsementStatusSortable {
         let mut final_vec = Vec::with_capacity(9);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
 
-        final_vec.push((self.slot_count.to_string(), Style::default().fg(Color::White)));
+        final_vec.push((
+            self.slot_count.to_string(),
+            Style::default().fg(Color::White),
+        ));
         final_vec.push((self.baker.clone(), Style::default().fg(Color::White)));
         final_vec.push((self.state.to_string(), self.state.get_style()));
 

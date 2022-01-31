@@ -3,7 +3,9 @@ use std::{io::Stdout, time::Duration};
 
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::execute;
-use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use tokio::sync::mpsc;
 use tui::{backend::CrosstermBackend, Terminal};
 
@@ -38,8 +40,7 @@ impl TuiServiceDefault {
     pub fn new() -> Self {
         enable_raw_mode().expect("Failed to enable raw mode");
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen)
-            .expect("Failed to execute EnterAlternateScreen");
+        execute!(stdout, EnterAlternateScreen).expect("Failed to execute EnterAlternateScreen");
         let backend = CrosstermBackend::new(stdout);
 
         let terminal = Terminal::new(backend).expect("Error initializing terminal");

@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
-use tui::{layout::Constraint, style::{Color, Style}};
+use tui::{
+    layout::Constraint,
+    style::{Color, Style},
+};
 
 use crate::extensions::{
     convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData,
@@ -194,9 +197,9 @@ impl TuiTableData for OperationDetailSortable {
     fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(7);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::Reset);
+        let default_style = Style::default().fg(Color::White);
 
-        final_vec.push((self.node_id.clone(), Style::default().fg(Color::Reset)));
+        final_vec.push((self.node_id.clone(), Style::default().fg(Color::White)));
 
         if let Some(first_received) = self.first_received {
             final_vec.push((convert_time_to_unit_string(first_received), default_style));
@@ -418,14 +421,14 @@ impl TuiTableData for OperationStatsSortable {
     fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(13);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::Reset);
+        let default_style = Style::default().fg(Color::White);
 
         let datetime =
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
                 .format("%H:%M:%S, %Y-%m-%d");
 
         final_vec.push((datetime.to_string(), Style::default().fg(Color::Gray)));
-        final_vec.push((self.hash.clone(), Style::default().fg(Color::Reset)));
+        final_vec.push((self.hash.clone(), Style::default().fg(Color::White)));
         final_vec.push((self.nodes.to_string(), Style::default().fg(Color::Gray)));
 
         if let Some(delta) = self.delta {
@@ -526,7 +529,10 @@ impl TuiTableData for OperationStatsSortable {
         }
 
         if self.validations_length != 0 {
-            final_vec.push((self.validations_length.to_string(), Style::default().fg(Color::Gray)));
+            final_vec.push((
+                self.validations_length.to_string(),
+                Style::default().fg(Color::Gray),
+            ));
         } else {
             final_vec.push(missing_value.clone());
         }
