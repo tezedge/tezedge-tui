@@ -24,19 +24,15 @@ impl Renderable for EndorsementsScreen {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 
-        // TODO: placeholder for mempool page
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(5),
-                Constraint::Length(3),
-                Constraint::Length(4),
-            ])
+            .constraints([Constraint::Min(5), Constraint::Length(3)])
             .split(size);
 
-        let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
+        let (header_chunk, summary_chunk, help_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
+                Constraint::Length(2),
                 Constraint::Length(2),
                 Constraint::Length(2),
                 Constraint::Min(1),
@@ -143,6 +139,9 @@ impl Renderable for EndorsementsScreen {
 
         f.render_widget(summary, summary_chunk);
 
+        // ======================== HELP BAR ========================
+        create_help_bar(help_chunk, f, delta_toggle);
+
         // ======================== ENDORSERS ========================
 
         let endorsers = Block::default().borders(Borders::ALL);
@@ -186,8 +185,5 @@ impl Renderable for EndorsementsScreen {
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);
         f.render_widget(tabs, page_chunks[1]);
-
-        // ======================== HELP BAR ========================
-        create_help_bar(page_chunks[2], f, delta_toggle);
     }
 }
