@@ -69,20 +69,20 @@ pub fn create_header_bar<B: Backend>(
     f: &mut Frame<B>,
 ) {
     // wrap the header info in borders
-    let block = Block::default().borders(Borders::BOTTOM);
+    let block = Block::default().borders(Borders::BOTTOM).border_style(Style::default().add_modifier(Modifier::DIM));
     f.render_widget(block, header_chunk);
 
     let header_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(67),
+            Constraint::Length(62),
             Constraint::Length(16),
             Constraint::Length(18),
         ])
         .split(header_chunk);
 
     let block_hash = Paragraph::new(Spans::from(vec![
-        Span::styled("Block hash: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+        Span::styled(" Block: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
         Span::styled(
             format!("{} ", header.hash),
             Style::default().fg(Color::White),

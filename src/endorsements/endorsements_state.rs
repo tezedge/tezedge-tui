@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
+use strum_macros::EnumIter;
 use tui::{
     layout::Constraint,
     style::{Color, Style, Modifier},
@@ -132,7 +133,7 @@ pub struct EndorsementStatus {
     pub broadcast: bool,
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum EndorsementState {
     Missing = 0,
     Broadcast = 1,
@@ -165,7 +166,6 @@ pub struct EndorsementStatusSortable {
 }
 
 impl EndorsementStatus {
-    // TODO: fix sorting, use Options
     pub fn to_sortable(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
         let delta = if let (Some(broadcast), Some(received)) =
             (self.broadcast_time, self.received_hash_time)
@@ -394,12 +394,12 @@ impl FromStr for EndorsementState {
 impl ToString for EndorsementState {
     fn to_string(&self) -> String {
         match self {
-            EndorsementState::Missing => String::from("missing"),
-            EndorsementState::Broadcast => String::from("broadcast"),
-            EndorsementState::Applied => String::from("broadcast"),
-            EndorsementState::Prechecked => String::from("prechecked"),
-            EndorsementState::Decoded => String::from("decoded"),
-            EndorsementState::Received => String::from("received"),
+            EndorsementState::Missing => String::from("Missing"),
+            EndorsementState::Broadcast => String::from("Broadcast"),
+            EndorsementState::Applied => String::from("Applied"),
+            EndorsementState::Prechecked => String::from("Prechecked"),
+            EndorsementState::Decoded => String::from("Decoded"),
+            EndorsementState::Received => String::from("Received"),
         }
     }
 }
