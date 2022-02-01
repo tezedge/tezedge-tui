@@ -152,5 +152,13 @@ impl Renderable for EndorsementsScreen {
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);
         f.render_widget(tabs, page_chunks[1]);
+
+        // ======================== Quit ========================
+        let quit = Paragraph::new(Spans::from(vec![
+            Span::styled("F10", Style::default().fg(Color::White).add_modifier(Modifier::DIM)),
+            Span::styled("QUIT", Style::default().fg(Color::White))
+        ]))
+        .alignment(Alignment::Right);
+        f.render_widget(quit, page_chunks[1]);
     }
 }

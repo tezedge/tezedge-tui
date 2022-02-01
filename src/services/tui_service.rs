@@ -71,7 +71,7 @@ impl TuiServiceDefault {
                         eprintln!("{}", err);
                         break;
                     }
-                    if key.code == KeyCode::Char('q') {
+                    if key.code == KeyCode::F(10) {
                         break;
                     }
                 }
