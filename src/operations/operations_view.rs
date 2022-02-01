@@ -42,8 +42,10 @@ impl Renderable for StatisticsScreen {
         f.render_widget(tabs, page_chunks[2]);
 
         let operations_statistics = &state.operations_statistics.operations_statistics;
-        let operations_statistics_sortable =
-            &state.operations_statistics.operations_statistics_sortable;
+        let operations_statistics_sortable = &state
+            .operations_statistics
+            .main_operation_statistics_table
+            .content;
 
         // Display a loading data screen until the data is loaded
         if operations_statistics.is_empty() {
@@ -150,11 +152,16 @@ impl Renderable for StatisticsScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = if let Some(details) = &state.operations_statistics.selected_operation_details {
+        let table_content = &state
+            .operations_statistics
+            .details_operation_statistics_table
+            .content;
+
+        let rows = if !table_content.is_empty() {
             state
                 .operations_statistics
                 .details_operation_statistics_table
-                .renderable_rows(details, delta_toggle)
+                .renderable_rows(table_content, delta_toggle)
         } else {
             let details =
                 Paragraph::new("Select an operation for details...").alignment(Alignment::Center);

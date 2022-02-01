@@ -39,11 +39,11 @@ impl ActivePage {
         }
     }
     pub fn hotkey(&self) -> String {
-         match self {
-             ActivePage::Synchronization => String::from("F1"),
-             ActivePage::Endorsements => String::from("F2"),
-             ActivePage::Statistics => String::from("F3"),
-         }
+        match self {
+            ActivePage::Synchronization => String::from("F1"),
+            ActivePage::Endorsements => String::from("F2"),
+            ActivePage::Statistics => String::from("F3"),
+        }
     }
 }
 

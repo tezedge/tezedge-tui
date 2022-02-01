@@ -52,26 +52,43 @@ impl Renderable for EndorsementsScreen {
         create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
-        let separator = Span::styled(" —", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM));
+        let separator = Span::styled(
+            " —",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        );
 
         let filled_style = Style::default().fg(Color::White);
         let empty_style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
 
-        let mut summary: Vec<Span> = EndorsementState::iter().map(|endorsement_status| {
-            let (styled_count, caption_style) = if let Some(count) = state.endorsmenents.endoresement_status_summary.get(&endorsement_status) {
-                (Span::styled(count.to_string(), endorsement_status.get_style_fg()), filled_style)
-            } else {
-                (Span::styled(String::from("0"), endorsement_status.get_style_fg()), empty_style)
-            };
+        let mut summary: Vec<Span> = EndorsementState::iter()
+            .map(|endorsement_status| {
+                let (styled_count, caption_style) = if let Some(count) = state
+                    .endorsmenents
+                    .endoresement_status_summary
+                    .get(&endorsement_status)
+                {
+                    (
+                        Span::styled(count.to_string(), endorsement_status.get_style_fg()),
+                        filled_style,
+                    )
+                } else {
+                    (
+                        Span::styled(String::from("0"), endorsement_status.get_style_fg()),
+                        empty_style,
+                    )
+                };
 
-            vec![
-                Span::styled(format!(" {}: ", endorsement_status.to_string()), caption_style),
-                styled_count,
-                separator.clone(),
-            ]
-        })
-        .flatten()
-        .collect();
+                vec![
+                    Span::styled(
+                        format!(" {}: ", endorsement_status.to_string()),
+                        caption_style,
+                    ),
+                    styled_count,
+                    separator.clone(),
+                ]
+            })
+            .flatten()
+            .collect();
 
         // remove the last separator
         summary.pop();
@@ -103,10 +120,10 @@ impl Renderable for EndorsementsScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = state.endorsmenents.endorsement_table.renderable_rows(
-            &state.endorsmenents.current_head_endorsement_statuses,
-            delta_toggle,
-        );
+        let rows = state
+            .endorsmenents
+            .endorsement_table
+            .renderable_rows(&state.endorsmenents.endorsement_table.content, delta_toggle);
 
         let highlight_symbol = "▶".to_string().to_ascii_uppercase();
 

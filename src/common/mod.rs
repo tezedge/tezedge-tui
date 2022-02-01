@@ -2,7 +2,7 @@ use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Modifier},
+    style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
     Frame,
@@ -16,16 +16,26 @@ use crate::{
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
         .map(|t| {
-            Spans::from(vec![Span::styled(t.hotkey(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+            Spans::from(vec![
                 Span::styled(
-                t.to_string().to_ascii_uppercase(),
-                Style::default().fg(Color::White),
-            )])
+                    t.hotkey(),
+                    Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+                ),
+                Span::styled(
+                    t.to_string().to_ascii_uppercase(),
+                    Style::default().fg(Color::White),
+                ),
+            ])
         })
         .collect();
     let page_in_focus = ui_state.active_page.to_index();
     Tabs::new(titles)
-        .highlight_style(Style::default().fg(Color::White).bg(Color::DarkGray).remove_modifier(Modifier::DIM))
+        .highlight_style(
+            Style::default()
+                .fg(Color::White)
+                .bg(Color::DarkGray)
+                .remove_modifier(Modifier::DIM),
+        )
         .divider(" ")
         .select(page_in_focus)
 }
@@ -51,7 +61,10 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
             vec![
                 Span::styled(*key, Style::default().fg(Color::White)),
                 Span::from(" "),
-                Span::styled(*help, Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+                Span::styled(
+                    *help,
+                    Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+                ),
                 Span::from(" "),
             ]
         })
@@ -69,7 +82,9 @@ pub fn create_header_bar<B: Backend>(
     f: &mut Frame<B>,
 ) {
     // wrap the header info in borders
-    let block = Block::default().borders(Borders::BOTTOM).border_style(Style::default().add_modifier(Modifier::DIM));
+    let block = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().add_modifier(Modifier::DIM));
     f.render_widget(block, header_chunk);
 
     let header_chunks = Layout::default()
@@ -82,7 +97,10 @@ pub fn create_header_bar<B: Backend>(
         .split(header_chunk);
 
     let block_hash = Paragraph::new(Spans::from(vec![
-        Span::styled(" Block: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+        Span::styled(
+            " Block: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
         Span::styled(
             format!("{} ", header.hash),
             Style::default().fg(Color::White),
@@ -92,7 +110,10 @@ pub fn create_header_bar<B: Backend>(
     f.render_widget(block_hash, header_chunks[0]);
 
     let block_level = Paragraph::new(Spans::from(vec![
-        Span::styled("Level: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+        Span::styled(
+            "Level: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
         Span::styled(
             format!("{} ", header.level),
             Style::default().fg(Color::White),
@@ -109,7 +130,10 @@ pub fn create_header_bar<B: Backend>(
     };
 
     let block_protocol = Paragraph::new(Spans::from(vec![
-        Span::styled("Protocol: ", Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)),
+        Span::styled(
+            "Protocol: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
         Span::styled(
             format!("{} ", protocol_short),
             Style::default().fg(Color::White),

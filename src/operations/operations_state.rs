@@ -4,7 +4,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
 use tui::{
     layout::Constraint,
-    style::{Color, Style, Modifier},
+    style::{Color, Modifier, Style},
 };
 
 use crate::extensions::{
@@ -18,12 +18,10 @@ pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 #[derive(Clone, Debug)]
 pub struct OperationsStatisticsState {
     pub operations_statistics: OperationsStats,
-    pub operations_statistics_sortable: OperationsStatsSortable,
-    pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
 
     // ui specific states
-    pub main_operation_statistics_table: ExtendedTable,
-    pub details_operation_statistics_table: ExtendedTable,
+    pub main_operation_statistics_table: ExtendedTable<OperationsStatsSortable>,
+    pub details_operation_statistics_table: ExtendedTable<OperationDetailsSortable>,
 }
 
 impl Default for OperationsStatisticsState {
@@ -88,8 +86,6 @@ impl Default for OperationsStatisticsState {
             main_operation_statistics_table,
             details_operation_statistics_table,
             operations_statistics: OperationsStats::default(),
-            operations_statistics_sortable: OperationsStatsSortable::default(),
-            selected_operation_details: None,
         }
     }
 }
@@ -427,9 +423,15 @@ impl TuiTableData for OperationStatsSortable {
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
                 .format("%H:%M:%S, %Y-%m-%d");
 
-        final_vec.push((datetime.to_string(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)));
+        final_vec.push((
+            datetime.to_string(),
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ));
         final_vec.push((self.hash.clone(), Style::default().fg(Color::White)));
-        final_vec.push((self.nodes.to_string(), Style::default().fg(Color::Gray).add_modifier(Modifier::DIM)));
+        final_vec.push((
+            self.nodes.to_string(),
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ));
 
         if let Some(delta) = self.delta {
             final_vec.push((convert_time_to_unit_string(delta), get_time_style(delta)));

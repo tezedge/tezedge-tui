@@ -4,7 +4,7 @@ use serde::Deserialize;
 use strum_macros::EnumIter;
 use tui::{
     layout::Constraint,
-    style::{Color, Style, Modifier},
+    style::{Color, Modifier, Style},
 };
 
 use crate::extensions::{
@@ -18,11 +18,10 @@ pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 #[derive(Debug, Clone)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
-    pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 
     // ui specific states
-    pub endorsement_table: ExtendedTable,
+    pub endorsement_table: ExtendedTable<EndorsementStatusSortableVec>,
 }
 
 impl Default for EndrosementsState {
@@ -60,7 +59,6 @@ impl Default for EndrosementsState {
 
         Self {
             endorsement_table,
-            current_head_endorsement_statuses: Vec::new(),
             endoresement_status_summary: BTreeMap::new(),
             endorsement_rights: BTreeMap::new(),
         }
@@ -257,9 +255,16 @@ impl TuiTableData for EndorsementStatusSortable {
 
         final_vec.push((
             self.slot_count.to_string(),
-            Style::default().fg(Color::White).add_modifier(Modifier::DIM),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
         ));
-        final_vec.push((self.baker.clone(), Style::default().fg(Color::White).add_modifier(Modifier::DIM)));
+        final_vec.push((
+            self.baker.clone(),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
+        ));
         final_vec.push((self.state.to_string(), self.state.get_style()));
 
         if let Some(delta) = self.delta {

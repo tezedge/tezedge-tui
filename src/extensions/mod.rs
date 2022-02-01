@@ -5,7 +5,7 @@ pub use extended_table::*;
 use num::{FromPrimitive, ToPrimitive};
 use tui::{
     backend::CrosstermBackend,
-    style::{Color, Style, Modifier},
+    style::{Color, Modifier, Style},
     Frame,
 };
 
@@ -20,7 +20,9 @@ pub fn get_time_style<T: FromPrimitive + PartialOrd>(value: T) -> Style {
     if value < FromPrimitive::from_u64(20000000).unwrap() {
         style.fg(Color::White).add_modifier(Modifier::DIM)
     } else if value < FromPrimitive::from_u64(50000000).unwrap() {
-        style.fg(Color::Rgb(255, 165, 0)).add_modifier(Modifier::DIM) // orange
+        style
+            .fg(Color::Rgb(255, 165, 0))
+            .add_modifier(Modifier::DIM) // orange
     } else {
         style.fg(Color::LightRed).add_modifier(Modifier::DIM)
     }
