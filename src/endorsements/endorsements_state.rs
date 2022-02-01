@@ -43,16 +43,16 @@ impl Default for EndrosementsState {
             .map(|v| v.to_string())
             .collect(),
             vec![
-                Constraint::Length(6),
+                Constraint::Length(7),
                 Constraint::Length(36),
                 Constraint::Min(11),
                 Constraint::Min(8),
-                Constraint::Min(12),
-                Constraint::Min(15),
-                Constraint::Min(8),
+                Constraint::Min(14),
+                Constraint::Min(17),
                 Constraint::Min(9),
-                Constraint::Min(8),
-                Constraint::Min(10),
+                Constraint::Min(11),
+                Constraint::Min(9),
+                Constraint::Min(12),
             ],
             4,
         );

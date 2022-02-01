@@ -4,6 +4,22 @@ use super::{ActivePage, ActiveWidget};
 
 pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
+        Action::DrawScreen(_) => match state.ui.active_page {
+            ActivePage::Synchronization => {}
+            ActivePage::Endorsements => {
+                state.endorsmenents.endorsement_table.highlight_sorting();
+            }
+            ActivePage::Statistics => {
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .highlight_sorting();
+                state
+                    .operations_statistics
+                    .details_operation_statistics_table
+                    .highlight_sorting();
+            }
+        },
         Action::ChangeScreen(action) => {
             state.ui.active_page = action.screen.clone();
 

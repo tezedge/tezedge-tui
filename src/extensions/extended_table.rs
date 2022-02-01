@@ -132,15 +132,14 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
         }
     }
 
-    // TODO: do this in a way it doesn't take a mutable reference
     pub fn highlight_sorting(&mut self) {
         let mut headers = self.headers.clone();
 
         // add ▼/▲ to the selected sorted table
         if let Some(v) = headers.get_mut(self.sorted_by) {
             match self.sort_order {
-                SortOrder::Ascending => *v = format!("{}▲", v),
-                SortOrder::Descending => *v = format!("{}▼", v),
+                SortOrder::Ascending => *v = format!("{} ▲", v),
+                SortOrder::Descending => *v = format!("{} ▼", v),
             }
         }
 
