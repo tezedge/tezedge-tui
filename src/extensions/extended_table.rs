@@ -235,6 +235,7 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
     }
 
     pub fn renderable_rows<T: TuiTableData>(&self, content: &[T], delta_toggle: bool) -> Vec<Row> {
+        let selected = self.selected();
         content
             .iter()
             .map(|item| {
@@ -247,12 +248,26 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
                     + 1;
                 let fixed_cells = item
                     .iter()
+                    .enumerate()
                     .take(self.fixed_count)
-                    .map(|(content, style)| Cell::from(content.clone()).style(*style));
+                    .map(|(index, (content, style))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
+                        } else {
+                            Cell::from(content.clone()).style(*style)
+                        }
+                    });
                 let dynamic_cells = item
                     .iter()
+                    .enumerate()
                     .skip(self.first_rendered_index)
-                    .map(|(content, style)| Cell::from(content.clone()).style(*style));
+                    .map(|(index, (content, style))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
+                        } else {
+                            Cell::from(content.clone()).style(*style)
+                        }
+                    });
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
             })
