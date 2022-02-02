@@ -53,11 +53,15 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     let renderable = state
                         .operations_statistics
                         .main_operation_statistics_table
-                        .renderable_constraints(action.screen_width)
+                        .renderable_constraints(action.screen_width / 2)
                         .len();
                     state
                         .operations_statistics
                         .main_operation_statistics_table
+                        .set_rendered(renderable);
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
                         .set_rendered(renderable);
                 }
             }

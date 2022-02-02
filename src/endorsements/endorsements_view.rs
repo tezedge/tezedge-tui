@@ -15,7 +15,7 @@ use itertools::Itertools;
 use strum::IntoEnumIterator;
 
 use crate::automaton::State;
-use crate::common::{create_header_bar, create_help_bar, create_pages_tabs};
+use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::Renderable;
 
 use super::EndorsementState;
@@ -154,11 +154,6 @@ impl Renderable for EndorsementsScreen {
         f.render_widget(tabs, page_chunks[1]);
 
         // ======================== Quit ========================
-        let quit = Paragraph::new(Spans::from(vec![
-            Span::styled("F10", Style::default().fg(Color::White).add_modifier(Modifier::DIM)),
-            Span::styled("QUIT", Style::default().fg(Color::White))
-        ]))
-        .alignment(Alignment::Right);
-        f.render_widget(quit, page_chunks[1]);
+        create_quit(page_chunks[1], f);
     }
 }

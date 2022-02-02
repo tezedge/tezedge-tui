@@ -1,7 +1,7 @@
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
@@ -141,4 +141,18 @@ pub fn create_header_bar<B: Backend>(
     ]));
 
     f.render_widget(block_protocol, header_chunks[2]);
+}
+
+pub fn create_quit<B: Backend>(last_chunk: Rect, f: &mut Frame<B>) {
+    let quit = Paragraph::new(Spans::from(vec![
+        Span::styled(
+            "F10",
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
+        ),
+        Span::styled("QUIT", Style::default().fg(Color::White)),
+    ]))
+    .alignment(Alignment::Right);
+    f.render_widget(quit, last_chunk);
 }

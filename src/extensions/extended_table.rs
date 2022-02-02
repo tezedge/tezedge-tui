@@ -246,28 +246,24 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item
-                    .iter()
-                    .enumerate()
-                    .take(self.fixed_count)
-                    .map(|(index, (content, style))| {
+                let fixed_cells = item.iter().enumerate().take(self.fixed_count).map(
+                    |(index, (content, style))| {
                         if index == selected {
                             Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
                         } else {
                             Cell::from(content.clone()).style(*style)
                         }
-                    });
-                let dynamic_cells = item
-                    .iter()
-                    .enumerate()
-                    .skip(self.first_rendered_index)
-                    .map(|(index, (content, style))| {
+                    },
+                );
+                let dynamic_cells = item.iter().enumerate().skip(self.first_rendered_index).map(
+                    |(index, (content, style))| {
                         if index == selected {
                             Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
                         } else {
                             Cell::from(content.clone()).style(*style)
                         }
-                    });
+                    },
+                );
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
             })

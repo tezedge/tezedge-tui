@@ -11,6 +11,9 @@ use tui::{
 
 use crate::automaton::State;
 
+pub mod custom_border_separator;
+pub use custom_border_separator::*;
+
 pub trait Renderable {
     fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>);
 }

@@ -48,15 +48,15 @@ impl Default for OperationsStatisticsState {
             vec![
                 Constraint::Min(22),
                 Constraint::Min(9),
-                Constraint::Min(6),
+                Constraint::Min(8),
                 Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(17),
+                Constraint::Min(11),
                 Constraint::Min(19),
-                Constraint::Min(17),
-                Constraint::Min(18),
+                Constraint::Min(21),
+                Constraint::Min(19),
                 Constraint::Min(20),
-                Constraint::Min(18),
+                Constraint::Min(22),
+                Constraint::Min(20),
                 Constraint::Min(9),
                 Constraint::Min(19),
             ],
@@ -64,19 +64,24 @@ impl Default for OperationsStatisticsState {
         );
         let details_operation_statistics_table = ExtendedTable::new(
             vec![
-                "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
+                "Node Id",
+                "First Received",
+                "First Content Received",
+                "First Sent",
+                "Received",
+                "Content Received",
+                "Sent",
             ]
             .iter()
             .map(|v| v.to_string())
             .collect(),
-            // TODO: expand for the sort symbol
             vec![
                 Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
+                Constraint::Min(16),
+                Constraint::Min(24),
+                Constraint::Min(12),
+                Constraint::Min(10),
+                Constraint::Min(18),
                 Constraint::Min(9),
             ],
             3,
@@ -193,9 +198,9 @@ impl TuiTableData for OperationDetailSortable {
     fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(7);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::White);
+        let default_style = Style::default().fg(Color::White).add_modifier(Modifier::DIM);
 
-        final_vec.push((self.node_id.clone(), Style::default().fg(Color::White)));
+        final_vec.push((self.node_id.clone(), default_style));
 
         if let Some(first_received) = self.first_received {
             final_vec.push((convert_time_to_unit_string(first_received), default_style));
@@ -417,17 +422,16 @@ impl TuiTableData for OperationStatsSortable {
     fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(13);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::White);
+        let default_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
 
         let datetime =
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
                 .format("%H:%M:%S, %Y-%m-%d");
 
-        final_vec.push((
-            datetime.to_string(),
-            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
-        ));
-        final_vec.push((self.hash.clone(), Style::default().fg(Color::White)));
+        final_vec.push((datetime.to_string(), default_style));
+        final_vec.push((self.hash.clone(), default_style));
         final_vec.push((
             self.nodes.to_string(),
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
@@ -531,10 +535,7 @@ impl TuiTableData for OperationStatsSortable {
         }
 
         if self.validations_length != 0 {
-            final_vec.push((
-                self.validations_length.to_string(),
-                Style::default().fg(Color::Gray),
-            ));
+            final_vec.push((self.validations_length.to_string(), default_style));
         } else {
             final_vec.push(missing_value.clone());
         }
