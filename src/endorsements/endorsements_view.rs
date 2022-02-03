@@ -1,7 +1,7 @@
 use std::io::Stdout;
 
 use tui::backend::CrosstermBackend;
-use tui::layout::Alignment;
+use tui::layout::Corner;
 use tui::style::Modifier;
 use tui::text::{Span, Spans};
 use tui::{
@@ -16,7 +16,7 @@ use strum::IntoEnumIterator;
 
 use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
-use crate::extensions::Renderable;
+use crate::extensions::{Renderable, CustomSeparator};
 
 use super::EndorsementState;
 pub struct EndorsementsScreen {}
@@ -140,10 +140,10 @@ impl Renderable for EndorsementsScreen {
         );
 
         // overlap the block corners with special separators to make flush transition to the table block
-        let vertical_left_separator = Paragraph::new("├");
+        let vertical_left_separator = CustomSeparator::default().separator("├").corner(Corner::TopLeft);
         f.render_widget(vertical_left_separator, endorsements_chunk);
 
-        let vertical_right_separator = Paragraph::new("┤").alignment(Alignment::Right);
+        let vertical_right_separator = CustomSeparator::default().separator("┤").corner(Corner::TopRight);
         f.render_widget(vertical_right_separator, endorsements_chunk);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
