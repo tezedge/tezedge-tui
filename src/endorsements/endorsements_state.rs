@@ -1,10 +1,14 @@
 use std::{collections::BTreeMap, str::FromStr};
 
 use serde::Deserialize;
-use tui::{layout::Constraint, style::Color};
+use strum_macros::EnumIter;
+use tui::{
+    layout::Constraint,
+    style::{Color, Modifier, Style},
+};
 
 use crate::extensions::{
-    convert_time_to_unit_string, get_color, ExtendedTable, SortableByFocus, TuiTableData,
+    convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData,
 };
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
@@ -14,11 +18,10 @@ pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 #[derive(Debug, Clone)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
-    pub current_head_endorsement_statuses: EndorsementStatusSortableVec,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
 
     // ui specific states
-    pub endorsement_table: ExtendedTable,
+    pub endorsement_table: ExtendedTable<EndorsementStatusSortableVec>,
 }
 
 impl Default for EndrosementsState {
@@ -40,23 +43,22 @@ impl Default for EndrosementsState {
             .map(|v| v.to_string())
             .collect(),
             vec![
-                Constraint::Length(6),
+                Constraint::Length(7),
                 Constraint::Length(36),
                 Constraint::Min(11),
                 Constraint::Min(8),
-                Constraint::Min(12),
-                Constraint::Min(15),
-                Constraint::Min(8),
+                Constraint::Min(14),
+                Constraint::Min(17),
                 Constraint::Min(9),
-                Constraint::Min(8),
-                Constraint::Min(10),
+                Constraint::Min(11),
+                Constraint::Min(9),
+                Constraint::Min(12),
             ],
             4,
         );
 
         Self {
             endorsement_table,
-            current_head_endorsement_statuses: Vec::new(),
             endoresement_status_summary: BTreeMap::new(),
             endorsement_rights: BTreeMap::new(),
         }
@@ -129,7 +131,7 @@ pub struct EndorsementStatus {
     pub broadcast: bool,
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum EndorsementState {
     Missing = 0,
     Broadcast = 1,
@@ -162,7 +164,6 @@ pub struct EndorsementStatusSortable {
 }
 
 impl EndorsementStatus {
-    // TODO: fix sorting, use Options
     pub fn to_sortable(&self, baker: String, slot_count: usize) -> EndorsementStatusSortable {
         let delta = if let (Some(broadcast), Some(received)) =
             (self.broadcast_time, self.received_hash_time)
@@ -248,16 +249,26 @@ impl EndorsementStatusSortable {
 }
 
 impl TuiTableData for EndorsementStatusSortable {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(9);
-        let missing_value = (String::from('-'), Color::DarkGray);
+        let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
 
-        final_vec.push((self.slot_count.to_string(), Color::White));
-        final_vec.push((self.baker.clone(), Color::White));
-        final_vec.push((self.state.to_string(), Color::Reset));
+        final_vec.push((
+            self.slot_count.to_string(),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
+        ));
+        final_vec.push((
+            self.baker.clone(),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
+        ));
+        final_vec.push((self.state.to_string(), self.state.get_style()));
 
         if let Some(delta) = self.delta {
-            final_vec.push((convert_time_to_unit_string(delta), get_color(delta)))
+            final_vec.push((convert_time_to_unit_string(delta), get_time_style(delta)))
         } else {
             final_vec.push(missing_value.clone());
         }
@@ -265,7 +276,7 @@ impl TuiTableData for EndorsementStatusSortable {
         if let Some(received_hash_time) = self.received_hash_time {
             final_vec.push((
                 convert_time_to_unit_string(received_hash_time),
-                get_color(received_hash_time),
+                get_time_style(received_hash_time),
             ));
         } else {
             final_vec.push(missing_value.clone());
@@ -275,7 +286,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(received_contents_time_delta) = self.received_contents_time_delta {
                 final_vec.push((
                     convert_time_to_unit_string(received_contents_time_delta),
-                    get_color(received_contents_time_delta),
+                    get_time_style(received_contents_time_delta),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -284,7 +295,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(decoded_time_delta) = self.decoded_time_delta {
                 final_vec.push((
                     convert_time_to_unit_string(decoded_time_delta),
-                    get_color(decoded_time_delta),
+                    get_time_style(decoded_time_delta),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -293,7 +304,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(prechecked_time_delta) = self.prechecked_time_delta {
                 final_vec.push((
                     convert_time_to_unit_string(prechecked_time_delta),
-                    get_color(prechecked_time_delta),
+                    get_time_style(prechecked_time_delta),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -302,7 +313,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(applied_time_delta) = self.applied_time_delta {
                 final_vec.push((
                     convert_time_to_unit_string(applied_time_delta),
-                    get_color(applied_time_delta),
+                    get_time_style(applied_time_delta),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -311,7 +322,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(broadcast_time_delta) = self.broadcast_time_delta {
                 final_vec.push((
                     convert_time_to_unit_string(broadcast_time_delta),
-                    get_color(broadcast_time_delta),
+                    get_time_style(broadcast_time_delta),
                 ));
             } else {
                 final_vec.push(missing_value);
@@ -320,7 +331,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(received_contents_time) = self.received_contents_time {
                 final_vec.push((
                     convert_time_to_unit_string(received_contents_time),
-                    get_color(received_contents_time),
+                    get_time_style(received_contents_time),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -329,7 +340,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(decoded_time) = self.decoded_time {
                 final_vec.push((
                     convert_time_to_unit_string(decoded_time),
-                    get_color(decoded_time),
+                    get_time_style(decoded_time),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -338,7 +349,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(prechecked_time) = self.prechecked_time {
                 final_vec.push((
                     convert_time_to_unit_string(prechecked_time),
-                    get_color(prechecked_time),
+                    get_time_style(prechecked_time),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -347,7 +358,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(applied_time) = self.applied_time {
                 final_vec.push((
                     convert_time_to_unit_string(applied_time),
-                    get_color(applied_time),
+                    get_time_style(applied_time),
                 ));
             } else {
                 final_vec.push(missing_value.clone());
@@ -356,7 +367,7 @@ impl TuiTableData for EndorsementStatusSortable {
             if let Some(broadcast_time) = self.broadcast_time {
                 final_vec.push((
                     convert_time_to_unit_string(broadcast_time),
-                    get_color(broadcast_time),
+                    get_time_style(broadcast_time),
                 ));
             } else {
                 final_vec.push(missing_value);
@@ -388,12 +399,12 @@ impl FromStr for EndorsementState {
 impl ToString for EndorsementState {
     fn to_string(&self) -> String {
         match self {
-            EndorsementState::Missing => String::from("missing"),
-            EndorsementState::Broadcast => String::from("broadcast"),
-            EndorsementState::Applied => String::from("broadcast"),
-            EndorsementState::Prechecked => String::from("prechecked"),
-            EndorsementState::Decoded => String::from("decoded"),
-            EndorsementState::Received => String::from("received"),
+            EndorsementState::Missing => String::from("Missing"),
+            EndorsementState::Broadcast => String::from("Broadcast"),
+            EndorsementState::Applied => String::from("Applied"),
+            EndorsementState::Prechecked => String::from("Prechecked"),
+            EndorsementState::Decoded => String::from("Decoded"),
+            EndorsementState::Received => String::from("Received"),
         }
     }
 }
@@ -401,5 +412,31 @@ impl ToString for EndorsementState {
 impl Default for EndorsementState {
     fn default() -> Self {
         Self::Missing
+    }
+}
+
+impl EndorsementState {
+    pub fn get_style(&self) -> Style {
+        let style: Style = Style::default();
+        match self {
+            EndorsementState::Missing => style.bg(Color::Red),
+            EndorsementState::Broadcast => style.bg(Color::Green),
+            EndorsementState::Applied => style.bg(Color::Cyan),
+            EndorsementState::Prechecked => style.bg(Color::Blue),
+            EndorsementState::Decoded => style.bg(Color::Magenta),
+            EndorsementState::Received => style.bg(Color::Yellow),
+        }
+    }
+
+    pub fn get_style_fg(&self) -> Style {
+        let style: Style = Style::default();
+        match self {
+            EndorsementState::Missing => style.fg(Color::Red),
+            EndorsementState::Broadcast => style.fg(Color::Green),
+            EndorsementState::Applied => style.fg(Color::Cyan),
+            EndorsementState::Prechecked => style.fg(Color::Blue),
+            EndorsementState::Decoded => style.fg(Color::Magenta),
+            EndorsementState::Received => style.fg(Color::Yellow),
+        }
     }
 }

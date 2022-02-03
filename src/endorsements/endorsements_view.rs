@@ -1,20 +1,22 @@
 use std::io::Stdout;
-use std::str::FromStr;
 
 use tui::backend::CrosstermBackend;
+use tui::layout::Corner;
 use tui::style::Modifier;
+use tui::text::{Span, Spans};
 use tui::{
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Block, BorderType, Borders, Paragraph, Row, Table},
+    widgets::{Block, Borders, Paragraph, Row, Table},
     Frame,
 };
 
 use itertools::Itertools;
+use strum::IntoEnumIterator;
 
 use crate::automaton::State;
-use crate::common::{create_header_bar, create_help_bar, create_pages_tabs};
-use crate::extensions::Renderable;
+use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
+use crate::extensions::{Renderable, CustomSeparator};
 
 use super::EndorsementState;
 pub struct EndorsementsScreen {}
@@ -24,22 +26,20 @@ impl Renderable for EndorsementsScreen {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 
-        // TODO: placeholder for mempool page
+        let background = Block::default().style(Style::default().bg(Color::Rgb(31, 30, 30)));
+        f.render_widget(background, size);
+
         let page_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([
-                Constraint::Min(5),
-                Constraint::Length(3),
-                Constraint::Length(4),
-            ])
+            .constraints([Constraint::Min(5), Constraint::Length(1)])
             .split(size);
 
-        let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
+        let (header_chunk, summary_chunk, help_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(5),
-                Constraint::Length(4),
+                Constraint::Length(2),
+                Constraint::Length(1),
+                Constraint::Length(2),
                 Constraint::Min(1),
             ])
             .split(page_chunks[0])
@@ -52,76 +52,60 @@ impl Renderable for EndorsementsScreen {
         create_header_bar(header_chunk, header, f);
 
         // ======================== SUMARY ========================
-        let summary_elements_constraits = std::iter::repeat(Constraint::Percentage(16))
-            .take(6)
-            .collect::<Vec<_>>();
+        let separator = Span::styled(
+            " —",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        );
 
-        let endorsement_statuses: Vec<String> = vec![
-            "Missing",
-            "Broadcast",
-            "Applied",
-            "Prechecked",
-            "Decoded",
-            "Received",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
+        let filled_style = Style::default().fg(Color::White);
+        let empty_style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
 
-        let sumary_blocks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(summary_elements_constraits)
-            .split(summary_chunk);
-
-        for (i, title) in endorsement_statuses.iter().enumerate() {
-            let block_text = Paragraph::new(format!(
-                "{}\n{}",
-                title,
-                state
+        let mut summary: Vec<Span> = EndorsementState::iter()
+            .map(|endorsement_status| {
+                let (styled_count, caption_style) = if let Some(count) = state
                     .endorsmenents
                     .endoresement_status_summary
-                    .get(
-                        &EndorsementState::from_str(&title.to_ascii_lowercase())
-                            .unwrap_or_default()
+                    .get(&endorsement_status)
+                {
+                    (
+                        Span::styled(count.to_string(), endorsement_status.get_style_fg()),
+                        filled_style,
                     )
-                    .unwrap_or(&0)
-            ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .style(Style::default().bg(Color::Black).fg(Color::White)),
-            )
-            .alignment(Alignment::Center);
-            f.render_widget(block_text, sumary_blocks[i])
-        }
+                } else {
+                    (
+                        Span::styled(String::from("0"), endorsement_status.get_style_fg()),
+                        empty_style,
+                    )
+                };
+
+                vec![
+                    Span::styled(
+                        format!(" {}: ", endorsement_status.to_string()),
+                        caption_style,
+                    ),
+                    styled_count,
+                    separator.clone(),
+                ]
+            })
+            .flatten()
+            .collect();
+
+        // remove the last separator
+        summary.pop();
+
+        let summary_paragraph = Paragraph::new(Spans::from(summary));
+
+        f.render_widget(summary_paragraph, summary_chunk);
+
+        // ======================== HELP BAR ========================
+        create_help_bar(help_chunk, f, delta_toggle);
 
         // ======================== ENDORSERS ========================
-        let mut headers: Vec<String> = [
-            "Slots",
-            "Baker",
-            "Status",
-            "Delta",
-            "Receive hash",
-            "Receive content",
-            "Decode",
-            "Precheck",
-            "Apply",
-            "Broadcast",
-        ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect();
-
-        // add ▼ to the selected sorted table
-        if let Some(v) = headers.get_mut(3) {
-            *v = format!("{}▼", v)
-        }
 
         let endorsers = Block::default().borders(Borders::ALL);
 
-        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let normal_style = Style::default().bg(Color::Blue);
+        let selected_style = Style::default().remove_modifier(Modifier::DIM);
+        let normal_style = Style::default().fg(Color::White);
 
         let renderable_constraints = state
             .endorsmenents
@@ -136,22 +120,31 @@ impl Renderable for EndorsementsScreen {
             .height(1)
             .bottom_margin(1);
 
-        let rows = state.endorsmenents.endorsement_table.renderable_rows(
-            &state.endorsmenents.current_head_endorsement_statuses,
-            delta_toggle,
-        );
+        let rows = state
+            .endorsmenents
+            .endorsement_table
+            .renderable_rows(&state.endorsmenents.endorsement_table.content, delta_toggle);
+
+        let highlight_symbol = "▶".to_string().to_ascii_uppercase();
 
         let table = Table::new(rows)
             .header(header)
             .block(endorsers)
             .highlight_style(selected_style)
-            .highlight_symbol(">> ")
+            .highlight_symbol(&highlight_symbol)
             .widths(&renderable_constraints);
         f.render_stateful_widget(
             table,
             endorsements_chunk,
             &mut state.endorsmenents.endorsement_table.table_state.clone(),
         );
+
+        // overlap the block corners with special separators to make flush transition to the table block
+        let vertical_left_separator = CustomSeparator::default().separator("├").corner(Corner::TopLeft);
+        f.render_widget(vertical_left_separator, endorsements_chunk);
+
+        let vertical_right_separator = CustomSeparator::default().separator("┤").corner(Corner::TopRight);
+        f.render_widget(vertical_right_separator, endorsements_chunk);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);
@@ -160,7 +153,7 @@ impl Renderable for EndorsementsScreen {
         let tabs = create_pages_tabs(&state.ui);
         f.render_widget(tabs, page_chunks[1]);
 
-        // ======================== HELP BAR ========================
-        create_help_bar(page_chunks[2], f, delta_toggle);
+        // ======================== Quit ========================
+        create_quit(page_chunks[1], f);
     }
 }

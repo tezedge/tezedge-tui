@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use tui::{
     layout::Constraint,
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     widgets::{Cell, Row, TableState},
 };
 
@@ -9,8 +9,9 @@ const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
 
 #[derive(Clone, Debug, Default)]
-pub struct ExtendedTable {
+pub struct ExtendedTable<S: SortableByFocus> {
     pub table_state: TableState,
+    pub content: S,
 
     /// The header strings of the table in order
     headers: Vec<String>,
@@ -33,13 +34,13 @@ pub struct ExtendedTable {
     selected: usize,
 
     /// The index the table is sorted by
-    sorted_by: Option<usize>,
+    sorted_by: usize,
 
     /// Sort order
     sort_order: SortOrder,
 }
 
-impl ExtendedTable {
+impl<S: SortableByFocus + Default> ExtendedTable<S> {
     pub fn new(headers: Vec<String>, constraints: Vec<Constraint>, fixed_count: usize) -> Self {
         Self {
             headers: headers.clone(),
@@ -48,14 +49,11 @@ impl ExtendedTable {
             fixed_count,
             rendered: 0,
             first_rendered_index: fixed_count,
-            selected: 0,
-            sorted_by: None,
-            sort_order: SortOrder::Unsorted,
             ..Default::default()
         }
     }
 
-    pub fn sorted_by(&self) -> Option<usize> {
+    pub fn sorted_by(&self) -> usize {
         self.sorted_by
     }
 
@@ -95,7 +93,7 @@ impl ExtendedTable {
         self.sort_order = sort_order
     }
 
-    pub fn set_sorted_by(&mut self, sorted_by: Option<usize>) {
+    pub fn set_sorted_by(&mut self, sorted_by: usize) {
         self.sorted_by = sorted_by
     }
 
@@ -114,19 +112,10 @@ impl ExtendedTable {
         }
     }
 
-    pub fn sort_content<T: SortableByFocus>(
-        &mut self,
-        content: &mut T,
-        sort_by: usize,
-        sort_order: &SortOrder,
-        delta_toggle: bool,
-    ) {
-        self.sorted_by = Some(sort_by);
-        self.sort_order = sort_order.clone();
-
-        content.sort_by_focus(sort_by, delta_toggle);
-        if let SortOrder::Descending = *sort_order {
-            content.rev();
+    pub fn sort_content(&mut self, delta_toggle: bool) {
+        self.content.sort_by_focus(self.sorted_by, delta_toggle);
+        if let SortOrder::Descending = self.sort_order {
+            self.content.rev();
         }
     }
 
@@ -143,20 +132,17 @@ impl ExtendedTable {
         }
     }
 
-    // TODO: do this in a way it doesn't take a mutable reference
     pub fn highlight_sorting(&mut self) {
         let mut headers = self.headers.clone();
 
         // add ▼/▲ to the selected sorted table
-        if let Some(sorted_by) = self.sorted_by {
-            if let Some(v) = headers.get_mut(sorted_by) {
-                match self.sort_order {
-                    SortOrder::Ascending => *v = format!("{}▲", v),
-                    SortOrder::Descending => *v = format!("{}▼", v),
-                    _ => {}
-                }
+        if let Some(v) = headers.get_mut(self.sorted_by) {
+            match self.sort_order {
+                SortOrder::Ascending => *v = format!("{} ▲", v),
+                SortOrder::Descending => *v = format!("{} ▼", v),
             }
         }
+
         self.modified_headers = headers;
     }
 
@@ -218,9 +204,13 @@ impl ExtendedTable {
             .take(self.fixed_count)
             .map(|(index, h)| {
                 if index == selected {
-                    Cell::from(h.as_str()).style(selected_style)
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(selected_style)
                 } else {
-                    Cell::from(h.as_str()).style(Style::default())
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::DIM),
+                    )
                 }
             });
 
@@ -231,9 +221,13 @@ impl ExtendedTable {
             .skip(self.first_rendered_index)
             .map(|(index, h)| {
                 if index == selected {
-                    Cell::from(h.as_str()).style(selected_style)
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(selected_style)
                 } else {
-                    Cell::from(h.as_str()).style(Style::default())
+                    Cell::from(h.as_str().to_ascii_uppercase()).style(
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::DIM),
+                    )
                 }
             });
 
@@ -241,6 +235,7 @@ impl ExtendedTable {
     }
 
     pub fn renderable_rows<T: TuiTableData>(&self, content: &[T], delta_toggle: bool) -> Vec<Row> {
+        let selected = self.selected();
         content
             .iter()
             .map(|item| {
@@ -251,15 +246,24 @@ impl ExtendedTable {
                     .max()
                     .unwrap_or(0)
                     + 1;
-                let fixed_cells = item.iter().take(self.fixed_count).map(|(content, color)| {
-                    Cell::from(content.clone()).style(Style::default().fg(*color))
-                });
-                let dynamic_cells =
-                    item.iter()
-                        .skip(self.first_rendered_index)
-                        .map(|(content, color)| {
-                            Cell::from(content.clone()).style(Style::default().fg(*color))
-                        });
+                let fixed_cells = item.iter().enumerate().take(self.fixed_count).map(
+                    |(index, (content, style))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
+                        } else {
+                            Cell::from(content.clone()).style(*style)
+                        }
+                    },
+                );
+                let dynamic_cells = item.iter().enumerate().skip(self.first_rendered_index).map(
+                    |(index, (content, style))| {
+                        if index == selected {
+                            Cell::from(content.clone()).style(style.remove_modifier(Modifier::DIM))
+                        } else {
+                            Cell::from(content.clone()).style(*style)
+                        }
+                    },
+                );
                 let cells = fixed_cells.chain(dynamic_cells);
                 Row::new(cells).height(height as u16)
             })
@@ -271,17 +275,25 @@ impl ExtendedTable {
 pub enum SortOrder {
     Ascending,
     Descending,
-    Unsorted,
 }
 
 impl Default for SortOrder {
     fn default() -> Self {
-        Self::Unsorted
+        Self::Ascending
+    }
+}
+
+impl SortOrder {
+    pub fn switch(&self) -> SortOrder {
+        match self {
+            SortOrder::Ascending => SortOrder::Descending,
+            SortOrder::Descending => SortOrder::Ascending,
+        }
     }
 }
 
 pub trait TuiTableData {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)>;
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)>;
 }
 
 pub trait SortableByFocus {

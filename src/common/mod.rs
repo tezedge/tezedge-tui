@@ -1,9 +1,8 @@
-use itertools::Itertools;
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
     Frame,
@@ -17,24 +16,34 @@ use crate::{
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
     let titles = ActivePage::iter()
         .map(|t| {
-            Spans::from(vec![Span::styled(
-                t.to_string(),
-                Style::default().fg(Color::White).bg(Color::Black),
-            )])
+            Spans::from(vec![
+                Span::styled(
+                    t.hotkey(),
+                    Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+                ),
+                Span::styled(
+                    t.to_string().to_ascii_uppercase(),
+                    Style::default().fg(Color::White),
+                ),
+            ])
         })
         .collect();
     let page_in_focus = ui_state.active_page.to_index();
     Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL))
-        .highlight_style(Style::default().fg(Color::Black).bg(Color::Gray))
+        .highlight_style(
+            Style::default()
+                .fg(Color::White)
+                .bg(Color::DarkGray)
+                .remove_modifier(Modifier::DIM),
+        )
+        .divider(" ")
         .select(page_in_focus)
 }
 
 pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_toggle: bool) {
     let help_strings = vec![
-        ("F1 - F3", "PageSwitch"),
-        ("q", "Quit"),
-        ("TAB", "Rotate widgets"),
+        ("←→↑↓", "Navigate Table"),
+        ("s", "Sort"),
         (
             "d",
             if delta_toggle {
@@ -43,45 +52,28 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
                 "Delta values"
             },
         ),
-        ("s", "Sort ascending"),
-        ("^s", "Sort descending"),
-        ("←", "Table left"),
-        ("→", "Table right"),
-        ("↑", "Table up"),
-        ("↓", "Table down"),
+        ("TAB", "Switch Focus"),
     ];
 
-    let help_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .margin(1)
-        .constraints([
-            Constraint::Length(24),
-            Constraint::Length(24),
-            Constraint::Length(24),
-            Constraint::Length(24),
-            Constraint::Length(24),
-        ])
-        .split(help_chunk);
+    let help_spans: Vec<Span> = help_strings
+        .iter()
+        .map(|(key, help)| {
+            vec![
+                Span::styled(*key, Style::default().fg(Color::White)),
+                Span::from(" "),
+                Span::styled(
+                    *help,
+                    Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+                ),
+                Span::from(" "),
+            ]
+        })
+        .flatten()
+        .collect();
 
-    for (index, (row_1, row_2)) in help_strings.iter().tuple_windows().step_by(2).enumerate() {
-        let p = Paragraph::new(vec![
-            Spans::from(vec![
-                Span::styled(
-                    format!(" {} ", row_1.0),
-                    Style::default().bg(Color::White).fg(Color::Black),
-                ),
-                Span::styled(format!(" {}\n", row_1.1), Style::default()),
-            ]),
-            Spans::from(vec![
-                Span::styled(
-                    format!(" {} ", row_2.0),
-                    Style::default().bg(Color::White).fg(Color::Black),
-                ),
-                Span::styled(format!(" {}\n", row_2.1), Style::default()),
-            ]),
-        ]);
-        f.render_widget(p, help_chunks[index]);
-    }
+    let help_paragraph = Paragraph::new(Spans::from(help_spans))
+        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+    f.render_widget(help_paragraph, help_chunk);
 }
 
 pub fn create_header_bar<B: Backend>(
@@ -90,42 +82,77 @@ pub fn create_header_bar<B: Backend>(
     f: &mut Frame<B>,
 ) {
     // wrap the header info in borders
-    let block = Block::default().borders(Borders::ALL).title("Current Head");
+    let block = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().add_modifier(Modifier::DIM));
     f.render_widget(block, header_chunk);
 
     let header_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(62),
+            Constraint::Length(16),
+            Constraint::Length(18),
+        ])
         .split(header_chunk);
 
     let block_hash = Paragraph::new(Spans::from(vec![
-        Span::styled("Block hash: ", Style::default().fg(Color::Gray)),
+        Span::styled(
+            " Block: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
         Span::styled(
             format!("{} ", header.hash),
-            Style::default().fg(Color::Reset),
+            Style::default().fg(Color::White),
         ),
     ]));
 
     f.render_widget(block_hash, header_chunks[0]);
 
     let block_level = Paragraph::new(Spans::from(vec![
-        Span::styled("Level: ", Style::default().fg(Color::Gray)),
+        Span::styled(
+            "Level: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
         Span::styled(
             format!("{} ", header.level),
-            Style::default().fg(Color::Reset),
+            Style::default().fg(Color::White),
         ),
     ]));
 
     f.render_widget(block_level, header_chunks[1]);
 
+    // show only the shorter version of the protocol
+    let protocol_short = if !header.protocol.is_empty() {
+        header.protocol.split_at(8).0.to_string()
+    } else {
+        header.protocol.to_owned()
+    };
+
     let block_protocol = Paragraph::new(Spans::from(vec![
-        Span::styled("Protocol: ", Style::default().fg(Color::Gray)),
         Span::styled(
-            format!("{} ", header.protocol),
-            Style::default().fg(Color::Reset),
+            "Protocol: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
+        Span::styled(
+            format!("{} ", protocol_short),
+            Style::default().fg(Color::White),
         ),
     ]));
 
     f.render_widget(block_protocol, header_chunks[2]);
+}
+
+pub fn create_quit<B: Backend>(last_chunk: Rect, f: &mut Frame<B>) {
+    let quit = Paragraph::new(Spans::from(vec![
+        Span::styled(
+            "F10",
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM),
+        ),
+        Span::styled("QUIT", Style::default().fg(Color::White)),
+    ]))
+    .alignment(Alignment::Right);
+    f.render_widget(quit, last_chunk);
 }

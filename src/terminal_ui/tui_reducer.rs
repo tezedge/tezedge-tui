@@ -1,14 +1,25 @@
-use crossterm::event::KeyModifiers;
-
-use crate::{
-    automaton::{Action, ActionWithMeta, State},
-    extensions::{SortOrder, SortableByFocus},
-};
+use crate::automaton::{Action, ActionWithMeta, State};
 
 use super::{ActivePage, ActiveWidget};
 
 pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
+        Action::DrawScreen(_) => match state.ui.active_page {
+            ActivePage::Synchronization => {}
+            ActivePage::Endorsements => {
+                state.endorsmenents.endorsement_table.highlight_sorting();
+            }
+            ActivePage::Statistics => {
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .highlight_sorting();
+                state
+                    .operations_statistics
+                    .details_operation_statistics_table
+                    .highlight_sorting();
+            }
+        },
         Action::ChangeScreen(action) => {
             state.ui.active_page = action.screen.clone();
 
@@ -42,11 +53,15 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     let renderable = state
                         .operations_statistics
                         .main_operation_statistics_table
-                        .renderable_constraints(action.screen_width)
+                        .renderable_constraints(action.screen_width / 2)
                         .len();
                     state
                         .operations_statistics
                         .main_operation_statistics_table
+                        .set_rendered(renderable);
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
                         .set_rendered(renderable);
                 }
             }
@@ -86,7 +101,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .endorsement_table
                 .table_state
                 .select(next_item(
-                    state.endorsmenents.current_head_endorsement_statuses.len(),
+                    state.endorsmenents.endorsement_table.content.len(),
                     state.endorsmenents.endorsement_table.table_state.selected(),
                 )),
             ActiveWidget::StatisticsMainTable => {
@@ -97,7 +112,8 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .select(next_item(
                         state
                             .operations_statistics
-                            .operations_statistics_sortable
+                            .main_operation_statistics_table
+                            .content
                             .len(),
                         state
                             .operations_statistics
@@ -112,15 +128,20 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .table_state
                     .selected()
                 {
-                    let hash = state.operations_statistics.operations_statistics_sortable[index]
+                    let hash = state
+                        .operations_statistics
+                        .main_operation_statistics_table
+                        .content[index]
                         .hash
                         .clone();
 
                     if let Some(stats) =
                         state.operations_statistics.operations_statistics.get(&hash)
                     {
-                        state.operations_statistics.selected_operation_details =
-                            Some(stats.to_operations_details());
+                        state
+                            .operations_statistics
+                            .details_operation_statistics_table
+                            .content = stats.to_operations_details();
                     }
                 }
             }
@@ -131,9 +152,8 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .select(next_item(
                     state
                         .operations_statistics
-                        .selected_operation_details
-                        .as_ref()
-                        .unwrap_or(&Vec::new())
+                        .details_operation_statistics_table
+                        .content
                         .len(),
                     state
                         .operations_statistics
@@ -155,7 +175,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .endorsement_table
                 .table_state
                 .select(previous_item(
-                    state.endorsmenents.current_head_endorsement_statuses.len(),
+                    state.endorsmenents.endorsement_table.content.len(),
                     state.endorsmenents.endorsement_table.table_state.selected(),
                 )),
             ActiveWidget::StatisticsMainTable => {
@@ -166,7 +186,8 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .select(previous_item(
                         state
                             .operations_statistics
-                            .operations_statistics_sortable
+                            .main_operation_statistics_table
+                            .content
                             .len(),
                         state
                             .operations_statistics
@@ -181,15 +202,20 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .table_state
                     .selected()
                 {
-                    let hash = state.operations_statistics.operations_statistics_sortable[index]
+                    let hash = state
+                        .operations_statistics
+                        .main_operation_statistics_table
+                        .content[index]
                         .hash
                         .clone();
 
                     if let Some(stats) =
                         state.operations_statistics.operations_statistics.get(&hash)
                     {
-                        state.operations_statistics.selected_operation_details =
-                            Some(stats.to_operations_details());
+                        state
+                            .operations_statistics
+                            .details_operation_statistics_table
+                            .content = stats.to_operations_details();
                     }
                 }
             }
@@ -200,9 +226,8 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .select(previous_item(
                     state
                         .operations_statistics
-                        .selected_operation_details
-                        .as_ref()
-                        .unwrap_or(&Vec::new())
+                        .details_operation_statistics_table
+                        .content
                         .len(),
                     state
                         .operations_statistics
@@ -211,61 +236,79 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .selected(),
                 )),
         },
-        Action::TuiSortKeyPushed(action) => match state.ui.active_widget {
+        Action::TuiSortKeyPushed(_) => match state.ui.active_widget {
             ActiveWidget::EndorserTable => {
                 let selected = state.endorsmenents.endorsement_table.selected();
+                let sort_order = state.endorsmenents.endorsement_table.sort_order().switch();
                 state
                     .endorsmenents
-                    .current_head_endorsement_statuses
-                    .sort_by_focus(selected, state.delta_toggle);
+                    .endorsement_table
+                    .set_sort_order(sort_order);
 
                 state
                     .endorsmenents
                     .endorsement_table
-                    .set_sort_order(SortOrder::Ascending);
-
-                if let KeyModifiers::CONTROL = action.modifier {
-                    state.endorsmenents.current_head_endorsement_statuses.rev();
-                    state
-                        .endorsmenents
-                        .endorsement_table
-                        .set_sort_order(SortOrder::Descending);
-                }
+                    .set_sorted_by(selected);
+                state
+                    .endorsmenents
+                    .endorsement_table
+                    .sort_content(state.delta_toggle);
             }
             ActiveWidget::StatisticsMainTable => {
+                let seleceted = state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .selected();
+                let sort_order = state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .sort_order()
+                    .switch();
                 state
                     .operations_statistics
-                    .operations_statistics_sortable
-                    .sort_by_focus(
-                        state
-                            .operations_statistics
-                            .main_operation_statistics_table
-                            .selected(),
-                        state.delta_toggle,
-                    );
-                // sort descending
-                if let KeyModifiers::CONTROL = action.modifier {
-                    state
-                        .operations_statistics
-                        .operations_statistics_sortable
-                        .rev();
-                }
+                    .main_operation_statistics_table
+                    .set_sort_order(sort_order);
+
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .set_sorted_by(seleceted);
+
+                state
+                    .operations_statistics
+                    .main_operation_statistics_table
+                    .sort_content(state.delta_toggle);
             }
             ActiveWidget::StatisticsDetailsTable => {
-                if let Some(operation_details) =
-                    &mut state.operations_statistics.selected_operation_details
+                if !state
+                    .operations_statistics
+                    .details_operation_statistics_table
+                    .content
+                    .is_empty()
                 {
-                    operation_details.sort_by_focus(
-                        state
-                            .operations_statistics
-                            .main_operation_statistics_table
-                            .selected(),
-                        state.delta_toggle,
-                    );
-                    // sort descending
-                    if let KeyModifiers::CONTROL = action.modifier {
-                        operation_details.rev();
-                    }
+                    let selected = state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .selected();
+                    let sort_order = state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .sort_order()
+                        .switch();
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .set_sort_order(sort_order);
+
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .set_sorted_by(selected);
+
+                    state
+                        .operations_statistics
+                        .details_operation_statistics_table
+                        .sort_content(state.delta_toggle);
                 }
             }
             _ => {}

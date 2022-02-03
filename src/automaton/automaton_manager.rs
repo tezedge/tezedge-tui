@@ -1,6 +1,4 @@
-use crossterm::{
-    event::KeyCode,
-};
+use crossterm::event::KeyCode;
 use std::time::{Duration, SystemTime};
 use tokio::sync::mpsc;
 use url::Url;
@@ -57,7 +55,7 @@ impl<Serv: Service> Automaton<Serv> {
                     self.store.dispatch(EndorsementsStatusesGetAction {});
                 }
                 Some(TuiEvent::Input(key, modifier)) => match key {
-                    KeyCode::Char('q') => {
+                    KeyCode::F(10) => {
                         self.store.dispatch(ShutdownAction {});
                         return;
                     }

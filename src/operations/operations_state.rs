@@ -2,10 +2,13 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
-use tui::{layout::Constraint, style::Color};
+use tui::{
+    layout::Constraint,
+    style::{Color, Modifier, Style},
+};
 
 use crate::extensions::{
-    convert_time_to_unit_string, get_color, ExtendedTable, SortableByFocus, TuiTableData,
+    convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData,
 };
 
 pub type OperationsStats = BTreeMap<String, OperationStats>;
@@ -15,12 +18,10 @@ pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 #[derive(Clone, Debug)]
 pub struct OperationsStatisticsState {
     pub operations_statistics: OperationsStats,
-    pub operations_statistics_sortable: OperationsStatsSortable,
-    pub selected_operation_details: Option<Vec<OperationDetailSortable>>,
 
     // ui specific states
-    pub main_operation_statistics_table: ExtendedTable,
-    pub details_operation_statistics_table: ExtendedTable,
+    pub main_operation_statistics_table: ExtendedTable<OperationsStatsSortable>,
+    pub details_operation_statistics_table: ExtendedTable<OperationDetailsSortable>,
 }
 
 impl Default for OperationsStatisticsState {
@@ -47,15 +48,15 @@ impl Default for OperationsStatisticsState {
             vec![
                 Constraint::Min(22),
                 Constraint::Min(9),
-                Constraint::Min(6),
+                Constraint::Min(8),
                 Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(17),
+                Constraint::Min(11),
                 Constraint::Min(19),
-                Constraint::Min(17),
-                Constraint::Min(18),
+                Constraint::Min(21),
+                Constraint::Min(19),
                 Constraint::Min(20),
-                Constraint::Min(18),
+                Constraint::Min(22),
+                Constraint::Min(20),
                 Constraint::Min(9),
                 Constraint::Min(19),
             ],
@@ -63,19 +64,24 @@ impl Default for OperationsStatisticsState {
         );
         let details_operation_statistics_table = ExtendedTable::new(
             vec![
-                "Node Id", "1.Rec.", "1.Rec.C.", "1.Sent", "Received", "Con.Rec.", "Sent",
+                "Node Id",
+                "First Received",
+                "First Content Received",
+                "First Sent",
+                "Received",
+                "Content Received",
+                "Sent",
             ]
             .iter()
             .map(|v| v.to_string())
             .collect(),
-            // TODO: expand for the sort symbol
             vec![
                 Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
-                Constraint::Min(9),
+                Constraint::Min(16),
+                Constraint::Min(24),
+                Constraint::Min(12),
+                Constraint::Min(10),
+                Constraint::Min(18),
                 Constraint::Min(9),
             ],
             3,
@@ -85,8 +91,6 @@ impl Default for OperationsStatisticsState {
             main_operation_statistics_table,
             details_operation_statistics_table,
             operations_statistics: OperationsStats::default(),
-            operations_statistics_sortable: OperationsStatsSortable::default(),
-            selected_operation_details: None,
         }
     }
 }
@@ -191,35 +195,37 @@ pub struct OperationDetailSortable {
 }
 
 impl TuiTableData for OperationDetailSortable {
-    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Color)> {
+    fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(7);
+        let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
+        let default_style = Style::default().fg(Color::White).add_modifier(Modifier::DIM);
 
-        final_vec.push((self.node_id.clone(), Color::Reset));
+        final_vec.push((self.node_id.clone(), default_style));
 
         if let Some(first_received) = self.first_received {
-            final_vec.push((convert_time_to_unit_string(first_received), Color::Reset));
+            final_vec.push((convert_time_to_unit_string(first_received), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         if let Some(first_content_received) = self.first_content_received {
             final_vec.push((
                 convert_time_to_unit_string(first_content_received),
-                Color::Reset,
+                default_style,
             ));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         if let Some(first_sent) = self.first_sent {
-            final_vec.push((convert_time_to_unit_string(first_sent), Color::Reset));
+            final_vec.push((convert_time_to_unit_string(first_sent), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value);
         }
 
-        final_vec.push((self.received.to_string(), Color::Reset));
-        final_vec.push((self.content_received.to_string(), Color::Reset));
-        final_vec.push((self.sent.to_string(), Color::Reset));
+        final_vec.push((self.received.to_string(), default_style));
+        final_vec.push((self.content_received.to_string(), default_style));
+        final_vec.push((self.sent.to_string(), default_style));
 
         final_vec
     }
@@ -413,27 +419,34 @@ impl OperationStats {
 }
 
 impl TuiTableData for OperationStatsSortable {
-    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Color)> {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(13);
+        let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
+        let default_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
 
         let datetime =
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
                 .format("%H:%M:%S, %Y-%m-%d");
 
-        final_vec.push((datetime.to_string(), Color::Gray));
-        final_vec.push((self.hash.clone(), Color::Reset));
-        final_vec.push((self.nodes.to_string(), Color::Gray));
+        final_vec.push((datetime.to_string(), default_style));
+        final_vec.push((self.hash.clone(), default_style));
+        final_vec.push((
+            self.nodes.to_string(),
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ));
 
         if let Some(delta) = self.delta {
-            final_vec.push((convert_time_to_unit_string(delta), get_color(delta)));
+            final_vec.push((convert_time_to_unit_string(delta), get_time_style(delta)));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         if let Some(received) = self.received {
-            final_vec.push((convert_time_to_unit_string(received), Color::Reset));
+            final_vec.push((convert_time_to_unit_string(received), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         // Diferent output based on a toggle
@@ -442,110 +455,110 @@ impl TuiTableData for OperationStatsSortable {
             if let Some(content_received_delta) = self.content_received_delta {
                 final_vec.push((
                     convert_time_to_unit_string(content_received_delta),
-                    get_color(content_received_delta),
+                    get_time_style(content_received_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(validation_started_delta) = self.validation_started_delta {
                 final_vec.push((
                     convert_time_to_unit_string(validation_started_delta),
-                    get_color(validation_started_delta),
+                    get_time_style(validation_started_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(preapply_started_delta) = self.preapply_started_delta {
                 final_vec.push((
                     convert_time_to_unit_string(preapply_started_delta),
-                    get_color(preapply_started_delta),
+                    get_time_style(preapply_started_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(preapply_ended_delta) = self.preapply_ended_delta {
                 final_vec.push((
                     convert_time_to_unit_string(preapply_ended_delta),
-                    get_color(preapply_ended_delta),
+                    get_time_style(preapply_ended_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(validation_finished_delta) = self.validation_finished_delta {
                 final_vec.push((
                     convert_time_to_unit_string(validation_finished_delta),
-                    get_color(validation_finished_delta),
+                    get_time_style(validation_finished_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
         } else {
             if let Some(content_received) = self.content_received {
-                final_vec.push((convert_time_to_unit_string(content_received), Color::Reset));
+                final_vec.push((convert_time_to_unit_string(content_received), default_style));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(validation_started) = self.validation_started {
                 final_vec.push((
                     convert_time_to_unit_string(validation_started),
-                    Color::Reset,
+                    default_style,
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(preapply_started) = self.preapply_started {
-                final_vec.push((convert_time_to_unit_string(preapply_started), Color::Reset));
+                final_vec.push((convert_time_to_unit_string(preapply_started), default_style));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(preapply_ended) = self.preapply_ended {
-                final_vec.push((convert_time_to_unit_string(preapply_ended), Color::Reset));
+                final_vec.push((convert_time_to_unit_string(preapply_ended), default_style));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
 
             if let Some(validation_finished) = self.validation_finished {
                 final_vec.push((
                     convert_time_to_unit_string(validation_finished),
-                    Color::Reset,
+                    default_style,
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
         }
 
         if self.validations_length != 0 {
-            final_vec.push((self.validations_length.to_string(), Color::Gray));
+            final_vec.push((self.validations_length.to_string(), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         if delta_toggle {
             if let Some(sent_delta) = self.sent_delta {
                 final_vec.push((
                     convert_time_to_unit_string(sent_delta),
-                    get_color(sent_delta),
+                    get_time_style(sent_delta),
                 ));
             } else {
-                final_vec.push((String::from('-'), Color::DarkGray));
+                final_vec.push(missing_value.clone());
             }
         } else if let Some(sent) = self.sent {
-            final_vec.push((convert_time_to_unit_string(sent), Color::Reset));
+            final_vec.push((convert_time_to_unit_string(sent), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value.clone());
         }
 
         if let Some(kind) = self.kind {
-            final_vec.push((kind.to_string(), Color::Reset));
+            final_vec.push((kind.to_string(), default_style));
         } else {
-            final_vec.push((String::from('-'), Color::DarkGray));
+            final_vec.push(missing_value);
         }
 
         final_vec
