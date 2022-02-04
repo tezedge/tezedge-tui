@@ -3,6 +3,7 @@ use clap::Parser;
 use std::error::Error;
 
 pub mod automaton;
+pub mod baking;
 pub mod common;
 pub mod configuration;
 pub mod endorsements;

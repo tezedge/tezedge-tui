@@ -5,7 +5,6 @@ use super::{ActivePage, ActiveWidget};
 pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
         Action::DrawScreen(_) => match state.ui.active_page {
-            ActivePage::Synchronization => {}
             ActivePage::Endorsements => {
                 state.endorsmenents.endorsement_table.highlight_sorting();
             }
@@ -19,6 +18,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .details_operation_statistics_table
                     .highlight_sorting();
             }
+            _ => { /* No sorting highlights requeired on other screens */ }
         },
         Action::ChangeScreen(action) => {
             state.ui.active_page = action.screen.clone();
@@ -30,13 +30,15 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 ActivePage::Statistics => {
                     state.ui.active_widget = ActiveWidget::StatisticsMainTable
                 }
+                ActivePage::Baking => {
+                    // TODO: when widgets will be clearer
+                }
             }
         }
         Action::DrawScreenSuccess(action) => {
             state.ui.screen_width = action.screen_width;
 
             match state.ui.active_page {
-                ActivePage::Synchronization => {}
                 ActivePage::Endorsements => {
                     let renderable = state
                         .endorsmenents
@@ -49,7 +51,6 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .set_rendered(renderable);
                 }
                 ActivePage::Statistics => {
-                    // TODO: we need the size of the table, not the whole screen
                     let renderable = state
                         .operations_statistics
                         .main_operation_statistics_table
@@ -64,6 +65,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .details_operation_statistics_table
                         .set_rendered(renderable);
                 }
+                _ => { /* No extended table on other screens */ }
             }
         }
         Action::TuiRightKeyPushed(_) => match state.ui.active_widget {
@@ -331,6 +333,9 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 }
                 _ => state.ui.active_widget = ActiveWidget::StatisticsMainTable,
             },
+            ActivePage::Baking => {
+                // TODO: when widgets will be clearer
+            }
         },
         Action::Init(_) => {}
         _ => {}

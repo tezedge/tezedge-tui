@@ -7,6 +7,7 @@ use slog::Logger;
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
+    baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction},
     endorsements::{
         CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
     },
@@ -53,6 +54,12 @@ impl<Serv: Service> Automaton<Serv> {
                         level: self.store.state().current_head_header.level,
                     });
                     self.store.dispatch(EndorsementsStatusesGetAction {});
+                    self.store.dispatch(ApplicationStatisticsGetAction {
+                        level: self.store.state().current_head_header.level,
+                    });
+                    self.store.dispatch(PerPeerBlockStatisticsGetAction {
+                        level: self.store.state().current_head_header.level,
+                    });
                 }
                 Some(TuiEvent::Input(key, modifier)) => match key {
                     KeyCode::F(10) => {
@@ -79,6 +86,11 @@ impl<Serv: Service> Automaton<Serv> {
                         self.store.dispatch(OperationsStatisticsGetAction {});
                         self.store.dispatch(ChangeScreenAction {
                             screen: ActivePage::Statistics,
+                        });
+                    }
+                    KeyCode::F(4) => {
+                        self.store.dispatch(ChangeScreenAction {
+                            screen: ActivePage::Baking,
                         });
                     }
                     KeyCode::Tab => {

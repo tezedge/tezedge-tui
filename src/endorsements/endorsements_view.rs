@@ -16,7 +16,7 @@ use strum::IntoEnumIterator;
 
 use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
-use crate::extensions::{Renderable, CustomSeparator};
+use crate::extensions::{CustomSeparator, Renderable};
 
 use super::EndorsementState;
 pub struct EndorsementsScreen {}
@@ -140,10 +140,14 @@ impl Renderable for EndorsementsScreen {
         );
 
         // overlap the block corners with special separators to make flush transition to the table block
-        let vertical_left_separator = CustomSeparator::default().separator("├").corner(Corner::TopLeft);
+        let vertical_left_separator = CustomSeparator::default()
+            .separator("├")
+            .corner(Corner::TopLeft);
         f.render_widget(vertical_left_separator, endorsements_chunk);
 
-        let vertical_right_separator = CustomSeparator::default().separator("┤").corner(Corner::TopRight);
+        let vertical_right_separator = CustomSeparator::default()
+            .separator("┤")
+            .corner(Corner::TopRight);
         f.render_widget(vertical_right_separator, endorsements_chunk);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");

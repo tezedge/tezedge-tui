@@ -3,6 +3,10 @@ use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};
 
 use crate::{
+    baking::{
+        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
+        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction,
+    },
     endorsements::{
         CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
         EndorsementsRightsReceivedAction, EndorsementsStatusesGetAction,
@@ -65,6 +69,11 @@ pub enum Action {
 
     OperationsStatisticsGet(OperationsStatisticsGetAction),
     OperationsStatisticsReceived(OperationsStatisticsReceivedAction),
+
+    ApplicationStatisticsGet(ApplicationStatisticsGetAction),
+    ApplicationStatisticsReceived(ApplicationStatisticsReceivedAction),
+    PerPeerBlockStatisticsGet(PerPeerBlockStatisticsGetAction),
+    PerPeerBlockStatisticsReceivedAction(PerPeerBlockStatisticsReceivedAction),
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),

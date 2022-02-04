@@ -28,6 +28,7 @@ pub enum ActivePage {
     Synchronization,
     Endorsements,
     Statistics,
+    Baking,
 }
 
 impl ActivePage {
@@ -36,6 +37,7 @@ impl ActivePage {
             ActivePage::Synchronization => 0,
             ActivePage::Endorsements => 1,
             ActivePage::Statistics => 2,
+            ActivePage::Baking => 3,
         }
     }
     pub fn hotkey(&self) -> String {
@@ -43,6 +45,7 @@ impl ActivePage {
             ActivePage::Synchronization => String::from("F1"),
             ActivePage::Endorsements => String::from("F2"),
             ActivePage::Statistics => String::from("F3"),
+            ActivePage::Baking => String::from("F4"),
         }
     }
 }

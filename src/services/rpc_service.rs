@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 use url::Url;
 
 use crate::{
+    baking::{BlockApplicationStatistics, PerPeerBlockStatisticsVector},
     endorsements::{EndorsementRights, EndorsementStatuses},
     operations::OperationsStats,
 };
@@ -112,6 +113,20 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::OperationsStats(stats))
             }
+            RpcTarget::ApplicationStatistics => {
+                let stats: Vec<BlockApplicationStatistics> = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::ApplicationStatistics(stats))
+            }
+            RpcTarget::PerPeerBlockStatistics => {
+                let stats: PerPeerBlockStatisticsVector = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::PerPeerBlockStatistics(stats))
+            }
         }
     }
 }
@@ -144,6 +159,8 @@ pub enum RpcTarget {
     EndersementsStatus,
     CurrentHeadHeader,
     OperationsStats,
+    ApplicationStatistics,
+    PerPeerBlockStatistics,
 }
 
 #[derive(Clone, Debug)]
@@ -153,6 +170,8 @@ pub enum RpcResponse {
     EndorsementsStatus(EndorsementStatuses),
     CurrentHeadHeader(CurrentHeadHeader),
     OperationsStats(OperationsStats),
+    ApplicationStatistics(Vec<BlockApplicationStatistics>),
+    PerPeerBlockStatistics(PerPeerBlockStatisticsVector),
 }
 
 impl Display for RpcCall {
@@ -170,6 +189,20 @@ impl Display for RpcCall {
             RpcTarget::OperationsStats => {
                 write!(f, "OperationsStats - Query args: {:?}", self.query_arg)
             }
+            RpcTarget::ApplicationStatistics => {
+                write!(
+                    f,
+                    "ApplicationStatistics - Query args: {:?}",
+                    self.query_arg
+                )
+            }
+            RpcTarget::PerPeerBlockStatistics => {
+                write!(
+                    f,
+                    "PerPeerBlockStatistics - Query args: {:?}",
+                    self.query_arg
+                )
+            }
         }
     }
 }
@@ -181,6 +214,10 @@ impl RpcCall {
             RpcTarget::EndersementsStatus => "dev/shell/automaton/endorsements_status",
             RpcTarget::CurrentHeadHeader => "chains/main/blocks/head/header",
             RpcTarget::OperationsStats => "dev/shell/automaton/mempool/operation_stats",
+            RpcTarget::ApplicationStatistics => {
+                "dev/shell/automaton/stats/current_head/application"
+            }
+            RpcTarget::PerPeerBlockStatistics => "dev/shell/automaton/stats/current_head/peers",
         }
     }
 }

@@ -16,7 +16,7 @@ where
             store.dispatch(RpcRequestAction {
                 call: RpcCall::new(
                     RpcTarget::EndorsementRights,
-                    Some(format!("?level{}&block={}", action.level, action.block)),
+                    Some(format!("?level={}&block={}", action.level, action.block)),
                 ),
             });
         }

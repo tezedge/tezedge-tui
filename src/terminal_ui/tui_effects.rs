@@ -1,5 +1,6 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
+    baking::BakingScreen,
     endorsements::EndorsementsScreen,
     extensions::Renderable,
     operations::StatisticsScreen,
@@ -40,6 +41,14 @@ where
                         .tui()
                         .terminal()
                         .draw(|f| StatisticsScreen::draw_screen(&state, f))
+                }
+                ActivePage::Baking => {
+                    let state = store.state().clone();
+                    store
+                        .service()
+                        .tui()
+                        .terminal()
+                        .draw(|f| BakingScreen::draw_screen(&state, f))
                 }
             };
             match res {

@@ -198,7 +198,9 @@ impl TuiTableData for OperationDetailSortable {
     fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(7);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::White).add_modifier(Modifier::DIM);
+        let default_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
 
         final_vec.push((self.node_id.clone(), default_style));
 
