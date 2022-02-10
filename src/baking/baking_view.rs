@@ -1,16 +1,17 @@
 use std::io::Stdout;
 
+use itertools::Itertools;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout};
-use tui::style::{Color, Style};
-use tui::widgets::{BarChart, Block, Borders};
+use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Block, Borders, Cell, Row, Table};
 use tui::Frame;
 
 use crate::automaton::State;
 use crate::common::{create_header_bar, create_pages_tabs, create_quit};
 use crate::extensions::Renderable;
 
-use super::ToHistogramData;
+use super::{BlockApplicationSummary};
 
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
@@ -35,26 +36,85 @@ impl Renderable for BakingScreen {
             ])
             .split(size);
 
-        let histogram_data = state.baking.per_peer_block_statistics.to_histogram_data();
+        let (baking_table_chunk, summary_chunk) = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .split(page_chunks[2])
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
 
-        let histogram: Vec<(&str, u64)> = histogram_data
-            .iter()
-            .map(|(label, value)| (&**label, *value))
-            .collect();
+        // ======================== SUMMARY PANEL (right) ========================
+        let selected_style = Style::default().remove_modifier(Modifier::DIM);
+        let normal_style = Style::default().fg(Color::White);
 
-        let barchart = BarChart::default()
-            .block(
-                Block::default()
-                    .title("RECEIVED TIME COUNT HISTOGRAM")
-                    .borders(Borders::ALL),
-            )
-            .data(histogram.as_slice())
-            .bar_width(8)
-            .value_style(Style::default().fg(Color::Black).bg(Color::Cyan))
-            .bar_style(Style::default().fg(Color::Cyan));
+        // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
+        let application_summary =
+            BlockApplicationSummary::from(state.baking.application_statistics[0].clone());
+        let application_stats_table_data = application_summary.to_table_data();
 
-        // let test = Paragraph::new(format!("{:?}", histogram));
-        f.render_widget(barchart, page_chunks[2]);
+        let headers = vec!["OPERATION", "DURATION"];
+        let header_cells = headers.iter().map(|header| Cell::from(*header));
+
+        let rows = application_stats_table_data.into_iter().map(|stat| {
+            let height = 1;
+
+            let tag = Cell::from(stat.0);
+            let value = Cell::from(stat.1.to_string());
+            Row::new(vec![tag, value]).height(height)
+        });
+        let header = Row::new(header_cells)
+            .style(normal_style)
+            .height(1)
+            .bottom_margin(1);
+
+        let block = Block::default().borders(Borders::ALL);
+        let table = Table::new(rows)
+            .header(header)
+            .block(block)
+            .widths(&[Constraint::Percentage(75), Constraint::Percentage(25)]);
+        f.render_widget(table, summary_chunk);
+
+        // let histogram_data = state.baking.per_peer_block_statistics.to_histogram_data();
+
+        // let histogram: Vec<(&str, u64)> = histogram_data
+        //     .iter()
+        //     .map(|(label, value)| (&**label, *value))
+        //     .collect();
+
+        // let (chart_area, barchart_area) = Layout::default()
+        //     .direction(Direction::Horizontal)
+        //     .constraints([Constraint::Length(8), Constraint::Min(1)])
+        //     .split(page_chunks[2])
+        //     .into_iter()
+        //     .collect_tuple()
+        //     .unwrap();
+
+        // let dummy_dataset = Dataset::default()
+        //     .data(&[(5.0, 0.0)]);
+
+        // let chart = Chart::new(Vec::new()).y_axis(
+        //     Axis::default()
+        //         .bounds([0.0, 10.0])
+        //         .labels(
+        //             vec![
+        //                 Span::styled("0", Style::default().add_modifier(Modifier::BOLD)),
+        //                 Span::styled("5", Style::default().add_modifier(Modifier::BOLD)),
+        //                 Span::styled("10", Style::default().add_modifier(Modifier::BOLD))
+        //             ]
+        //         )
+        // );
+        // f.render_widget(chart, chart_area);
+
+        // let barchart = BarChart::default()
+        //     .data(histogram.as_slice())
+        //     .max(10)
+        //     .bar_width(8)
+        //     .value_style(Style::default().fg(Color::Black).bg(Color::Cyan))
+        //     .bar_style(Style::default().fg(Color::Cyan));
+
+        // // let test = Paragraph::new(format!("{:?}", histogram));
+        // f.render_widget(barchart, barchart_area);
 
         // ======================== HEADER ========================
         let header = &state.current_head_header;

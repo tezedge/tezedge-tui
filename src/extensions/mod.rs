@@ -55,3 +55,33 @@ where
         format!("{}ns", time)
     }
 }
+
+// TODO: combine those two, and edit occurences
+pub fn convert_time_to_unit_string_option<T>(time: Option<T>) -> String
+where
+    T: ToPrimitive + PartialOrd + std::ops::Div<Output = T> + std::fmt::Display,
+{
+    if let Some(time) = time {
+        let time = if let Some(time) = time.to_f64() {
+            time
+        } else {
+            return String::from("NaN");
+        };
+
+        const MILLISECOND_FACTOR: f64 = 1000.0;
+        const MICROSECOND_FACTOR: f64 = 1000000.0;
+        const NANOSECOND_FACTOR: f64 = 1000000000.0;
+
+        if time >= NANOSECOND_FACTOR {
+            format!("{:.2}s", time / NANOSECOND_FACTOR)
+        } else if time >= MICROSECOND_FACTOR {
+            format!("{:.2}ms", time / MICROSECOND_FACTOR)
+        } else if time >= MILLISECOND_FACTOR {
+            format!("{:.2}μs", time / MILLISECOND_FACTOR)
+        } else {
+            format!("{}ns", time)
+        }
+    } else {
+        String::from(" - ")
+    }
+}
