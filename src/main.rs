@@ -22,6 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut automaton_manager = AutomatonManager::new(
         tui_args.node,
         tui_args.websocket,
+        tui_args.baker_address,
         create_file_logger("tui.log"),
     );
     automaton_manager.start().await;

@@ -135,7 +135,7 @@ pub struct AutomatonManager {
 impl AutomatonManager {
     const MPCS_QUEUE_MAX_CAPACITY: usize = 4096;
 
-    pub fn new(rpc_url: Url, websocket_url: Url, log: Logger) -> Self {
+    pub fn new(rpc_url: Url, websocket_url: Url, baker_address: Option<String>, log: Logger) -> Self {
         let rpc_service = RpcServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, rpc_url, &log);
         let websocket_service =
             WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
@@ -148,7 +148,7 @@ impl AutomatonManager {
             ws: websocket_service,
         };
 
-        let initial_state = State::new(log.clone());
+        let initial_state = State::new(baker_address, log.clone());
 
         let automaton = Automaton::new(initial_state, service);
 

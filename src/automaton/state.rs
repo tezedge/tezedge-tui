@@ -10,6 +10,7 @@ use crate::{
 pub struct State {
     pub last_applied_level: i32,
     pub current_head_header: CurrentHeadHeader,
+    pub baker_address: Option<String>,
 
     pub synchronization: SynchronizationState,
     pub endorsmenents: EndrosementsState,
@@ -24,9 +25,10 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(log: Logger) -> Self {
+    pub fn new(baker_address: Option<String>, log: Logger) -> Self {
         Self {
             log,
+            baker_address,
             delta_toggle: true,
             current_head_header: Default::default(),
             last_applied_level: Default::default(),
