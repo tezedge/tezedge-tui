@@ -46,6 +46,13 @@ impl Renderable for BakingScreen {
 
         // ======================== SUMMARY PANEL (right) ========================
 
+        // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
+        let application_summary = if let Some(application_statistics) = state.baking.application_statistics.get(0) {
+            BlockApplicationSummary::from(application_statistics.clone())
+        } else {
+            return;
+        };
+
         let (summary_title_chunk, summary_inner_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Min(5)])
@@ -68,9 +75,6 @@ impl Renderable for BakingScreen {
             .bg(Color::Green);
         let normal_style = Style::default().fg(Color::White);
 
-        // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
-        let application_summary =
-            BlockApplicationSummary::from(state.baking.application_statistics[0].clone());
         let mut application_stats_table_data = application_summary.to_table_data();
 
         let baking_summary = BakingSummary::from(state.baking.per_peer_block_statistics.clone());
