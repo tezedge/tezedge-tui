@@ -2,14 +2,15 @@ use std::io::Stdout;
 
 use itertools::Itertools;
 use tui::backend::CrosstermBackend;
-use tui::layout::{Constraint, Direction, Layout};
+use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, Cell, Row, Table};
+use tui::text::Span;
+use tui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use tui::Frame;
 
 use crate::automaton::State;
-use crate::common::{create_header_bar, create_pages_tabs, create_quit};
-use crate::extensions::Renderable;
+use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
+use crate::extensions::{CustomSeparator, Renderable};
 
 use super::{BakingSummary, BlockApplicationSummary};
 
@@ -30,7 +31,6 @@ impl Renderable for BakingScreen {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(2),
-                Constraint::Length(2),
                 Constraint::Min(5),
                 Constraint::Length(1),
             ])
@@ -39,12 +39,29 @@ impl Renderable for BakingScreen {
         let (baking_table_chunk, summary_chunk) = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-            .split(page_chunks[2])
+            .split(page_chunks[1])
             .into_iter()
             .collect_tuple()
             .unwrap();
 
         // ======================== SUMMARY PANEL (right) ========================
+
+        let (summary_title_chunk, summary_inner_chunk) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(5)])
+            .split(summary_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        let summary_title = Paragraph::new(Span::styled(
+            " BAKING PROGRESS",
+            Style::default().fg(Color::White),
+        ))
+        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(summary_title, summary_title_chunk);
+
         let selected_style = Style::default()
             .remove_modifier(Modifier::DIM)
             .fg(Color::Black)
@@ -82,14 +99,26 @@ impl Renderable for BakingScreen {
         //     .height(1)
         //     .bottom_margin(1);
 
-        let block = Block::default().borders(Borders::ALL);
+        let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
         let table = Table::new(rows)
             // .header(header)
             .block(block)
             .widths(&[Constraint::Percentage(75), Constraint::Percentage(25)]);
-        f.render_widget(table, summary_chunk);
+        f.render_widget(table, summary_inner_chunk);
 
-        // ======================== BAKING TABLE (left) ========================
+        // ======================== BAKING TABLE (help) ========================
+
+        let (help_chunk, baking_table_inner_chunk) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(2), Constraint::Min(5)])
+            .split(baking_table_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        create_help_bar(help_chunk, f, delta_toggle);
+
+        // ======================== BAKING TABLE (table) ========================
 
         let baking_table_block = Block::default().borders(Borders::ALL);
 
@@ -121,9 +150,20 @@ impl Renderable for BakingScreen {
             .widths(&renderable_constraints);
         f.render_stateful_widget(
             table,
-            baking_table_chunk,
+            baking_table_inner_chunk,
             &mut state.baking.baking_table.table_state.clone(),
         );
+
+        // overlap the block corners with special separators to make flush transition to the table block
+        let vertical_left_separator = CustomSeparator::default()
+            .separator("├")
+            .corner(Corner::TopLeft);
+        f.render_widget(vertical_left_separator, baking_table_inner_chunk);
+
+        let vertical_right_separator = CustomSeparator::default()
+            .separator("┤")
+            .corner(Corner::TopRight);
+        f.render_widget(vertical_right_separator, baking_table_inner_chunk);
 
         // let histogram_data = state.baking.per_peer_block_statistics.to_histogram_data();
 
@@ -172,10 +212,10 @@ impl Renderable for BakingScreen {
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);
-        f.render_widget(tabs, page_chunks[3]);
+        f.render_widget(tabs, page_chunks[2]);
 
         // ======================== Quit ========================
-        create_quit(page_chunks[3], f);
+        create_quit(page_chunks[2], f);
     }
 }
 
