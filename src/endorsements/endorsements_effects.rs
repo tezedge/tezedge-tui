@@ -12,22 +12,20 @@ where
     S: Service,
 {
     match &action.action {
-        Action::EndorsementsRightsGet(action) => {
-            store.dispatch(RpcRequestAction {
-                call: RpcCall::new(
-                    RpcTarget::EndorsementRights,
-                    Some(format!("?level={}&block={}", action.level, action.block)),
-                ),
-            });
-        }
         Action::EndorsementsStatusesGet(_) => {
             store.dispatch(RpcRequestAction {
                 call: RpcCall::new(RpcTarget::EndersementsStatus, None),
             });
         }
-        Action::CurrentHeadHeaderGet(_) => {
+        Action::CurrentHeadHeaderChanged(action) => {
             store.dispatch(RpcRequestAction {
-                call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
+                call: RpcCall::new(
+                    RpcTarget::EndorsementRights,
+                    Some(format!(
+                        "?level={}&block={}",
+                        action.current_head_header.level, action.current_head_header.hash
+                    )),
+                ),
             });
         }
         _ => {}

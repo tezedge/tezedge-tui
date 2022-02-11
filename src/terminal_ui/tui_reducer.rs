@@ -366,7 +366,9 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
             },
             ActivePage::Baking => state.ui.active_widget = ActiveWidget::BakingTable,
         },
-        Action::Init(_) => {}
+        Action::CurrentHeadHeaderChanged(action) => {
+            state.current_head_header = action.current_head_header.clone();
+        }
         _ => {}
     }
 }

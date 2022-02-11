@@ -1,7 +1,7 @@
 use crossterm::event::KeyModifiers;
 use redux_rs::EnablingCondition;
 
-use crate::automaton::State;
+use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
 
 use super::ActivePage;
 
@@ -108,6 +108,37 @@ impl EnablingCondition<State> for TuiDeltaToggleKeyPushedAction {
 pub struct TuiWidgetSelectionKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiWidgetSelectionKeyPushedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadHeaderGetAction {}
+
+impl EnablingCondition<State> for CurrentHeadHeaderGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadHeaderRecievedAction {
+    pub current_head_header: CurrentHeadHeader,
+}
+
+impl EnablingCondition<State> for CurrentHeadHeaderRecievedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadHeaderChangedAction {
+    pub current_head_header: CurrentHeadHeader,
+}
+
+impl EnablingCondition<State> for CurrentHeadHeaderChangedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

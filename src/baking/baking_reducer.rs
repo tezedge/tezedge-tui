@@ -13,6 +13,7 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
 
             state.baking.baking_table.sort_content(state.delta_toggle);
         }
+        Action::CurrentHeadHeaderChanged(_) => state.baking.baking_table.content.clear(),
         _ => {}
     }
 }

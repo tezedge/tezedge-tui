@@ -1,15 +1,13 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
     baking::{ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction},
-    endorsements::{
-        CurrentHeadHeaderRecievedAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesReceivedAction,
-    },
+    endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction},
     operations::OperationsStatisticsReceivedAction,
     services::{
         rpc_service::{RpcResponse, RpcService},
         Service,
     },
+    terminal_ui::CurrentHeadHeaderRecievedAction,
 };
 
 use super::RpcResponseAction;

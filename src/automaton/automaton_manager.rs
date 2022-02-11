@@ -8,9 +8,7 @@ use slog::Logger;
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
     baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction},
-    endorsements::{
-        CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
-    },
+    endorsements::EndorsementsStatusesGetAction,
     operations::OperationsStatisticsGetAction,
     rpc::RpcResponseReadAction,
     services::{
@@ -19,9 +17,10 @@ use crate::{
         ws_service::WebsocketServiceDefault,
     },
     terminal_ui::{
-        ActivePage, ChangeScreenAction, DrawScreenAction, TuiDeltaToggleKeyPushedAction,
-        TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
-        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
+        ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
+        TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction,
+        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
+        TuiWidgetSelectionKeyPushedAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -49,10 +48,7 @@ impl<Serv: Service> Automaton<Serv> {
                 Some(TuiEvent::Tick) => {
                     self.store.dispatch(WebsocketReadAction {});
                     self.store.dispatch(CurrentHeadHeaderGetAction {});
-                    self.store.dispatch(EndorsementsRightsGetAction {
-                        block: self.store.state().current_head_header.hash.clone(),
-                        level: self.store.state().current_head_header.level,
-                    });
+
                     self.store.dispatch(EndorsementsStatusesGetAction {});
                     self.store.dispatch(ApplicationStatisticsGetAction {
                         level: self.store.state().current_head_header.level,
@@ -145,7 +141,7 @@ impl AutomatonManager {
         let websocket_service =
             WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
-        let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
+        let tui_event_receiver = TuiServiceDefault::start(Duration::from_millis(500));
 
         let service = ServiceDefault {
             rpc: rpc_service,

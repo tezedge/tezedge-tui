@@ -48,26 +48,6 @@ impl EnablingCondition<State> for EndorsementsStatusesReceivedAction {
 }
 
 #[derive(Debug, Clone)]
-pub struct CurrentHeadHeaderGetAction {}
-
-impl EnablingCondition<State> for CurrentHeadHeaderGetAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CurrentHeadHeaderRecievedAction {
-    pub current_head_header: CurrentHeadHeader,
-}
-
-impl EnablingCondition<State> for CurrentHeadHeaderRecievedAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct DrawEndorsementsScreenAction {
     pub current_head_header: CurrentHeadHeader,
 }

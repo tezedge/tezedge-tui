@@ -8,17 +8,17 @@ use crate::{
         PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction,
     },
     endorsements::{
-        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
-        EndorsementsRightsReceivedAction, EndorsementsStatusesGetAction,
-        EndorsementsStatusesReceivedAction,
+        EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},
     terminal_ui::{
-        ChangeScreenAction, DrawScreenAction, DrawScreenFailiureAction, DrawScreenSuccessAction,
-        TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiLeftKeyPushedAction,
-        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
-        TuiWidgetSelectionKeyPushedAction,
+        ChangeScreenAction, CurrentHeadHeaderChangedAction, CurrentHeadHeaderGetAction,
+        CurrentHeadHeaderRecievedAction, DrawScreenAction, DrawScreenFailiureAction,
+        DrawScreenSuccessAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction,
+        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -64,8 +64,10 @@ pub enum Action {
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),
     EndorsementsStatusesGet(EndorsementsStatusesGetAction),
     EndorsementsStatusesReceived(EndorsementsStatusesReceivedAction),
+
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
+    CurrentHeadHeaderChanged(CurrentHeadHeaderChangedAction),
 
     OperationsStatisticsGet(OperationsStatisticsGetAction),
     OperationsStatisticsReceived(OperationsStatisticsReceivedAction),

@@ -4,11 +4,16 @@ use crate::{
     endorsements::EndorsementsScreen,
     extensions::Renderable,
     operations::StatisticsScreen,
-    services::{tui_service::TuiService, Service},
+    rpc::RpcRequestAction,
+    services::{
+        rpc_service::{RpcCall, RpcTarget},
+        tui_service::TuiService,
+        Service,
+    },
     synchronization::SynchronizationScreen,
 };
 
-use super::{ActivePage, DrawScreenSuccessAction};
+use super::{ActivePage, CurrentHeadHeaderChangedAction, DrawScreenSuccessAction};
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -60,6 +65,18 @@ where
                 }
                 Err(_) => todo!(),
             }
+        }
+        Action::CurrentHeadHeaderReceived(action) => {
+            if store.state().current_head_header.level < action.current_head_header.level {
+                store.dispatch(CurrentHeadHeaderChangedAction {
+                    current_head_header: action.current_head_header.clone(),
+                });
+            }
+        }
+        Action::CurrentHeadHeaderGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
+            });
         }
         Action::Shutdown(_) => {}
         _ => {}
