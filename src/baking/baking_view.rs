@@ -11,7 +11,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_pages_tabs, create_quit};
 use crate::extensions::Renderable;
 
-use super::{BlockApplicationSummary};
+use super::{BakingSummary, BlockApplicationSummary};
 
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
@@ -45,35 +45,85 @@ impl Renderable for BakingScreen {
             .unwrap();
 
         // ======================== SUMMARY PANEL (right) ========================
-        let selected_style = Style::default().remove_modifier(Modifier::DIM);
+        let selected_style = Style::default()
+            .remove_modifier(Modifier::DIM)
+            .fg(Color::Black)
+            .bg(Color::Green);
         let normal_style = Style::default().fg(Color::White);
 
         // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
         let application_summary =
             BlockApplicationSummary::from(state.baking.application_statistics[0].clone());
-        let application_stats_table_data = application_summary.to_table_data();
+        let mut application_stats_table_data = application_summary.to_table_data();
 
-        let headers = vec!["OPERATION", "DURATION"];
-        let header_cells = headers.iter().map(|header| Cell::from(*header));
+        let baking_summary = BakingSummary::from(state.baking.per_peer_block_statistics.clone());
+        baking_summary.extend_table_data(&mut application_stats_table_data);
+
+        // let headers = vec!["OPERATION", "DURATION"];
+        // let header_cells = headers.iter().map(|header| Cell::from(*header));
 
         let rows = application_stats_table_data.into_iter().map(|stat| {
             let height = 1;
 
             let tag = Cell::from(stat.0);
             let value = Cell::from(stat.1.to_string());
-            Row::new(vec![tag, value]).height(height)
+
+            // TODO: need more elegant solution
+            if stat.1 != *" - " {
+                Row::new(vec![tag, value])
+                    .height(height)
+                    .style(selected_style)
+            } else {
+                Row::new(vec![tag, value]).height(height)
+            }
         });
+        // let header = Row::new(header_cells)
+        //     .style(normal_style)
+        //     .height(1)
+        //     .bottom_margin(1);
+
+        let block = Block::default().borders(Borders::ALL);
+        let table = Table::new(rows)
+            // .header(header)
+            .block(block)
+            .widths(&[Constraint::Percentage(75), Constraint::Percentage(25)]);
+        f.render_widget(table, summary_chunk);
+
+        // ======================== BAKING TABLE (left) ========================
+
+        let baking_table_block = Block::default().borders(Borders::ALL);
+
+        let selected_style = Style::default().remove_modifier(Modifier::DIM);
+        let normal_style = Style::default().fg(Color::White);
+
+        let renderable_constraints = state
+            .baking
+            .baking_table
+            .renderable_constraints(calculate_percentage(f.size().width, 60));
+        let header_cells = state.baking.baking_table.renderable_headers(selected_style);
         let header = Row::new(header_cells)
             .style(normal_style)
             .height(1)
             .bottom_margin(1);
 
-        let block = Block::default().borders(Borders::ALL);
+        let rows = state
+            .baking
+            .baking_table
+            .renderable_rows(&state.baking.baking_table.content, delta_toggle);
+
+        let highlight_symbol = "▶".to_string().to_ascii_uppercase();
+
         let table = Table::new(rows)
             .header(header)
-            .block(block)
-            .widths(&[Constraint::Percentage(75), Constraint::Percentage(25)]);
-        f.render_widget(table, summary_chunk);
+            .block(baking_table_block)
+            .highlight_style(selected_style)
+            .highlight_symbol(&highlight_symbol)
+            .widths(&renderable_constraints);
+        f.render_stateful_widget(
+            table,
+            baking_table_chunk,
+            &mut state.baking.baking_table.table_state.clone(),
+        );
 
         // let histogram_data = state.baking.per_peer_block_statistics.to_histogram_data();
 
@@ -127,4 +177,8 @@ impl Renderable for BakingScreen {
         // ======================== Quit ========================
         create_quit(page_chunks[3], f);
     }
+}
+
+fn calculate_percentage(val: u16, perc: u16) -> u16 {
+    (val * perc) / 100
 }

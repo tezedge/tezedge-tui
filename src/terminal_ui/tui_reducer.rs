@@ -18,6 +18,9 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                     .details_operation_statistics_table
                     .highlight_sorting();
             }
+            ActivePage::Baking => {
+                state.baking.baking_table.highlight_sorting();
+            }
             _ => { /* No sorting highlights requeired on other screens */ }
         },
         Action::ChangeScreen(action) => {
@@ -30,9 +33,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 ActivePage::Statistics => {
                     state.ui.active_widget = ActiveWidget::StatisticsMainTable
                 }
-                ActivePage::Baking => {
-                    // TODO: when widgets will be clearer
-                }
+                ActivePage::Baking => state.ui.active_widget = ActiveWidget::BakingTable,
             }
         }
         Action::DrawScreenSuccess(action) => {
@@ -65,6 +66,14 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .details_operation_statistics_table
                         .set_rendered(renderable);
                 }
+                ActivePage::Baking => {
+                    let renderable = state
+                        .baking
+                        .baking_table
+                        .renderable_constraints((action.screen_width * 60) / 100)
+                        .len();
+                    state.baking.baking_table.set_rendered(renderable);
+                }
                 _ => { /* No extended table on other screens */ }
             }
         }
@@ -78,6 +87,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .operations_statistics
                 .details_operation_statistics_table
                 .next(),
+            ActiveWidget::BakingTable => state.baking.baking_table.next(),
             _ => {}
         },
         Action::TuiLeftKeyPushed(_) => match state.ui.active_widget {
@@ -90,6 +100,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 .operations_statistics
                 .details_operation_statistics_table
                 .previous(),
+            ActiveWidget::BakingTable => state.baking.baking_table.previous(),
             _ => {}
         },
         Action::TuiDownKeyPushedAction(_) => match state.ui.active_widget {
@@ -163,6 +174,10 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .table_state
                         .selected(),
                 )),
+            ActiveWidget::BakingTable => state.baking.baking_table.table_state.select(next_item(
+                state.baking.baking_table.content.len(),
+                state.baking.baking_table.table_state.selected(),
+            )),
         },
         Action::TuiUpKeyPushedAction(_) => match state.ui.active_widget {
             ActiveWidget::PeriodInfo => {}
@@ -237,6 +252,12 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .table_state
                         .selected(),
                 )),
+            ActiveWidget::BakingTable => {
+                state.baking.baking_table.table_state.select(previous_item(
+                    state.baking.baking_table.content.len(),
+                    state.baking.baking_table.table_state.selected(),
+                ))
+            }
         },
         Action::TuiSortKeyPushed(_) => match state.ui.active_widget {
             ActiveWidget::EndorserTable => {
@@ -313,6 +334,16 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                         .sort_content(state.delta_toggle);
                 }
             }
+            ActiveWidget::BakingTable => {
+                let seleceted = state.baking.baking_table.selected();
+                let sort_order = state.baking.baking_table.sort_order().switch();
+
+                state.baking.baking_table.set_sort_order(sort_order);
+
+                state.baking.baking_table.set_sorted_by(seleceted);
+
+                state.baking.baking_table.sort_content(state.delta_toggle);
+            }
             _ => {}
         },
         Action::TuiDeltaToggleKeyPushed(_) => {
@@ -333,9 +364,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
                 }
                 _ => state.ui.active_widget = ActiveWidget::StatisticsMainTable,
             },
-            ActivePage::Baking => {
-                // TODO: when widgets will be clearer
-            }
+            ActivePage::Baking => state.ui.active_widget = ActiveWidget::BakingTable,
         },
         Action::Init(_) => {}
         _ => {}

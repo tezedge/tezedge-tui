@@ -7,6 +7,11 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
         }
         Action::PerPeerBlockStatisticsReceivedAction(action) => {
             state.baking.per_peer_block_statistics = action.per_peer_block_statistics.clone();
+
+            // TODO: use only one of these fields...
+            state.baking.baking_table.content = action.per_peer_block_statistics.clone();
+
+            state.baking.baking_table.sort_content(state.delta_toggle);
         }
         _ => {}
     }

@@ -20,6 +20,7 @@ pub enum ActiveWidget {
     EndorserTable,
     StatisticsMainTable,
     StatisticsDetailsTable,
+    BakingTable,
 }
 
 // TODO: make enum contain the screen struct?
