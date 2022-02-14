@@ -42,6 +42,7 @@ pub struct BlockApplicationStatistics {
     pub injected: bool,
 }
 
+#[derive(Debug, Default, Clone)]
 pub struct BlockApplicationSummary {
     pub precheck: Option<u64>,
     pub send_data: Option<u64>,
@@ -137,6 +138,61 @@ impl BlockApplicationSummary {
         ]
     }
 }
+
+#[derive(Debug, Default, Clone)]
+pub struct BakingSummary {
+    pub level: i32,
+    pub injected: bool,
+    pub block_application_summary: BlockApplicationSummary,
+    pub per_peer: PerPeerBlockStatisticsVector,
+}
+
+impl BakingSummary {
+    pub fn new(level: i32, block_application_summary: BlockApplicationSummary, per_peer: PerPeerBlockStatisticsVector) -> Self {
+        Self {
+            level,
+            injected: block_application_summary.injected,
+            block_application_summary,
+            per_peer,
+        }
+    }
+
+    pub fn to_table_data(&self) -> Vec<(Spans, String)> {
+        let mut table_data = self.block_application_summary.to_table_data();
+        let application_summary = ApplicationSummary::from(self.per_peer.clone());
+
+        let injected = (
+            Spans::from("Injected"),
+            if self.injected {
+                String::from("✓")
+            } else {
+                String::from(" - ")
+            },
+        );
+        let block_header_received_back = (
+            Spans::from("Block Header Reveived Back"),
+            convert_time_to_unit_string_option(application_summary.block_header_received_back),
+        );
+        let block_operations_requested = (
+            Spans::from("Block Operations Requested"),
+            convert_time_to_unit_string_option(application_summary.block_operations_requested),
+        );
+        let block_operations_sent = (
+            Spans::from("Block Operations Sent"),
+            convert_time_to_unit_string_option(application_summary.block_operations_sent),
+        );
+
+        // remove download stats for injected block and add injected stat
+        table_data.drain(0..3);
+        table_data.insert(0, injected);
+        table_data.push(block_header_received_back);
+        table_data.push(block_operations_requested);
+        table_data.push(block_operations_sent);
+
+        table_data
+    }
+}
+
 
 impl From<BlockApplicationStatistics> for BlockApplicationSummary {
     fn from(stats: BlockApplicationStatistics) -> Self {
@@ -304,36 +360,6 @@ impl ApplicationSummary {
 
         table_data.push(send_block_header);
     }
-
-    pub fn extend_table_data_baking(&self, table_data: &mut Vec<(Spans, String)>, injected: bool) {
-        let injected = (
-            Spans::from("Injected"),
-            if injected {
-                String::from("✓")
-            } else {
-                String::from(" - ")
-            },
-        );
-        let block_header_received_back = (
-            Spans::from("Block Header Reveived Back"),
-            convert_time_to_unit_string_option(self.block_header_received_back),
-        );
-        let block_operations_requested = (
-            Spans::from("Block Operations Requested"),
-            convert_time_to_unit_string_option(self.block_operations_requested),
-        );
-        let block_operations_sent = (
-            Spans::from("Block Operations Sent"),
-            convert_time_to_unit_string_option(self.block_operations_sent),
-        );
-
-        // remove download stats for injected block and add injected stat
-        table_data.drain(0..3);
-        table_data.insert(0, injected);
-        table_data.push(block_header_received_back);
-        table_data.push(block_operations_requested);
-        table_data.push(block_operations_sent);
-    }
 }
 
 impl From<PerPeerBlockStatisticsVector> for ApplicationSummary {
@@ -422,6 +448,11 @@ pub struct BakingState {
     pub per_peer_block_statistics: PerPeerBlockStatisticsVector,
     pub baking_table: ExtendedTable<PerPeerBlockStatisticsVector>,
     pub baking_rights: BakingRights,
+    pub last_baking_summary: BakingSummary,
+    pub last_baked_block_level: Option<i32>, 
+    pub last_baked_application_statistics: Vec<BlockApplicationStatistics>,
+    pub last_baked_per_peer_block_statistics: PerPeerBlockStatisticsVector,
+
 }
 
 impl Default for BakingState {
@@ -454,6 +485,10 @@ impl Default for BakingState {
             application_statistics: Default::default(),
             per_peer_block_statistics: Default::default(),
             baking_rights: Default::default(),
+            last_baking_summary: Default::default(),
+            last_baked_block_level: None,
+            last_baked_application_statistics: Default::default(),
+            last_baked_per_peer_block_statistics: Default::default(),
         }
     }
 }

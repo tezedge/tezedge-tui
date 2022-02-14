@@ -12,7 +12,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::{CustomSeparator, Renderable};
 
-use super::{ApplicationSummary, BlockApplicationSummary};
+use super::{ApplicationSummary, BlockApplicationSummary, BakingSummary};
 
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
@@ -62,9 +62,9 @@ impl Renderable for BakingScreen {
         ) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),
+                Constraint::Length(4),
                 Constraint::Min(15),
-                Constraint::Length(3),
+                Constraint::Length(4),
                 Constraint::Min(17),
             ])
             .split(summary_chunk)
@@ -138,7 +138,10 @@ impl Renderable for BakingScreen {
 
         let summary_title = Paragraph::new(Spans::from(vec![
             Span::styled(" BAKING PROGRESS - Next baking at level ", Style::default().fg(Color::White)),
-            next_baking_level_label
+            next_baking_level_label,
+            Span::styled("\n LAST BAKED LEVEL ", Style::default().fg(Color::White)),
+            Span::styled(state.baking.last_baked_block_level.unwrap_or_default().to_string(), Style::default().fg(Color::White)),
+            
         ]))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
@@ -146,44 +149,49 @@ impl Renderable for BakingScreen {
 
         if let Some((level, _)) = next_baking {
             // Only update on new baking
-            if level == current_head_level {
-                baking_summary.extend_table_data_baking(
-                    &mut application_stats_table_data,
-                    application_summary.injected,
-                );
-        
-                let rows = application_stats_table_data
-                    .clone()
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, stat)| {
-                        let height = 1;
-        
-                        let sequence_num = Cell::from(index.to_string());
-                        let tag = Cell::from(stat.0);
-                        let value = Cell::from(stat.1.to_string());
-        
-                        // TODO: need more elegant solution
-                        if stat.1 != *" - " {
-                            Row::new(vec![sequence_num, tag, value])
-                                .height(height)
-                                .style(selected_style)
-                        } else {
-                            Row::new(vec![sequence_num, tag, value]).height(height)
-                        }
-                    });
-        
-                let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
-                let table = Table::new(rows)
-                    // .header(header)
-                    .block(block)
-                    .widths(&[
-                        Constraint::Length(2),
-                        Constraint::Percentage(75),
-                        Constraint::Percentage(25),
-                    ]);
-                f.render_widget(table, summary_baking_inner_chunk);
-            }
+            let baking_summary = if level == current_head_level {
+                BakingSummary::new(current_head_level, application_summary, state.baking.per_peer_block_statistics.clone())
+            } else {
+                let last_application_summary =
+                    if let Some(application_statistics) = state.baking.last_baked_application_statistics.get(0) {
+                        BlockApplicationSummary::from(application_statistics.clone())
+                    } else {
+                        BlockApplicationSummary::default()
+                    };
+                BakingSummary::new(state.baking.last_baked_block_level.unwrap_or_default(), last_application_summary, state.baking.last_baked_per_peer_block_statistics.clone())
+            };
+
+            let rows = baking_summary.to_table_data()
+                .clone()
+                .into_iter()
+                .enumerate()
+                .map(|(index, stat)| {
+                    let height = 1;
+    
+                    let sequence_num = Cell::from(index.to_string());
+                    let tag = Cell::from(stat.0);
+                    let value = Cell::from(stat.1.to_string());
+    
+                    // TODO: need more elegant solution
+                    if stat.1 != *" - " {
+                        Row::new(vec![sequence_num, tag, value])
+                            .height(height)
+                            .style(selected_style)
+                    } else {
+                        Row::new(vec![sequence_num, tag, value]).height(height)
+                    }
+                });
+    
+            let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+            let table = Table::new(rows)
+                // .header(header)
+                .block(block)
+                .widths(&[
+                    Constraint::Length(2),
+                    Constraint::Percentage(75),
+                    Constraint::Percentage(25),
+                ]);
+            f.render_widget(table, summary_baking_inner_chunk);
         }
 
         // ======================== BAKING TABLE (help) ========================

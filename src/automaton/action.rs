@@ -5,7 +5,7 @@ pub use redux_rs::{ActionId, EnablingCondition};
 use crate::{
     baking::{
         ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
-        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction, BakingRightsGetAction,
+        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction, BakingRightsGetAction, ApplicationStatisticsBakedGetAction, ApplicationStatisticsBakedReceivedAction, PerPeerBlockStatisticsBakedGetAction, PerPeerBlockStatisticsBakedReceivedAction, BlockBakedAction,
     },
     endorsements::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
@@ -76,9 +76,14 @@ pub enum Action {
     ApplicationStatisticsGet(ApplicationStatisticsGetAction),
     ApplicationStatisticsReceived(ApplicationStatisticsReceivedAction),
     PerPeerBlockStatisticsGet(PerPeerBlockStatisticsGetAction),
-    PerPeerBlockStatisticsReceivedAction(PerPeerBlockStatisticsReceivedAction),
+    PerPeerBlockStatisticsReceived(PerPeerBlockStatisticsReceivedAction),
     BakingRightsReceived(BakingRightsReceivedAction),
     BakingRightsGet(BakingRightsGetAction),
+    ApplicationStatisticsBakedGet(ApplicationStatisticsBakedGetAction),
+    ApplicationStatisticsBakedReceived(ApplicationStatisticsBakedReceivedAction),
+    PerPeerBlockStatisticsBakedGet(PerPeerBlockStatisticsBakedGetAction),
+    PerPeerBlockStatisticsBakedReceivedAction(PerPeerBlockStatisticsBakedReceivedAction),
+    BlockBaked(BlockBakedAction),
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),
