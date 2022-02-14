@@ -13,7 +13,9 @@ use crate::{
     synchronization::SynchronizationScreen,
 };
 
-use super::{ActivePage, CurrentHeadHeaderChangedAction, DrawScreenSuccessAction, CycleChangedAction};
+use super::{
+    ActivePage, CurrentHeadHeaderChangedAction, CycleChangedAction, DrawScreenSuccessAction,
+};
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -80,9 +82,7 @@ where
 
             if new_cycle > old_cycle {
                 // dispatch cycle changed
-                store.dispatch(CycleChangedAction {
-                    new_cycle,
-                });
+                store.dispatch(CycleChangedAction { new_cycle });
             }
         }
         Action::CurrentHeadHeaderGet(_) => {

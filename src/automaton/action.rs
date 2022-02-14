@@ -4,8 +4,9 @@ pub use redux_rs::{ActionId, EnablingCondition};
 
 use crate::{
     baking::{
-        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
-        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction, BakingRightsGetAction, ApplicationStatisticsBakedGetAction, ApplicationStatisticsBakedReceivedAction, PerPeerBlockStatisticsBakedGetAction, PerPeerBlockStatisticsBakedReceivedAction, BlockBakedAction,
+        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction, BakingRightsGetAction,
+        BakingRightsReceivedAction, PerPeerBlockStatisticsGetAction,
+        PerPeerBlockStatisticsReceivedAction,
     },
     endorsements::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
@@ -15,10 +16,10 @@ use crate::{
     rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},
     terminal_ui::{
         ChangeScreenAction, CurrentHeadHeaderChangedAction, CurrentHeadHeaderGetAction,
-        CurrentHeadHeaderRecievedAction, DrawScreenAction, DrawScreenFailiureAction,
-        DrawScreenSuccessAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction,
-        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
-        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CycleChangedAction,
+        CurrentHeadHeaderRecievedAction, CycleChangedAction, DrawScreenAction,
+        DrawScreenFailiureAction, DrawScreenSuccessAction, TuiDeltaToggleKeyPushedAction,
+        TuiDownKeyPushedAction, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
+        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -79,11 +80,6 @@ pub enum Action {
     PerPeerBlockStatisticsReceived(PerPeerBlockStatisticsReceivedAction),
     BakingRightsReceived(BakingRightsReceivedAction),
     BakingRightsGet(BakingRightsGetAction),
-    ApplicationStatisticsBakedGet(ApplicationStatisticsBakedGetAction),
-    ApplicationStatisticsBakedReceived(ApplicationStatisticsBakedReceivedAction),
-    PerPeerBlockStatisticsBakedGet(PerPeerBlockStatisticsBakedGetAction),
-    PerPeerBlockStatisticsBakedReceivedAction(PerPeerBlockStatisticsBakedReceivedAction),
-    BlockBaked(BlockBakedAction),
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),

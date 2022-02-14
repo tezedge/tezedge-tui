@@ -2,7 +2,7 @@ use redux_rs::EnablingCondition;
 
 use crate::automaton::State;
 
-use super::{BlockApplicationStatistics, PerPeerBlockStatisticsVector, BakingRightsPerLevel};
+use super::{BakingRightsPerLevel, BlockApplicationStatistics, PerPeerBlockStatisticsVector};
 
 // ApplicationStatistics
 
@@ -64,61 +64,6 @@ pub struct BakingRightsReceivedAction {
 }
 
 impl EnablingCondition<State> for BakingRightsReceivedAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BlockBakedAction {
-    pub level: i32,
-}
-
-impl EnablingCondition<State> for BlockBakedAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ApplicationStatisticsBakedGetAction {
-    pub level: i32,
-}
-
-impl EnablingCondition<State> for ApplicationStatisticsBakedGetAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ApplicationStatisticsBakedReceivedAction {
-    pub application_statistics: Vec<BlockApplicationStatistics>,
-}
-
-impl EnablingCondition<State> for ApplicationStatisticsBakedReceivedAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PerPeerBlockStatisticsBakedGetAction {
-    pub level: i32,
-}
-
-impl EnablingCondition<State> for PerPeerBlockStatisticsBakedGetAction {
-    fn is_enabled(&self, _: &State) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PerPeerBlockStatisticsBakedReceivedAction {
-    pub per_peer_block_statistics: PerPeerBlockStatisticsVector,
-}
-
-impl EnablingCondition<State> for PerPeerBlockStatisticsBakedReceivedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

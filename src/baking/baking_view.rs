@@ -12,7 +12,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::{CustomSeparator, Renderable};
 
-use super::{ApplicationSummary, BlockApplicationSummary, BakingSummary};
+use super::{ApplicationSummary, BakingSummary, BlockApplicationSummary};
 
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
@@ -21,6 +21,8 @@ impl Renderable for BakingScreen {
     fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
+
+        let current_block_hash = state.current_head_header.hash.clone();
 
         // TODO: maybe we just leave this on default
         // set the bacground color
@@ -46,23 +48,25 @@ impl Renderable for BakingScreen {
 
         // ======================== SUMMARY PANEL (right) ========================
 
-        // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
-        let application_summary =
-            if let Some(application_statistics) = state.baking.application_statistics.get(0) {
-                BlockApplicationSummary::from(application_statistics.clone())
-            } else {
-                return;
-            };
+        let application_summary = if let Some(application_statistics) =
+            state.baking.application_statistics.get(&current_block_hash)
+        {
+            BlockApplicationSummary::from(application_statistics.clone())
+        } else {
+            BlockApplicationSummary::default()
+        };
 
         let (
             summary_baking_title_chunk,
+            summary_baking_level_chunk,
             summary_baking_inner_chunk,
             summary_title_chunk,
             summary_inner_chunk,
         ) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(4),
+                Constraint::Length(3),
+                Constraint::Length(2),
                 Constraint::Min(15),
                 Constraint::Length(4),
                 Constraint::Min(17),
@@ -88,8 +92,17 @@ impl Renderable for BakingScreen {
 
         let mut application_stats_table_data = application_summary.to_table_data();
 
-        let baking_summary =
-            ApplicationSummary::from(state.baking.per_peer_block_statistics.clone());
+        let per_peer_stats = if let Some(per_peer_stats) = state
+            .baking
+            .per_peer_block_statistics
+            .get(&current_block_hash)
+        {
+            per_peer_stats.clone()
+        } else {
+            Vec::new()
+        };
+
+        let baking_summary = ApplicationSummary::from(per_peer_stats.clone());
         baking_summary.extend_table_data(&mut application_stats_table_data);
 
         let rows = application_stats_table_data
@@ -131,47 +144,96 @@ impl Renderable for BakingScreen {
         let next_baking = state.baking.baking_rights.next_baking(current_head_level);
 
         let next_baking_level_label = if let Some((level, time)) = next_baking.clone() {
-            Span::styled(format!("{} in {}", level, time), Style::default().fg(Color::White))
+            Span::styled(
+                format!("{} in {}", level, time),
+                Style::default().fg(Color::White),
+            )
         } else {
-            Span::styled("No rights found", Style::default().fg(Color::White).add_modifier(Modifier::DIM))
+            Span::styled(
+                "No rights found",
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::DIM),
+            )
         };
 
         let summary_title = Paragraph::new(Spans::from(vec![
-            Span::styled(" BAKING PROGRESS - Next baking at level ", Style::default().fg(Color::White)),
+            Span::styled(
+                " BAKING PROGRESS - Next baking at level ",
+                Style::default().fg(Color::White),
+            ),
             next_baking_level_label,
-            Span::styled("\n LAST BAKED LEVEL ", Style::default().fg(Color::White)),
-            Span::styled(state.baking.last_baked_block_level.unwrap_or_default().to_string(), Style::default().fg(Color::White)),
-            
         ]))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
         f.render_widget(summary_title, summary_baking_title_chunk);
 
+        let last_baked_block_level_label =
+            if let Some(last_baked_block_level) = state.baking.last_baked_block_level {
+                last_baked_block_level.to_string()
+            } else {
+                String::from(" - ")
+            };
+
+        let last_baked_block_label = Paragraph::new(Spans::from(vec![
+            Span::styled(" LAST BAKED LEVEL ", Style::default().fg(Color::White)),
+            Span::styled(
+                last_baked_block_level_label,
+                Style::default().fg(Color::White),
+            ),
+        ]))
+        .block(Block::default().borders(Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(last_baked_block_label, summary_baking_level_chunk);
+
         if let Some((level, _)) = next_baking {
             // Only update on new baking
             let baking_summary = if level == current_head_level {
-                BakingSummary::new(current_head_level, application_summary, state.baking.per_peer_block_statistics.clone())
+                BakingSummary::new(current_head_level, application_summary, per_peer_stats)
             } else {
-                let last_application_summary =
-                    if let Some(application_statistics) = state.baking.last_baked_application_statistics.get(0) {
-                        BlockApplicationSummary::from(application_statistics.clone())
-                    } else {
-                        BlockApplicationSummary::default()
-                    };
-                BakingSummary::new(state.baking.last_baked_block_level.unwrap_or_default(), last_application_summary, state.baking.last_baked_per_peer_block_statistics.clone())
+                let last_baked_block_hash = state
+                    .baking
+                    .last_baked_block_hash
+                    .clone()
+                    .unwrap_or_default();
+                let last_application_summary = if let Some(application_statistics) = state
+                    .baking
+                    .application_statistics
+                    .get(&last_baked_block_hash)
+                {
+                    BlockApplicationSummary::from(application_statistics.clone())
+                } else {
+                    BlockApplicationSummary::default()
+                };
+
+                let last_baked_per_peer_stats = if let Some(last_baked_per_peer_stats) = state
+                    .baking
+                    .per_peer_block_statistics
+                    .get(&last_baked_block_hash)
+                {
+                    last_baked_per_peer_stats.clone()
+                } else {
+                    Vec::new()
+                };
+                BakingSummary::new(
+                    state.baking.last_baked_block_level.unwrap_or_default(),
+                    last_application_summary,
+                    last_baked_per_peer_stats,
+                )
             };
 
-            let rows = baking_summary.to_table_data()
+            let rows = baking_summary
+                .to_table_data()
                 .clone()
                 .into_iter()
                 .enumerate()
                 .map(|(index, stat)| {
                     let height = 1;
-    
+
                     let sequence_num = Cell::from(index.to_string());
                     let tag = Cell::from(stat.0);
                     let value = Cell::from(stat.1.to_string());
-    
+
                     // TODO: need more elegant solution
                     if stat.1 != *" - " {
                         Row::new(vec![sequence_num, tag, value])
@@ -181,7 +243,7 @@ impl Renderable for BakingScreen {
                         Row::new(vec![sequence_num, tag, value]).height(height)
                     }
                 });
-    
+
             let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
             let table = Table::new(rows)
                 // .header(header)

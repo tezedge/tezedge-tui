@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-use super::{BakingRightsGetAction, BlockBakedAction};
+use super::BakingRightsGetAction;
 
 pub fn baking_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -35,8 +35,11 @@ where
                 store.dispatch(RpcRequestAction {
                     call: RpcCall::new(
                         RpcTarget::BakingRights,
-                        Some(format!("?delegate={}&max_priority=0&cycle={}", delegate, action.new_cycle))
-                    )
+                        Some(format!(
+                            "?delegate={}&max_priority=0&cycle={}",
+                            delegate, action.new_cycle
+                        )),
+                    ),
                 });
             }
         }
@@ -47,39 +50,19 @@ where
                 store.dispatch(RpcRequestAction {
                     call: RpcCall::new(
                         RpcTarget::BakingRights,
-                        Some(format!("?delegate={}&max_priority=0&cycle={}", delegate, cycle))
-                    )
+                        Some(format!(
+                            "?delegate={}&max_priority=0&cycle={}",
+                            delegate, cycle
+                        )),
+                    ),
                 });
             }
         }
-        Action::CurrentHeadHeaderChanged(action) => {
+        Action::CurrentHeadHeaderChanged(_) => {
             let is_empty = store.state().baking.baking_rights.rights.is_empty();
             if is_empty {
                 store.dispatch(BakingRightsGetAction {});
             }
-
-            if let Some(last_baked_block_level) = store.state().baking.last_baked_block_level {
-                if last_baked_block_level == action.current_head_header.level - 1 {
-                    store.dispatch(BlockBakedAction {
-                        level: last_baked_block_level
-                    });
-                }
-            }
-        }
-        Action::BlockBaked(action) => {
-            store.dispatch(RpcRequestAction {
-                call: RpcCall::new(
-                    RpcTarget::PerPeerBlockStatisticsBaked,
-                    Some(format!("?level={}", action.level)),
-                ),
-            });
-
-            store.dispatch(RpcRequestAction {
-                call: RpcCall::new(
-                    RpcTarget::ApplicationStatisticsBaked,
-                    Some(format!("?level={}", action.level)),
-                ),
-            });
         }
         _ => {}
     }

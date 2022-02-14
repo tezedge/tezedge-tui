@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use hdrhistogram::Histogram;
 use chrono::{DateTime, Utc};
+use hdrhistogram::Histogram;
 use num::Zero;
 use serde::Deserialize;
 use tui::{
@@ -148,7 +148,11 @@ pub struct BakingSummary {
 }
 
 impl BakingSummary {
-    pub fn new(level: i32, block_application_summary: BlockApplicationSummary, per_peer: PerPeerBlockStatisticsVector) -> Self {
+    pub fn new(
+        level: i32,
+        block_application_summary: BlockApplicationSummary,
+        per_peer: PerPeerBlockStatisticsVector,
+    ) -> Self {
         Self {
             level,
             injected: block_application_summary.injected,
@@ -192,7 +196,6 @@ impl BakingSummary {
         table_data
     }
 }
-
 
 impl From<BlockApplicationStatistics> for BlockApplicationSummary {
     fn from(stats: BlockApplicationStatistics) -> Self {
@@ -403,56 +406,61 @@ pub struct BakingRights {
 
 impl BakingRights {
     pub fn new(raw: &[BakingRightsPerLevel]) -> Self {
-        let organized = raw.iter().map(|rights_per_level| {
-            (rights_per_level.level, rights_per_level.estimated_time.clone())
-        })
-        .collect();
+        let organized = raw
+            .iter()
+            .map(|rights_per_level| {
+                (
+                    rights_per_level.level,
+                    rights_per_level.estimated_time.clone(),
+                )
+            })
+            .collect();
 
-        Self {
-            rights: organized
-        }
+        Self { rights: organized }
     }
 
     pub fn next_baking(&self, current_level: i32) -> Option<(i32, String)> {
+        self.rights
+            .range(current_level..)
+            .next()
+            .map(|(level, time)| {
+                if let Ok(estimated_baking_time) =
+                    DateTime::parse_from_rfc3339(&time.clone().unwrap_or_default())
+                {
+                    let now = Utc::now();
+                    let until_baking = estimated_baking_time.signed_duration_since(now);
+                    let mut final_str = String::from("");
 
-        self.rights.range(current_level..).next().map(|(level, time)| {
-            if let Ok(estimated_baking_time) = DateTime::parse_from_rfc3339(&time.clone().unwrap_or_default()) {
-                let now = Utc::now();
-                let until_baking = estimated_baking_time.signed_duration_since(now);
-                let mut final_str = String::from("");
+                    if !until_baking.num_days().is_zero() {
+                        final_str += &format!("{} days", until_baking.num_days());
+                    }
 
-                if !until_baking.num_days().is_zero() {
-                    final_str += &format!("{} days", until_baking.num_days());
-                }
+                    if !until_baking.num_hours().is_zero() {
+                        final_str += &format!("{} hours", until_baking.num_hours());
+                    }
 
-                if !until_baking.num_hours().is_zero() {
-                    final_str += &format!("{} hours", until_baking.num_hours());
-                }
-
-                if !until_baking.num_minutes().is_zero() {
-                    final_str += &format!("{} minutes", until_baking.num_minutes());
+                    if !until_baking.num_minutes().is_zero() {
+                        final_str += &format!("{} minutes", until_baking.num_minutes());
+                    } else {
+                        final_str += &"Baking shortly".to_string();
+                    }
+                    (*level, final_str)
                 } else {
-                    final_str += &"Baking shortly".to_string();
+                    (*level, time.clone().unwrap_or_default())
                 }
-                (*level, final_str)
-            } else {
-                (*level, time.clone().unwrap_or_default())
-            }
-        })
+            })
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct BakingState {
-    pub application_statistics: Vec<BlockApplicationStatistics>,
-    pub per_peer_block_statistics: PerPeerBlockStatisticsVector,
+    pub application_statistics: BTreeMap<String, BlockApplicationStatistics>,
+    pub per_peer_block_statistics: BTreeMap<String, PerPeerBlockStatisticsVector>,
     pub baking_table: ExtendedTable<PerPeerBlockStatisticsVector>,
     pub baking_rights: BakingRights,
     pub last_baking_summary: BakingSummary,
-    pub last_baked_block_level: Option<i32>, 
-    pub last_baked_application_statistics: Vec<BlockApplicationStatistics>,
-    pub last_baked_per_peer_block_statistics: PerPeerBlockStatisticsVector,
-
+    pub last_baked_block_level: Option<i32>,
+    pub last_baked_block_hash: Option<String>,
 }
 
 impl Default for BakingState {
@@ -487,8 +495,7 @@ impl Default for BakingState {
             baking_rights: Default::default(),
             last_baking_summary: Default::default(),
             last_baked_block_level: None,
-            last_baked_application_statistics: Default::default(),
-            last_baked_per_peer_block_statistics: Default::default(),
+            last_baked_block_hash: None,
         }
     }
 }

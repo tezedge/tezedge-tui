@@ -1,6 +1,9 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
-    baking::{ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction, ApplicationStatisticsBakedReceivedAction, PerPeerBlockStatisticsBakedReceivedAction},
+    baking::{
+        ApplicationStatisticsReceivedAction, BakingRightsReceivedAction,
+        PerPeerBlockStatisticsReceivedAction,
+    },
     endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction},
     operations::OperationsStatisticsReceivedAction,
     services::{
@@ -57,16 +60,6 @@ where
                     rights: rights.clone(),
                 });
             }
-            RpcResponse::ApplicationStatisticsBaked(application_stats) => {
-                store.dispatch(ApplicationStatisticsBakedReceivedAction {
-                    application_statistics: application_stats.clone(),
-                });
-            },
-            RpcResponse::PerPeerBlockStatisticsBaked(per_peer_stats) => {
-                store.dispatch(PerPeerBlockStatisticsBakedReceivedAction {
-                    per_peer_block_statistics: per_peer_stats.clone(),
-                });
-            },
         },
         Action::RpcResponseRead(_) => {
             while let Ok(response) = store.service().rpc().response_try_recv() {
