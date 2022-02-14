@@ -4,7 +4,7 @@ use itertools::Itertools;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
-use tui::text::Span;
+use tui::text::{Span, Spans};
 use tui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use tui::Frame;
 
@@ -126,49 +126,65 @@ impl Renderable for BakingScreen {
 
         // ======================== SUMMRAY PANEL BAKING ========================
         // TODO: only update this on Baking
-        let summary_title = Paragraph::new(Span::styled(
-            " BAKING PROGRESS",
-            Style::default().fg(Color::White),
-        ))
+
+        let current_head_level = state.current_head_header.level;
+        let next_baking = state.baking.baking_rights.next_baking(current_head_level);
+
+        let next_baking_level_label = if let Some((level, time)) = next_baking.clone() {
+            Span::styled(format!("{} in {}", level, time), Style::default().fg(Color::White))
+        } else {
+            Span::styled("No rights found", Style::default().fg(Color::White).add_modifier(Modifier::DIM))
+        };
+
+        let summary_title = Paragraph::new(Spans::from(vec![
+            Span::styled(" BAKING PROGRESS - Next baking at level ", Style::default().fg(Color::White)),
+            next_baking_level_label
+        ]))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
         f.render_widget(summary_title, summary_baking_title_chunk);
-        baking_summary.extend_table_data_baking(
-            &mut application_stats_table_data,
-            application_summary.injected,
-        );
 
-        let rows = application_stats_table_data
-            .clone()
-            .into_iter()
-            .enumerate()
-            .map(|(index, stat)| {
-                let height = 1;
-
-                let sequence_num = Cell::from(index.to_string());
-                let tag = Cell::from(stat.0);
-                let value = Cell::from(stat.1.to_string());
-
-                // TODO: need more elegant solution
-                if stat.1 != *" - " {
-                    Row::new(vec![sequence_num, tag, value])
-                        .height(height)
-                        .style(selected_style)
-                } else {
-                    Row::new(vec![sequence_num, tag, value]).height(height)
-                }
-            });
-
-        let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
-        let table = Table::new(rows)
-            // .header(header)
-            .block(block)
-            .widths(&[
-                Constraint::Length(2),
-                Constraint::Percentage(75),
-                Constraint::Percentage(25),
-            ]);
-        f.render_widget(table, summary_baking_inner_chunk);
+        if let Some((level, _)) = next_baking {
+            // Only update on new baking
+            if level == current_head_level {
+                baking_summary.extend_table_data_baking(
+                    &mut application_stats_table_data,
+                    application_summary.injected,
+                );
+        
+                let rows = application_stats_table_data
+                    .clone()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, stat)| {
+                        let height = 1;
+        
+                        let sequence_num = Cell::from(index.to_string());
+                        let tag = Cell::from(stat.0);
+                        let value = Cell::from(stat.1.to_string());
+        
+                        // TODO: need more elegant solution
+                        if stat.1 != *" - " {
+                            Row::new(vec![sequence_num, tag, value])
+                                .height(height)
+                                .style(selected_style)
+                        } else {
+                            Row::new(vec![sequence_num, tag, value]).height(height)
+                        }
+                    });
+        
+                let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+                let table = Table::new(rows)
+                    // .header(header)
+                    .block(block)
+                    .widths(&[
+                        Constraint::Length(2),
+                        Constraint::Percentage(75),
+                        Constraint::Percentage(25),
+                    ]);
+                f.render_widget(table, summary_baking_inner_chunk);
+            }
+        }
 
         // ======================== BAKING TABLE (help) ========================
 

@@ -2,7 +2,7 @@ use redux_rs::EnablingCondition;
 
 use crate::automaton::State;
 
-use super::{BlockApplicationStatistics, PerPeerBlockStatisticsVector};
+use super::{BlockApplicationStatistics, PerPeerBlockStatisticsVector, BakingRightsPerLevel};
 
 // ApplicationStatistics
 
@@ -45,6 +45,25 @@ pub struct PerPeerBlockStatisticsReceivedAction {
 }
 
 impl EnablingCondition<State> for PerPeerBlockStatisticsReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BakingRightsGetAction {}
+
+impl EnablingCondition<State> for BakingRightsGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+#[derive(Debug, Clone)]
+pub struct BakingRightsReceivedAction {
+    pub rights: Vec<BakingRightsPerLevel>,
+}
+
+impl EnablingCondition<State> for BakingRightsReceivedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

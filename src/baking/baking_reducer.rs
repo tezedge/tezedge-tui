@@ -1,5 +1,7 @@
 use crate::automaton::{Action, ActionWithMeta, State};
 
+use super::BakingRights;
+
 pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
         Action::ApplicationStatisticsReceived(action) => {
@@ -14,6 +16,9 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
             state.baking.baking_table.sort_content(state.delta_toggle);
         }
         Action::CurrentHeadHeaderChanged(_) => state.baking.baking_table.content.clear(),
+        Action::BakingRightsReceived(action) => {
+            state.baking.baking_rights = BakingRights::new(&action.rights);
+        }
         _ => {}
     }
 }

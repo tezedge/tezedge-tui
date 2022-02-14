@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use url::Url;
 
 use crate::{
-    baking::{BlockApplicationStatistics, PerPeerBlockStatisticsVector},
+    baking::{BlockApplicationStatistics, PerPeerBlockStatisticsVector, BakingRightsPerLevel},
     endorsements::{EndorsementRights, EndorsementStatuses},
     operations::OperationsStats,
 };
@@ -127,6 +127,13 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::PerPeerBlockStatistics(stats))
             }
+            RpcTarget::BakingRights => {
+                let rights: Vec<BakingRightsPerLevel> = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::BakingRights(rights))
+            }
         }
     }
 }
@@ -161,6 +168,7 @@ pub enum RpcTarget {
     OperationsStats,
     ApplicationStatistics,
     PerPeerBlockStatistics,
+    BakingRights,
 }
 
 #[derive(Clone, Debug)]
@@ -172,6 +180,7 @@ pub enum RpcResponse {
     OperationsStats(OperationsStats),
     ApplicationStatistics(Vec<BlockApplicationStatistics>),
     PerPeerBlockStatistics(PerPeerBlockStatisticsVector),
+    BakingRights(Vec<BakingRightsPerLevel>),
 }
 
 impl Display for RpcCall {
@@ -203,6 +212,9 @@ impl Display for RpcCall {
                     self.query_arg
                 )
             }
+            RpcTarget::BakingRights => {
+                write!(f, "BakingRights - Query args: {:?}", self.query_arg)
+            }
         }
     }
 }
@@ -218,6 +230,7 @@ impl RpcCall {
                 "dev/shell/automaton/stats/current_head/application"
             }
             RpcTarget::PerPeerBlockStatistics => "dev/shell/automaton/stats/current_head/peers",
+            RpcTarget::BakingRights => "chains/main/blocks/head/helpers/baking_rights", 
         }
     }
 }

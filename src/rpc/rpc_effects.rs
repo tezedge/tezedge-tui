@@ -1,6 +1,6 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
-    baking::{ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction},
+    baking::{ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction},
     endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction},
     operations::OperationsStatisticsReceivedAction,
     services::{
@@ -50,6 +50,11 @@ where
             RpcResponse::PerPeerBlockStatistics(per_peer_stats) => {
                 store.dispatch(PerPeerBlockStatisticsReceivedAction {
                     per_peer_block_statistics: per_peer_stats.clone(),
+                });
+            }
+            RpcResponse::BakingRights(rights) => {
+                store.dispatch(BakingRightsReceivedAction {
+                    rights: rights.clone(),
                 });
             }
         },

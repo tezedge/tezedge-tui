@@ -143,3 +143,14 @@ impl EnablingCondition<State> for CurrentHeadHeaderChangedAction {
         true
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct CycleChangedAction {
+    pub new_cycle: i32,
+}
+
+impl EnablingCondition<State> for CycleChangedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}

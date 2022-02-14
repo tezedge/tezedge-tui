@@ -13,7 +13,7 @@ use crate::{
     synchronization::SynchronizationScreen,
 };
 
-use super::{ActivePage, CurrentHeadHeaderChangedAction, DrawScreenSuccessAction};
+use super::{ActivePage, CurrentHeadHeaderChangedAction, DrawScreenSuccessAction, CycleChangedAction};
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -70,6 +70,18 @@ where
             if store.state().current_head_header.level < action.current_head_header.level {
                 store.dispatch(CurrentHeadHeaderChangedAction {
                     current_head_header: action.current_head_header.clone(),
+                });
+            }
+
+            // TODO: correct cycle info is needed from the block (not header)
+            // remove after implemented
+            let old_cycle = store.state().current_head_header.level / 4096;
+            let new_cycle = action.current_head_header.level / 4096;
+
+            if new_cycle > old_cycle {
+                // dispatch cycle changed
+                store.dispatch(CycleChangedAction {
+                    new_cycle,
                 });
             }
         }

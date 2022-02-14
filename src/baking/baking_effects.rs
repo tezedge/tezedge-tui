@@ -7,6 +7,8 @@ use crate::{
     },
 };
 
+use super::BakingRightsGetAction;
+
 pub fn baking_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
     S: Service,
@@ -27,6 +29,34 @@ where
                     Some(format!("?level={}", action.level)),
                 ),
             });
+        }
+        Action::CycleChanged(action) => {
+            if let Some(delegate) = store.state().baker_address.clone() {
+                store.dispatch(RpcRequestAction {
+                    call: RpcCall::new(
+                        RpcTarget::BakingRights,
+                        Some(format!("?delegate={}&max_priority=0&cycle={}", delegate, action.new_cycle))
+                    )
+                });
+            }
+        }
+        Action::BakingRightsGet(_) => {
+            // TODO: change this to correnct cycle
+            let cycle = store.state().current_head_header.level / 4096;
+            if let Some(delegate) = store.state().baker_address.clone() {
+                store.dispatch(RpcRequestAction {
+                    call: RpcCall::new(
+                        RpcTarget::BakingRights,
+                        Some(format!("?delegate={}&max_priority=0&cycle={}", delegate, cycle))
+                    )
+                });
+            }
+        }
+        Action::CurrentHeadHeaderChanged(_) => {
+            let is_empty = store.state().baking.baking_rights.rights.is_empty();
+            if is_empty {
+                store.dispatch(BakingRightsGetAction {});
+            }
         }
         _ => {}
     }

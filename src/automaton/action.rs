@@ -5,7 +5,7 @@ pub use redux_rs::{ActionId, EnablingCondition};
 use crate::{
     baking::{
         ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
-        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction,
+        PerPeerBlockStatisticsGetAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction, BakingRightsGetAction,
     },
     endorsements::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
@@ -18,7 +18,7 @@ use crate::{
         CurrentHeadHeaderRecievedAction, DrawScreenAction, DrawScreenFailiureAction,
         DrawScreenSuccessAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction,
         TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
-        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CycleChangedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -68,6 +68,7 @@ pub enum Action {
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
     CurrentHeadHeaderChanged(CurrentHeadHeaderChangedAction),
+    CycleChanged(CycleChangedAction),
 
     OperationsStatisticsGet(OperationsStatisticsGetAction),
     OperationsStatisticsReceived(OperationsStatisticsReceivedAction),
@@ -76,6 +77,8 @@ pub enum Action {
     ApplicationStatisticsReceived(ApplicationStatisticsReceivedAction),
     PerPeerBlockStatisticsGet(PerPeerBlockStatisticsGetAction),
     PerPeerBlockStatisticsReceivedAction(PerPeerBlockStatisticsReceivedAction),
+    BakingRightsReceived(BakingRightsReceivedAction),
+    BakingRightsGet(BakingRightsGetAction),
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),
