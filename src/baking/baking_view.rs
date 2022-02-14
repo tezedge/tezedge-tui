@@ -12,7 +12,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::{CustomSeparator, Renderable};
 
-use super::{BakingSummary, BlockApplicationSummary};
+use super::{ApplicationSummary, BlockApplicationSummary};
 
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
@@ -47,22 +47,33 @@ impl Renderable for BakingScreen {
         // ======================== SUMMARY PANEL (right) ========================
 
         // TODO - panic: handle this vector, shold be a vector in the first place? With new architecture that ignores reorgs?
-        let application_summary = if let Some(application_statistics) = state.baking.application_statistics.get(0) {
-            BlockApplicationSummary::from(application_statistics.clone())
-        } else {
-            return;
-        };
+        let application_summary =
+            if let Some(application_statistics) = state.baking.application_statistics.get(0) {
+                BlockApplicationSummary::from(application_statistics.clone())
+            } else {
+                return;
+            };
 
-        let (summary_title_chunk, summary_inner_chunk) = Layout::default()
+        let (
+            summary_baking_title_chunk,
+            summary_baking_inner_chunk,
+            summary_title_chunk,
+            summary_inner_chunk,
+        ) = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(5)])
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(15),
+                Constraint::Length(3),
+                Constraint::Min(17),
+            ])
             .split(summary_chunk)
             .into_iter()
             .collect_tuple()
             .unwrap();
 
         let summary_title = Paragraph::new(Span::styled(
-            " BAKING PROGRESS",
+            " APPLICATION PROGRESS",
             Style::default().fg(Color::White),
         ))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
@@ -77,38 +88,87 @@ impl Renderable for BakingScreen {
 
         let mut application_stats_table_data = application_summary.to_table_data();
 
-        let baking_summary = BakingSummary::from(state.baking.per_peer_block_statistics.clone());
+        let baking_summary =
+            ApplicationSummary::from(state.baking.per_peer_block_statistics.clone());
         baking_summary.extend_table_data(&mut application_stats_table_data);
 
-        // let headers = vec!["OPERATION", "DURATION"];
-        // let header_cells = headers.iter().map(|header| Cell::from(*header));
+        let rows = application_stats_table_data
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, stat)| {
+                let height = 1;
 
-        let rows = application_stats_table_data.into_iter().map(|stat| {
-            let height = 1;
+                let sequence_num = Cell::from(index.to_string());
+                let tag = Cell::from(stat.0);
+                let value = Cell::from(stat.1.to_string());
 
-            let tag = Cell::from(stat.0);
-            let value = Cell::from(stat.1.to_string());
-
-            // TODO: need more elegant solution
-            if stat.1 != *" - " {
-                Row::new(vec![tag, value])
-                    .height(height)
-                    .style(selected_style)
-            } else {
-                Row::new(vec![tag, value]).height(height)
-            }
-        });
-        // let header = Row::new(header_cells)
-        //     .style(normal_style)
-        //     .height(1)
-        //     .bottom_margin(1);
+                // TODO: need more elegant solution
+                if stat.1 != *" - " {
+                    Row::new(vec![sequence_num, tag, value])
+                        .height(height)
+                        .style(selected_style)
+                } else {
+                    Row::new(vec![sequence_num, tag, value]).height(height)
+                }
+            });
 
         let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
         let table = Table::new(rows)
             // .header(header)
             .block(block)
-            .widths(&[Constraint::Percentage(75), Constraint::Percentage(25)]);
+            .widths(&[
+                Constraint::Length(2),
+                Constraint::Percentage(75),
+                Constraint::Percentage(25),
+            ]);
         f.render_widget(table, summary_inner_chunk);
+
+        // ======================== SUMMRAY PANEL BAKING ========================
+        // TODO: only update this on Baking
+        let summary_title = Paragraph::new(Span::styled(
+            " BAKING PROGRESS",
+            Style::default().fg(Color::White),
+        ))
+        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(summary_title, summary_baking_title_chunk);
+        baking_summary.extend_table_data_baking(
+            &mut application_stats_table_data,
+            application_summary.injected,
+        );
+
+        let rows = application_stats_table_data
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, stat)| {
+                let height = 1;
+
+                let sequence_num = Cell::from(index.to_string());
+                let tag = Cell::from(stat.0);
+                let value = Cell::from(stat.1.to_string());
+
+                // TODO: need more elegant solution
+                if stat.1 != *" - " {
+                    Row::new(vec![sequence_num, tag, value])
+                        .height(height)
+                        .style(selected_style)
+                } else {
+                    Row::new(vec![sequence_num, tag, value]).height(height)
+                }
+            });
+
+        let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+        let table = Table::new(rows)
+            // .header(header)
+            .block(block)
+            .widths(&[
+                Constraint::Length(2),
+                Constraint::Percentage(75),
+                Constraint::Percentage(25),
+            ]);
+        f.render_widget(table, summary_baking_inner_chunk);
 
         // ======================== BAKING TABLE (help) ========================
 

@@ -36,6 +36,7 @@ pub struct BlockApplicationStatistics {
     pub send_start: Option<u64>,
     pub send_end: Option<u64>,
     pub protocol_times: Option<BlockApplicationProtocolStatistics>,
+    pub injected: bool,
 }
 
 pub struct BlockApplicationSummary {
@@ -53,6 +54,7 @@ pub struct BlockApplicationSummary {
     pub apply_collecting_new_rolls: Option<u64>,
     pub apply_commit: Option<u64>,
     pub store_data: Option<u64>,
+    pub injected: bool,
 }
 
 impl BlockApplicationSummary {
@@ -60,7 +62,7 @@ impl BlockApplicationSummary {
         let style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
         vec![
             (
-                Spans::from("2 Download"),
+                Spans::from("Download"),
                 convert_time_to_unit_string_option(self.download),
             ),
             // start indention 1
@@ -78,11 +80,11 @@ impl BlockApplicationSummary {
             ),
             // end indention 1
             (
-                Spans::from("3 Load Data"),
+                Spans::from("Load Data"),
                 convert_time_to_unit_string_option(self.load_data),
             ),
             (
-                Spans::from("4 Protocol Apply Block"),
+                Spans::from("Protocol Apply Block"),
                 convert_time_to_unit_string_option(self.protocol_apply_block),
             ),
             // start indention 1
@@ -126,7 +128,7 @@ impl BlockApplicationSummary {
             // end indention 2
             // end indention 1
             (
-                Spans::from("5 Store data"),
+                Spans::from("Store data"),
                 convert_time_to_unit_string_option(self.store_data),
             ),
         ]
@@ -198,6 +200,7 @@ impl From<BlockApplicationStatistics> for BlockApplicationSummary {
             apply_collecting_new_rolls,
             apply_commit,
             store_data,
+            injected: stats.injected,
         }
     }
 }
@@ -282,51 +285,56 @@ impl TuiTableData for PerPeerBlockStatistics {
     }
 }
 
-pub struct BakingSummary {
-    pub injected: Option<u64>,
+pub struct ApplicationSummary {
     pub send_block_header: Option<u64>,
     pub block_operations_requested: Option<u64>,
     pub block_operations_sent: Option<u64>,
     pub block_header_received_back: Option<u64>,
 }
 
-impl BakingSummary {
+impl ApplicationSummary {
     pub fn extend_table_data(&self, table_data: &mut Vec<(Spans, String)>) {
-        let injected = (
-            Spans::from("1 Injected"),
-            convert_time_to_unit_string_option(self.injected),
-        );
         let send_block_header = (
-            Spans::from("6 Send Block Header"),
+            Spans::from("Send Block Header"),
             convert_time_to_unit_string_option(self.send_block_header),
         );
+
+        table_data.push(send_block_header);
+    }
+
+    pub fn extend_table_data_baking(&self, table_data: &mut Vec<(Spans, String)>, injected: bool) {
+        let injected = (
+            Spans::from("Injected"),
+            if injected {
+                String::from("✓")
+            } else {
+                String::from(" - ")
+            },
+        );
+        let block_header_received_back = (
+            Spans::from("Block Header Reveived Back"),
+            convert_time_to_unit_string_option(self.block_header_received_back),
+        );
         let block_operations_requested = (
-            Spans::from("7 Block Operations Requested"),
+            Spans::from("Block Operations Requested"),
             convert_time_to_unit_string_option(self.block_operations_requested),
         );
         let block_operations_sent = (
-            Spans::from("8 Block Operations Sent"),
+            Spans::from("Block Operations Sent"),
             convert_time_to_unit_string_option(self.block_operations_sent),
         );
-        let block_header_received_back = (
-            Spans::from("9 Block Header Reveived Back"),
-            convert_time_to_unit_string_option(self.block_header_received_back),
-        );
 
+        // remove download stats for injected block and add injected stat
+        table_data.drain(0..3);
         table_data.insert(0, injected);
-        table_data.push(send_block_header);
+        table_data.push(block_header_received_back);
         table_data.push(block_operations_requested);
         table_data.push(block_operations_sent);
-        table_data.push(block_header_received_back);
     }
 }
 
-impl From<PerPeerBlockStatisticsVector> for BakingSummary {
+impl From<PerPeerBlockStatisticsVector> for ApplicationSummary {
     fn from(stats: PerPeerBlockStatisticsVector) -> Self {
-        let injected = stats
-            .iter()
-            .find(|stat| stat.received_time == Some(0))
-            .map(|stat| stat.received_time.unwrap_or(0));
         let send_block_header = stats.iter().filter_map(|stat| stat.sent_end_time).min();
         let block_operations_requested = stats
             .iter()
@@ -343,7 +351,6 @@ impl From<PerPeerBlockStatisticsVector> for BakingSummary {
             .min();
 
         Self {
-            injected,
             send_block_header,
             block_operations_requested,
             block_operations_sent,
