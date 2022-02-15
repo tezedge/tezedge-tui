@@ -357,8 +357,7 @@ impl Renderable for BakingScreen {
         // f.render_widget(barchart, barchart_area);
 
         // ======================== HEADER ========================
-        let header = &state.current_head_header;
-        create_header_bar(page_chunks[0], header, f);
+        create_header_bar(page_chunks[0], state, f);
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);

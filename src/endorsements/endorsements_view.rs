@@ -48,8 +48,7 @@ impl Renderable for EndorsementsScreen {
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
         // ======================== HEADER ========================
-        let header = &state.current_head_header;
-        create_header_bar(header_chunk, header, f);
+        create_header_bar(header_chunk, state, f);
 
         // ======================== SUMARY ========================
         let separator = Span::styled(

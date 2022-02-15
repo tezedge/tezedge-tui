@@ -9,7 +9,7 @@ use tui::{
 };
 
 use crate::{
-    services::rpc_service::CurrentHeadHeader,
+    automaton::State,
     terminal_ui::{ActivePage, UiState},
 };
 
@@ -76,11 +76,8 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
     f.render_widget(help_paragraph, help_chunk);
 }
 
-pub fn create_header_bar<B: Backend>(
-    header_chunk: Rect,
-    header: &CurrentHeadHeader,
-    f: &mut Frame<B>,
-) {
+pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut Frame<B>) {
+    let header = &state.current_head_header;
     // wrap the header info in borders
     let block = Block::default()
         .borders(Borders::BOTTOM)
@@ -90,19 +87,27 @@ pub fn create_header_bar<B: Backend>(
     let header_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(62),
+            Constraint::Length(23),
             Constraint::Length(16),
             Constraint::Length(18),
+            Constraint::Min(50),
         ])
         .split(header_chunk);
 
+    let block_hash_short = if !header.hash.is_empty() {
+        let start = header.hash.chars().take(6).collect::<String>();
+        let end = header.hash.chars().rev().take(6).collect::<String>();
+        format!("{}..{}", start, end)
+    } else {
+        String::from("")
+    };
     let block_hash = Paragraph::new(Spans::from(vec![
         Span::styled(
             " Block: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ),
         Span::styled(
-            format!("{} ", header.hash),
+            format!("{} ", block_hash_short),
             Style::default().fg(Color::White),
         ),
     ]));
@@ -141,6 +146,50 @@ pub fn create_header_bar<B: Backend>(
     ]));
 
     f.render_widget(block_protocol, header_chunks[2]);
+
+    let baker_info_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(21), Constraint::Length(26)])
+        .split(header_chunks[3]);
+
+    // render next baking endorsements if we have baker address specified
+    if state.baker_address.is_some() {
+        // Baking in 59 minutes
+        // Endorsement in 59 minutes
+
+        let baking_in =
+            if let Some((_, time)) = state.baking.baking_rights.next_baking(header.level) {
+                time
+            } else {
+                String::from("Never")
+            };
+
+        let baking = Paragraph::new(Spans::from(vec![
+            Span::styled(
+                "Baking in ",
+                Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+            ),
+            Span::styled(format!("{} ", baking_in), Style::default().fg(Color::White)),
+        ]))
+        .alignment(Alignment::Right);
+
+        f.render_widget(baking, baker_info_chunks[0]);
+
+        // TODO
+        let endorsing = Paragraph::new(Spans::from(vec![
+            Span::styled(
+                "Endorsement in ",
+                Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+            ),
+            Span::styled(
+                format!("{} ", "placeholder"),
+                Style::default().fg(Color::White),
+            ),
+        ]))
+        .alignment(Alignment::Right);
+
+        f.render_widget(endorsing, baker_info_chunks[1]);
+    }
 }
 
 pub fn create_quit<B: Backend>(last_chunk: Rect, f: &mut Frame<B>) {

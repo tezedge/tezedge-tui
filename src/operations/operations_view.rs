@@ -42,8 +42,7 @@ impl Renderable for StatisticsScreen {
             .split(size);
 
         // ======================== HEADER ========================
-        let header = &state.current_head_header;
-        create_header_bar(page_chunks[0], header, f);
+        create_header_bar(page_chunks[0], state, f);
 
         let operations_statistics = &state.operations_statistics.operations_statistics;
         let operations_statistics_sortable = &state

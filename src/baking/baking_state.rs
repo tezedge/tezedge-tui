@@ -433,16 +433,12 @@ impl BakingRights {
 
                     if !until_baking.num_days().is_zero() {
                         final_str += &format!("{} days", until_baking.num_days());
-                    }
-
-                    if !until_baking.num_hours().is_zero() {
+                    } else if !until_baking.num_hours().is_zero() {
                         final_str += &format!("{} hours", until_baking.num_hours());
-                    }
-
-                    if !until_baking.num_minutes().is_zero() {
+                    } else if !until_baking.num_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_baking.num_minutes());
                     } else {
-                        final_str += &"Baking shortly".to_string();
+                        final_str += &"now".to_string();
                     }
                     (*level, final_str)
                 } else {
