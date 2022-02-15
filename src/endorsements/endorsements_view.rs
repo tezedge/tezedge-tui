@@ -4,6 +4,7 @@ use tui::backend::CrosstermBackend;
 use tui::layout::Corner;
 use tui::style::Modifier;
 use tui::text::{Span, Spans};
+use tui::widgets::Cell;
 use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
@@ -34,12 +35,11 @@ impl Renderable for EndorsementsScreen {
             .constraints([Constraint::Min(5), Constraint::Length(1)])
             .split(size);
 
-        let (header_chunk, summary_chunk, help_chunk, endorsements_chunk) = Layout::default()
+        let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(2),
                 Constraint::Length(1),
-                Constraint::Length(2),
                 Constraint::Min(1),
             ])
             .split(page_chunks[0])
@@ -47,6 +47,29 @@ impl Renderable for EndorsementsScreen {
             .collect_tuple()
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
+        let (endorsement_table_chunk, endorsing_panel_chunk) = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(65),
+                Constraint::Percentage(35),
+            ])
+            .split(endorsements_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        let (endorsement_table_help_chunk, endorsement_table_inner_chunk) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(2),
+                Constraint::Min(1),
+            ])
+            .split(endorsement_table_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+        
+        
         // ======================== HEADER ========================
         create_header_bar(header_chunk, state, f);
 
@@ -97,7 +120,7 @@ impl Renderable for EndorsementsScreen {
         f.render_widget(summary_paragraph, summary_chunk);
 
         // ======================== HELP BAR ========================
-        create_help_bar(help_chunk, f, delta_toggle);
+        create_help_bar(endorsement_table_help_chunk, f, delta_toggle);
 
         // ======================== ENDORSERS ========================
 
@@ -134,7 +157,7 @@ impl Renderable for EndorsementsScreen {
             .widths(&renderable_constraints);
         f.render_stateful_widget(
             table,
-            endorsements_chunk,
+            endorsement_table_inner_chunk,
             &mut state.endorsmenents.endorsement_table.table_state.clone(),
         );
 
@@ -142,15 +165,67 @@ impl Renderable for EndorsementsScreen {
         let vertical_left_separator = CustomSeparator::default()
             .separator("├")
             .corner(Corner::TopLeft);
-        f.render_widget(vertical_left_separator, endorsements_chunk);
+        f.render_widget(vertical_left_separator, endorsement_table_inner_chunk);
 
         let vertical_right_separator = CustomSeparator::default()
             .separator("┤")
             .corner(Corner::TopRight);
-        f.render_widget(vertical_right_separator, endorsements_chunk);
+        f.render_widget(vertical_right_separator, endorsement_table_inner_chunk);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);
+
+        // ======================== BAKER ENDORSING PANEL ========================
+        let (endorsing_panel_title_chunk, endorsing_panel_inner_chunk) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ])
+            .split(endorsing_panel_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        let endorser_panel_title = Paragraph::new(Spans::from(vec![
+            Span::styled(
+                " ENDORSING PROGRESS ",
+                Style::default().fg(Color::White),
+            ),
+        ]))
+        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
+
+
+        let rows = to_table_data_mocked()
+            .into_iter()
+            .enumerate()
+            .map(|(index, (tag, value))| {
+                let sequence_num_cell = Cell::from(index.to_string());
+                let tag_cell = Cell::from(tag);
+                let value_cell = Cell::from(value.clone());
+
+                // TODO: need more elegant solution
+                if value != *" - " {
+                    Row::new(vec![sequence_num_cell, tag_cell, value_cell])
+                        .height(1)
+                        .style(selected_style)
+                } else {
+                    Row::new(vec![sequence_num_cell, tag_cell, value_cell]).height(1)
+                }
+            });
+
+        let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+        let table = Table::new(rows)
+            // .header(header)
+            .block(block)
+            .widths(&[
+                Constraint::Length(2),
+                Constraint::Percentage(75),
+                Constraint::Percentage(25),
+            ]);
+        f.render_widget(table, endorsing_panel_inner_chunk);
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);
@@ -159,4 +234,16 @@ impl Renderable for EndorsementsScreen {
         // ======================== Quit ========================
         create_quit(page_chunks[1], f);
     }
+}
+
+// TODO -> get from the data once the rpc is completed
+pub fn to_table_data_mocked() -> Vec<(Spans<'static>, String)> {
+    vec![
+        (Spans::from("Injected"), String::from(" - ")),
+        (Spans::from("Prechecked"), String::from(" - ")),
+        (Spans::from("Operation Hash Sent"), String::from(" - ")),
+        (Spans::from("Operation Requested"), String::from(" - ")),
+        (Spans::from("Operation Sent"), String::from(" - ")),
+        (Spans::from("Operation Hash Received back"), String::from(" - ")),
+    ]
 }
