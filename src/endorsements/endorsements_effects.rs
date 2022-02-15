@@ -7,6 +7,8 @@ use crate::{
     },
 };
 
+use super::EndorsementsRightsWithTimeGetAction;
+
 pub fn endorsement_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
     S: Service,
@@ -27,6 +29,26 @@ where
                     )),
                 ),
             });
+
+            let is_empty = store.state().endorsmenents.endorsement_rights_with_time.rights.is_empty();
+            if is_empty {
+                store.dispatch(EndorsementsRightsWithTimeGetAction {});
+            }
+        }
+        Action::EndorsementsRightsWithTimeGet(_) => {
+            // TODO: change this to correnct cycle
+            let cycle = store.state().current_head_header.level / 4096;
+            if let Some(delegate) = store.state().baker_address.clone() {
+                store.dispatch(RpcRequestAction {
+                    call: RpcCall::new(
+                        RpcTarget::EndorsementRightsWithTime,
+                        Some(format!(
+                            "?delegate={}&cycle={}",
+                            delegate, cycle
+                        )),
+                    ),
+                });
+            }
         }
         _ => {}
     }

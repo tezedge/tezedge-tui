@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::automaton::{Action, ActionWithMeta, State};
 
 use super::{
-    EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
+    EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec, EndorsementRightsWithTime,
 };
 
 pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
@@ -56,6 +56,9 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
                     .endorsement_table
                     .sort_content(delta_toggle);
             }
+        }
+        Action::EndorsementsRightsWithTimeReceived(action) => {
+            state.endorsmenents.endorsement_rights_with_time = EndorsementRightsWithTime::new(&action.rights);
         }
         _ => {}
     }

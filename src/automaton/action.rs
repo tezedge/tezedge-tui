@@ -10,7 +10,7 @@ use crate::{
     },
     endorsements::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction, EndorsementsRightsWithTimeGetAction, EndorsementsRightsWithTimeReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},
@@ -65,6 +65,8 @@ pub enum Action {
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),
     EndorsementsStatusesGet(EndorsementsStatusesGetAction),
     EndorsementsStatusesReceived(EndorsementsStatusesReceivedAction),
+    EndorsementsRightsWithTimeGet(EndorsementsRightsWithTimeGetAction),
+    EndorsementsRightsWithTimeReceived(EndorsementsRightsWithTimeReceivedAction),
 
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),

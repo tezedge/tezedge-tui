@@ -4,7 +4,7 @@ use crate::{
         ApplicationStatisticsReceivedAction, BakingRightsReceivedAction,
         PerPeerBlockStatisticsReceivedAction,
     },
-    endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction},
+    endorsements::{EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction, EndorsementsRightsWithTimeReceivedAction},
     operations::OperationsStatisticsReceivedAction,
     services::{
         rpc_service::{RpcResponse, RpcService},
@@ -60,6 +60,11 @@ where
                     rights: rights.clone(),
                 });
             }
+            RpcResponse::EndorsementRightsWithTime(rights) => {
+                store.dispatch(EndorsementsRightsWithTimeReceivedAction {
+                    rights: rights.clone(),
+                });
+            },
         },
         Action::RpcResponseRead(_) => {
             while let Ok(response) = store.service().rpc().response_try_recv() {

@@ -175,6 +175,12 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
 
         f.render_widget(baking, baker_info_chunks[0]);
 
+        let endorsing_in = if let Some((_, time)) = state.endorsmenents.endorsement_rights_with_time.next_endorsing(header.level) {
+            time
+        } else {
+            String::from("Never")
+        };
+
         // TODO
         let endorsing = Paragraph::new(Spans::from(vec![
             Span::styled(
@@ -182,7 +188,7 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
                 Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
             ),
             Span::styled(
-                format!("{} ", "placeholder"),
+                format!("{} ", endorsing_in),
                 Style::default().fg(Color::White),
             ),
         ]))

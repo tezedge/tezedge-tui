@@ -2,7 +2,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
 
-use super::{EndorsementRights, EndorsementStatuses};
+use super::{EndorsementRights, EndorsementStatuses, EndorsementRightsWithTime, EndorsementRightsWithTimePerLevel};
 
 #[derive(Debug, Clone)]
 pub struct EndorsementsRightsGetAction {
@@ -53,6 +53,26 @@ pub struct DrawEndorsementsScreenAction {
 }
 
 impl EnablingCondition<State> for DrawEndorsementsScreenAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EndorsementsRightsWithTimeGetAction {}
+
+impl EnablingCondition<State> for EndorsementsRightsWithTimeGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EndorsementsRightsWithTimeReceivedAction {
+    pub rights: Vec<EndorsementRightsWithTimePerLevel>,
+}
+
+impl EnablingCondition<State> for EndorsementsRightsWithTimeReceivedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

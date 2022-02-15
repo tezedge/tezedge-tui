@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, str::FromStr};
 
+use chrono::{DateTime, Utc};
+use num::Zero;
 use serde::Deserialize;
 use strum_macros::EnumIter;
 use tui::{
@@ -15,10 +17,70 @@ pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct EndorsementRightsWithTimePerLevel {
+    pub level: i32,
+    pub slots: Vec<u16>,
+    pub delegate: String,
+    pub estimated_time: Option<String>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct EndorsementRightsWithTime {
+    pub rights: BTreeMap<i32, Option<String>>,
+}
+
+impl EndorsementRightsWithTime {
+    pub fn new(raw: &[EndorsementRightsWithTimePerLevel]) -> Self {
+        let organized = raw
+            .iter()
+            .map(|rights_per_level| {
+                (
+                    rights_per_level.level,
+                    rights_per_level.estimated_time.clone(),
+                )
+            })
+            .collect();
+
+        Self { rights: organized }
+    }
+
+    // TODO: same thing as in baking rights, move to common trait? 
+    pub fn next_endorsing(&self, current_level: i32) -> Option<(i32, String)> {
+        self.rights
+            .range(current_level..)
+            .next()
+            .map(|(level, time)| {
+                if let Ok(estimated_baking_time) =
+                    DateTime::parse_from_rfc3339(&time.clone().unwrap_or_default())
+                {
+                    let now = Utc::now();
+                    let until_baking = estimated_baking_time.signed_duration_since(now);
+                    let mut final_str = String::from("");
+
+                    if !until_baking.num_days().is_zero() {
+                        final_str += &format!("{} days", until_baking.num_days());
+                    } else if !until_baking.num_hours().is_zero() {
+                        final_str += &format!("{} hours", until_baking.num_hours());
+                    } else if !until_baking.num_minutes().is_zero() {
+                        final_str += &format!("{} minutes", until_baking.num_minutes());
+                    } else {
+                        final_str += &"now".to_string();
+                    }
+                    (*level, final_str)
+                } else {
+                    (*level, time.clone().unwrap_or_default())
+                }
+            })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
+    pub endorsement_rights_with_time: EndorsementRightsWithTime,
+    pub last_endorsement_operation: Option<String>,
 
     // ui specific states
     pub endorsement_table: ExtendedTable<EndorsementStatusSortableVec>,
@@ -61,6 +123,8 @@ impl Default for EndrosementsState {
             endorsement_table,
             endoresement_status_summary: BTreeMap::new(),
             endorsement_rights: BTreeMap::new(),
+            endorsement_rights_with_time: Default::default(),
+            last_endorsement_operation: None,
         }
     }
 }

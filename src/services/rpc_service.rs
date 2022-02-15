@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::{
     baking::{BakingRightsPerLevel, BlockApplicationStatistics, PerPeerBlockStatisticsVector},
-    endorsements::{EndorsementRights, EndorsementStatuses},
+    endorsements::{EndorsementRights, EndorsementStatuses, EndorsementRightsWithTimePerLevel},
     operations::OperationsStats,
 };
 
@@ -134,6 +134,13 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::BakingRights(rights))
             }
+            RpcTarget::EndorsementRightsWithTime => {
+                let rights: Vec<EndorsementRightsWithTimePerLevel> = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::EndorsementRightsWithTime(rights))
+            },
         }
     }
 }
@@ -169,6 +176,7 @@ pub enum RpcTarget {
     ApplicationStatistics,
     PerPeerBlockStatistics,
     BakingRights,
+    EndorsementRightsWithTime,
 }
 
 #[derive(Clone, Debug)]
@@ -181,6 +189,7 @@ pub enum RpcResponse {
     ApplicationStatistics(Vec<BlockApplicationStatistics>),
     PerPeerBlockStatistics(PerPeerBlockStatisticsVector),
     BakingRights(Vec<BakingRightsPerLevel>),
+    EndorsementRightsWithTime(Vec<EndorsementRightsWithTimePerLevel>)
 }
 
 impl Display for RpcCall {
@@ -215,6 +224,9 @@ impl Display for RpcCall {
             RpcTarget::BakingRights => {
                 write!(f, "BakingRights - Query args: {:?}", self.query_arg)
             }
+            RpcTarget::EndorsementRightsWithTime => {
+                write!(f, "EndorsementRightsWithTime - Query args: {:?}", self.query_arg)
+            },
         }
     }
 }
@@ -231,6 +243,7 @@ impl RpcCall {
             }
             RpcTarget::PerPeerBlockStatistics => "dev/shell/automaton/stats/current_head/peers",
             RpcTarget::BakingRights => "chains/main/blocks/head/helpers/baking_rights",
+            RpcTarget::EndorsementRightsWithTime => "chains/main/blocks/head/helpers/endorsing_rights",
         }
     }
 }
