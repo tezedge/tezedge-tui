@@ -2,7 +2,10 @@ use redux_rs::EnablingCondition;
 
 use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
 
-use super::{EndorsementRights, EndorsementStatuses, EndorsementRightsWithTime, EndorsementRightsWithTimePerLevel};
+use super::{
+    EndorsementRights, EndorsementRightsWithTime, EndorsementRightsWithTimePerLevel,
+    EndorsementStatuses,
+};
 
 #[derive(Debug, Clone)]
 pub struct EndorsementsRightsGetAction {

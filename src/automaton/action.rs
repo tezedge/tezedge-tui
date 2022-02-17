@@ -10,7 +10,8 @@ use crate::{
     },
     endorsements::{
         EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
-        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction, EndorsementsRightsWithTimeGetAction, EndorsementsRightsWithTimeReceivedAction,
+        EndorsementsRightsWithTimeGetAction, EndorsementsRightsWithTimeReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},

@@ -49,10 +49,7 @@ impl Renderable for EndorsementsScreen {
 
         let (endorsement_table_chunk, endorsing_panel_chunk) = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(65),
-                Constraint::Percentage(35),
-            ])
+            .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
             .split(endorsements_chunk)
             .into_iter()
             .collect_tuple()
@@ -60,16 +57,12 @@ impl Renderable for EndorsementsScreen {
 
         let (endorsement_table_help_chunk, endorsement_table_inner_chunk) = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(2),
-                Constraint::Min(1),
-            ])
+            .constraints([Constraint::Length(2), Constraint::Min(1)])
             .split(endorsement_table_chunk)
             .into_iter()
             .collect_tuple()
             .unwrap();
-        
-        
+
         // ======================== HEADER ========================
         create_header_bar(header_chunk, state, f);
 
@@ -178,25 +171,23 @@ impl Renderable for EndorsementsScreen {
         // ======================== BAKER ENDORSING PANEL ========================
         let (endorsing_panel_title_chunk, endorsing_panel_inner_chunk) = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3),
-                Constraint::Min(1),
-            ])
+            .constraints([Constraint::Length(3), Constraint::Min(1)])
             .split(endorsing_panel_chunk)
             .into_iter()
             .collect_tuple()
             .unwrap();
 
-        let endorser_panel_title = Paragraph::new(Spans::from(vec![
-            Span::styled(
-                " ENDORSING PROGRESS ",
-                Style::default().fg(Color::White),
-            ),
-        ]))
+        let endorser_panel_title = Paragraph::new(Spans::from(vec![Span::styled(
+            " ENDORSING PROGRESS ",
+            Style::default().fg(Color::White),
+        )]))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
         f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
 
+        let selected_style = Style::default()
+            .remove_modifier(Modifier::DIM)
+            .bg(Color::Black);
 
         let rows = to_table_data_mocked()
             .into_iter()
@@ -204,10 +195,10 @@ impl Renderable for EndorsementsScreen {
             .map(|(index, (tag, value))| {
                 let sequence_num_cell = Cell::from(index.to_string());
                 let tag_cell = Cell::from(tag);
-                let value_cell = Cell::from(value.clone());
+                let value_cell = Cell::from(value);
 
-                // TODO: need more elegant solution
-                if value != *" - " {
+                // stripes to differentiate between lines
+                if index % 2 == 0 {
                     Row::new(vec![sequence_num_cell, tag_cell, value_cell])
                         .height(1)
                         .style(selected_style)
@@ -244,6 +235,9 @@ pub fn to_table_data_mocked() -> Vec<(Spans<'static>, String)> {
         (Spans::from("Operation Hash Sent"), String::from(" - ")),
         (Spans::from("Operation Requested"), String::from(" - ")),
         (Spans::from("Operation Sent"), String::from(" - ")),
-        (Spans::from("Operation Hash Received back"), String::from(" - ")),
+        (
+            Spans::from("Operation Hash Received back"),
+            String::from(" - "),
+        ),
     ]
 }

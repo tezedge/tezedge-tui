@@ -30,7 +30,12 @@ where
                 ),
             });
 
-            let is_empty = store.state().endorsmenents.endorsement_rights_with_time.rights.is_empty();
+            let is_empty = store
+                .state()
+                .endorsmenents
+                .endorsement_rights_with_time
+                .rights
+                .is_empty();
             if is_empty {
                 store.dispatch(EndorsementsRightsWithTimeGetAction {});
             }
@@ -42,10 +47,7 @@ where
                 store.dispatch(RpcRequestAction {
                     call: RpcCall::new(
                         RpcTarget::EndorsementRightsWithTime,
-                        Some(format!(
-                            "?delegate={}&cycle={}",
-                            delegate, cycle
-                        )),
+                        Some(format!("?delegate={}&cycle={}", delegate, cycle)),
                     ),
                 });
             }

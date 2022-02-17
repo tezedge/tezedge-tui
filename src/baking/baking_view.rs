@@ -86,8 +86,7 @@ impl Renderable for BakingScreen {
 
         let selected_style = Style::default()
             .remove_modifier(Modifier::DIM)
-            .fg(Color::Black)
-            .bg(Color::Green);
+            .bg(Color::Black);
         let normal_style = Style::default().fg(Color::White);
 
         let mut application_stats_table_data = application_summary.to_table_data();
@@ -109,15 +108,16 @@ impl Renderable for BakingScreen {
             .clone()
             .into_iter()
             .enumerate()
-            .map(|(index, stat)| {
+            .map(|(index, (tag, styled_time))| {
                 let height = 1;
 
                 let sequence_num = Cell::from(index.to_string());
-                let tag = Cell::from(stat.0);
-                let value = Cell::from(stat.1.to_string());
+                let tag = Cell::from(tag);
+                let value = Cell::from(styled_time.get_string_representation())
+                    .style(styled_time.get_style().remove_modifier(Modifier::DIM));
 
-                // TODO: need more elegant solution
-                if stat.1 != *" - " {
+                // stripes to differentiate between lines
+                if index % 2 == 0 {
                     Row::new(vec![sequence_num, tag, value])
                         .height(height)
                         .style(selected_style)
@@ -143,26 +143,38 @@ impl Renderable for BakingScreen {
         let current_head_level = state.current_head_header.level;
         let next_baking = state.baking.baking_rights.next_baking(current_head_level);
 
-        let next_baking_level_label = if let Some((level, time)) = next_baking.clone() {
-            Span::styled(
-                format!("{} in {}", level, time),
-                Style::default().fg(Color::White),
-            )
-        } else {
-            Span::styled(
-                "No rights found",
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::DIM),
-            )
-        };
+        let (next_baking_time_label, next_baking_delta_label) =
+            if let Some((level, time)) = next_baking.clone() {
+                let blocks_delta = level - current_head_level;
+                (
+                    Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
+                    Span::styled(
+                        format!("{} ({} blocks)", time, blocks_delta),
+                        Style::default().fg(Color::White),
+                    ),
+                )
+            } else {
+                (
+                    Span::styled(
+                        "No rights found",
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::DIM),
+                    ),
+                    Span::from(""),
+                )
+            };
+
+        let summary_dimmed_text_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
 
         let summary_title = Paragraph::new(Spans::from(vec![
-            Span::styled(
-                " BAKING PROGRESS - Next baking at level ",
-                Style::default().fg(Color::White),
-            ),
-            next_baking_level_label,
+            Span::styled(" BAKING PROGRESS - ", Style::default().fg(Color::White)),
+            Span::styled("Next baking at level ", summary_dimmed_text_style),
+            next_baking_time_label,
+            Span::styled("in ", summary_dimmed_text_style),
+            next_baking_delta_label,
         ]))
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
@@ -227,15 +239,16 @@ impl Renderable for BakingScreen {
                 .clone()
                 .into_iter()
                 .enumerate()
-                .map(|(index, stat)| {
+                .map(|(index, (tag, styled_time))| {
                     let height = 1;
 
                     let sequence_num = Cell::from(index.to_string());
-                    let tag = Cell::from(stat.0);
-                    let value = Cell::from(stat.1.to_string());
+                    let tag = Cell::from(tag);
+                    let value = Cell::from(styled_time.get_string_representation())
+                        .style(styled_time.get_style().remove_modifier(Modifier::DIM));
 
-                    // TODO: need more elegant solution
-                    if stat.1 != *" - " {
+                    // stripes to differentiate between lines
+                    if index % 2 == 0 {
                         Row::new(vec![sequence_num, tag, value])
                             .height(height)
                             .style(selected_style)

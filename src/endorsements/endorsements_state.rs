@@ -45,7 +45,7 @@ impl EndorsementRightsWithTime {
         Self { rights: organized }
     }
 
-    // TODO: same thing as in baking rights, move to common trait? 
+    // TODO: same thing as in baking rights, move to common trait?
     pub fn next_endorsing(&self, current_level: i32) -> Option<(i32, String)> {
         self.rights
             .range(current_level..)
@@ -64,6 +64,8 @@ impl EndorsementRightsWithTime {
                         final_str += &format!("{} hours", until_baking.num_hours());
                     } else if !until_baking.num_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_baking.num_minutes());
+                    } else if !until_baking.num_seconds().is_zero() {
+                        final_str += &format!("{} seconds", until_baking.num_seconds());
                     } else {
                         final_str += &"now".to_string();
                     }

@@ -12,7 +12,7 @@ use tui::{
 
 use crate::extensions::{
     convert_time_to_unit_string, convert_time_to_unit_string_option, ExtendedTable,
-    SortableByFocus, TuiTableData,
+    SortableByFocus, StyledTime, TuiTableData,
 };
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
@@ -62,17 +62,14 @@ pub struct BlockApplicationSummary {
 }
 
 impl BlockApplicationSummary {
-    pub fn to_table_data(&self) -> Vec<(Spans, String)> {
+    pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<u64>)> {
         let style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
         vec![
-            (
-                Spans::from("Download"),
-                convert_time_to_unit_string_option(self.download),
-            ),
+            (Spans::from("Download"), StyledTime::new(self.download)),
             // start indention 1
             (
                 Spans::from(vec![Span::styled("├─ ", style), Span::from("Block Header")]),
-                convert_time_to_unit_string_option(self.download_block_header),
+                StyledTime::new(self.download_block_header),
             ),
             // ("└─ Block Operations", 0u64),
             (
@@ -80,21 +77,18 @@ impl BlockApplicationSummary {
                     Span::styled("└─ ", style),
                     Span::from("Block Operations"),
                 ]),
-                convert_time_to_unit_string_option(self.download_block_operations),
+                StyledTime::new(self.download_block_operations),
             ),
             // end indention 1
-            (
-                Spans::from("Load Data"),
-                convert_time_to_unit_string_option(self.load_data),
-            ),
+            (Spans::from("Load Data"), StyledTime::new(self.load_data)),
             (
                 Spans::from("Protocol Apply Block"),
-                convert_time_to_unit_string_option(self.protocol_apply_block),
+                StyledTime::new(self.protocol_apply_block),
             ),
             // start indention 1
             (
                 Spans::from(vec![Span::styled("└─ ", style), Span::from("Apply")]),
-                convert_time_to_unit_string_option(self.apply),
+                StyledTime::new(self.apply),
             ),
             // start indendtion 2
             (
@@ -102,38 +96,38 @@ impl BlockApplicationSummary {
                     Span::styled("   ├─ ", style),
                     Span::from("Begin application"),
                 ]),
-                convert_time_to_unit_string_option(self.apply_begin_application),
+                StyledTime::new(self.apply_begin_application),
             ),
             (
                 Spans::from(vec![
                     Span::styled("   ├─ ", style),
                     Span::from("Decoding operations"),
                 ]),
-                convert_time_to_unit_string_option(self.apply_decoding_operations),
+                StyledTime::new(self.apply_decoding_operations),
             ),
             (
                 Spans::from(vec![
                     Span::styled("   ├─ ", style),
                     Span::from("Encoding operations metadata"),
                 ]),
-                convert_time_to_unit_string_option(self.apply_encoding_operations_metadata),
+                StyledTime::new(self.apply_encoding_operations_metadata),
             ),
             (
                 Spans::from(vec![
                     Span::styled("   ├─ ", style),
                     Span::from("Collecting new rolls"),
                 ]),
-                convert_time_to_unit_string_option(self.apply_collecting_new_rolls),
+                StyledTime::new(self.apply_collecting_new_rolls),
             ),
             (
                 Spans::from(vec![Span::styled("   └─ ", style), Span::from("Commit")]),
-                convert_time_to_unit_string_option(self.apply_commit),
+                StyledTime::new(self.apply_commit),
             ),
             // end indention 2
             // end indention 1
             (
-                Spans::from("Store data"),
-                convert_time_to_unit_string_option(self.store_data),
+                Spans::from("Store application result"),
+                StyledTime::new(self.store_data),
             ),
         ]
     }
@@ -161,34 +155,40 @@ impl BakingSummary {
         }
     }
 
-    pub fn to_table_data(&self) -> Vec<(Spans, String)> {
+    pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<u64>)> {
         let mut table_data = self.block_application_summary.to_table_data();
         let application_summary = ApplicationSummary::from(self.per_peer.clone());
 
         let injected = (
             Spans::from("Injected"),
+            // TODO: get the correct stat for injected
             if self.injected {
-                String::from("✓")
+                StyledTime::new(Some(0))
             } else {
-                String::from(" - ")
+                StyledTime::new(None)
             },
         );
+        let block_header_sent = (
+            Spans::from("Block Header Sent"),
+            StyledTime::new(application_summary.send_block_header),
+        );
         let block_header_received_back = (
-            Spans::from("Block Header Reveived Back"),
-            convert_time_to_unit_string_option(application_summary.block_header_received_back),
+            Spans::from("Block Header Received Back"),
+            StyledTime::new(application_summary.block_header_received_back),
         );
         let block_operations_requested = (
             Spans::from("Block Operations Requested"),
-            convert_time_to_unit_string_option(application_summary.block_operations_requested),
+            StyledTime::new(application_summary.block_operations_requested),
         );
         let block_operations_sent = (
             Spans::from("Block Operations Sent"),
-            convert_time_to_unit_string_option(application_summary.block_operations_sent),
+            StyledTime::new(application_summary.block_operations_sent),
         );
 
         // remove download stats for injected block and add injected stat
         table_data.drain(0..3);
         table_data.insert(0, injected);
+        table_data.push(block_header_sent);
         table_data.push(block_header_received_back);
         table_data.push(block_operations_requested);
         table_data.push(block_operations_sent);
@@ -355,10 +355,10 @@ pub struct ApplicationSummary {
 }
 
 impl ApplicationSummary {
-    pub fn extend_table_data(&self, table_data: &mut Vec<(Spans, String)>) {
+    pub fn extend_table_data(&self, table_data: &mut Vec<(Spans, StyledTime<u64>)>) {
         let send_block_header = (
             Spans::from("Send Block Header"),
-            convert_time_to_unit_string_option(self.send_block_header),
+            StyledTime::new(self.send_block_header),
         );
 
         table_data.push(send_block_header);
@@ -437,6 +437,8 @@ impl BakingRights {
                         final_str += &format!("{} hours", until_baking.num_hours());
                     } else if !until_baking.num_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_baking.num_minutes());
+                    } else if !until_baking.num_seconds().is_zero() {
+                        final_str += &format!("{} seconds", until_baking.num_seconds());
                     } else {
                         final_str += &"now".to_string();
                     }
