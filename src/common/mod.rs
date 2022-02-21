@@ -158,12 +158,15 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         // Baking in 59 minutes
         // Endorsement in 59 minutes
 
-        let baking_in =
-            if let Some((_, time)) = state.baking.baking_rights.next_baking(header.level, &header.timestamp, state.network_constants.minimal_block_delay) {
-                time
-            } else {
-                String::from("Never")
-            };
+        let baking_in = if let Some((_, time)) = state.baking.baking_rights.next_baking(
+            header.level,
+            &header.timestamp,
+            state.network_constants.minimal_block_delay,
+        ) {
+            time
+        } else {
+            String::from("Never")
+        };
 
         let baking = Paragraph::new(Spans::from(vec![
             Span::styled(
@@ -179,8 +182,13 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         let endorsing_in = if let Some((_, time)) = state
             .endorsmenents
             .endorsement_rights_with_time
-            .next_endorsing(header.level + 1, header.timestamp.saturating_add(Duration::seconds(state.network_constants.minimal_block_delay.into())),state.network_constants.minimal_block_delay)
-        {
+            .next_endorsing(
+                header.level + 1,
+                header.timestamp.saturating_add(Duration::seconds(
+                    state.network_constants.minimal_block_delay.into(),
+                )),
+                state.network_constants.minimal_block_delay,
+            ) {
             time
         } else {
             String::from("Never")

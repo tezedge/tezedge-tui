@@ -18,9 +18,9 @@ use crate::{
     },
     terminal_ui::{
         ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
-        TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction,
-        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
-        TuiWidgetSelectionKeyPushedAction, NetworkConstantsGetAction,
+        NetworkConstantsGetAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent,
+        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::WebsocketReadAction,
 };

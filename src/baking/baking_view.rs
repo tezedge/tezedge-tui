@@ -143,7 +143,11 @@ impl Renderable for BakingScreen {
 
         let current_head_level = state.current_head_header.level;
         let current_head_timestamp = state.current_head_header.timestamp;
-        let next_baking = state.baking.baking_rights.next_baking(current_head_level, &current_head_timestamp, state.network_constants.minimal_block_delay);
+        let next_baking = state.baking.baking_rights.next_baking(
+            current_head_level,
+            &current_head_timestamp,
+            state.network_constants.minimal_block_delay,
+        );
 
         let (next_baking_time_label, next_baking_delta_label) =
             if let Some((level, time)) = next_baking {
@@ -200,11 +204,20 @@ impl Renderable for BakingScreen {
 
         f.render_widget(last_baked_block_label, summary_baking_level_chunk);
 
-        let next_baking = state.baking.baking_rights.next_baking(current_head_level, &current_head_timestamp, state.network_constants.minimal_block_delay);
+        let next_baking = state.baking.baking_rights.next_baking(
+            current_head_level,
+            &current_head_timestamp,
+            state.network_constants.minimal_block_delay,
+        );
         if let Some((level, _)) = next_baking {
             // Only update on new baking
             let baking_summary = if level == current_head_level {
-                BakingSummary::new(current_head_level, state.previous_head_header.clone(), application_summary, per_peer_stats)
+                BakingSummary::new(
+                    current_head_level,
+                    state.previous_head_header.clone(),
+                    application_summary,
+                    per_peer_stats,
+                )
             } else {
                 state.baking.last_baking_summary.clone()
             };

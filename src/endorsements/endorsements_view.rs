@@ -20,7 +20,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::{CustomSeparator, Renderable};
 
-use super::{EndorsementState, EndorsementOperationSummary};
+use super::{EndorsementOperationSummary, EndorsementState};
 pub struct EndorsementsScreen {}
 
 impl Renderable for EndorsementsScreen {
@@ -170,13 +170,18 @@ impl Renderable for EndorsementsScreen {
         // f.render_widget(block, endorsements_chunk);
 
         // ======================== BAKER ENDORSING PANEL ========================
-        let (endorsing_panel_title_chunk, endorsing_panel_level_chunk, endorsing_panel_inner_chunk) = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Length(2), Constraint::Min(1)])
-            .split(endorsing_panel_chunk)
-            .into_iter()
-            .collect_tuple()
-            .unwrap();
+        let (endorsing_panel_title_chunk, endorsing_panel_level_chunk, endorsing_panel_inner_chunk) =
+            Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Length(2),
+                    Constraint::Min(1),
+                ])
+                .split(endorsing_panel_chunk)
+                .into_iter()
+                .collect_tuple()
+                .unwrap();
 
         // let endorser_panel_title = Paragraph::new(Spans::from(vec![Span::styled(
         //     " ENDORSING PROGRESS ",
@@ -189,7 +194,16 @@ impl Renderable for EndorsementsScreen {
         let current_head_timestamp = &state.current_head_header.timestamp;
         // TODO: constant
         // We need to get the next endorsement even when have endorsed in the current head
-        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level + 1, current_head_timestamp.saturating_add(Duration::seconds(state.network_constants.minimal_block_delay.into())), state.network_constants.minimal_block_delay);
+        let next_endorsing = state
+            .endorsmenents
+            .endorsement_rights_with_time
+            .next_endorsing(
+                current_head_level + 1,
+                current_head_timestamp.saturating_add(Duration::seconds(
+                    state.network_constants.minimal_block_delay.into(),
+                )),
+                state.network_constants.minimal_block_delay,
+            );
 
         let (next_endorsing_time_label, next_endorsing_delta_label) =
             if let Some((level, time)) = next_endorsing {
@@ -236,20 +250,33 @@ impl Renderable for EndorsementsScreen {
         //     };
 
         // check whether the baker has rights for the current head
-        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level, *current_head_timestamp, state.network_constants.minimal_block_delay);
+        let next_endorsing = state
+            .endorsmenents
+            .endorsement_rights_with_time
+            .next_endorsing(
+                current_head_level,
+                *current_head_timestamp,
+                state.network_constants.minimal_block_delay,
+            );
 
         let last_endorsement_level_string = if let Some((level, _)) = next_endorsing {
             if level == current_head_level {
                 current_head_level.to_string()
             } else {
-                state.endorsmenents.last_endrosement_operation_level.to_string()
+                state
+                    .endorsmenents
+                    .last_endrosement_operation_level
+                    .to_string()
             }
         } else {
             String::from("-")
         };
 
         let last_baked_block_label = Paragraph::new(Spans::from(vec![
-            Span::styled(" LAST ENDORSEMENT OPERTAION IN LEVEL ", Style::default().fg(Color::White)),
+            Span::styled(
+                " LAST ENDORSEMENT OPERTAION IN LEVEL ",
+                Style::default().fg(Color::White),
+            ),
             Span::styled(
                 last_endorsement_level_string,
                 Style::default().fg(Color::White),
@@ -261,10 +288,18 @@ impl Renderable for EndorsementsScreen {
 
         if let Some((level, _)) = next_endorsing {
             let endorsement_summary = if level == current_head_level {
-                let op_stats = state.endorsmenents.injected_endorsement_stats.get(&current_head_level).cloned().unwrap_or_default();
+                let op_stats = state
+                    .endorsmenents
+                    .injected_endorsement_stats
+                    .get(&current_head_level)
+                    .cloned()
+                    .unwrap_or_default();
                 EndorsementOperationSummary::new(*current_head_timestamp, op_stats)
             } else {
-                state.endorsmenents.last_injected_endorsement_summary.clone()
+                state
+                    .endorsmenents
+                    .last_injected_endorsement_summary
+                    .clone()
             };
 
             let selected_style = Style::default()
@@ -279,7 +314,7 @@ impl Renderable for EndorsementsScreen {
                     let sequence_num_cell = Cell::from(index.to_string());
                     let tag_cell = Cell::from(tag);
                     let value_cell = Cell::from(styled_time.get_string_representation())
-                            .style(styled_time.get_style().remove_modifier(Modifier::DIM));
+                        .style(styled_time.get_style().remove_modifier(Modifier::DIM));
 
                     // stripes to differentiate between lines
                     if index % 2 == 0 {

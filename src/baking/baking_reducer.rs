@@ -28,11 +28,11 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
         Action::CurrentHeadHeaderChanged(action) => {
             state.baking.baking_table.content.clear();
 
-            if let Some((baking_level, _)) = state
-                .baking
-                .baking_rights
-                .next_baking(state.previous_head_header.level, &state.previous_head_header.timestamp, state.network_constants.minimal_block_delay)
-            {
+            if let Some((baking_level, _)) = state.baking.baking_rights.next_baking(
+                state.previous_head_header.level,
+                &state.previous_head_header.timestamp,
+                state.network_constants.minimal_block_delay,
+            ) {
                 if baking_level == state.previous_head_header.level {
                     state.baking.last_baked_block_level = Some(action.current_head_header.level);
                     state.baking.last_baked_block_hash =
@@ -58,7 +58,12 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
                         Vec::new()
                     };
 
-                    let summary = BakingSummary::new(baking_level, state.previous_head_header.clone(), block_application_summary, per_peer);
+                    let summary = BakingSummary::new(
+                        baking_level,
+                        state.previous_head_header.clone(),
+                        block_application_summary,
+                        per_peer,
+                    );
 
                     state.baking.last_baking_summary = summary;
                 }

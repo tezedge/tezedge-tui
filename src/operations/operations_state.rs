@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
-use time::{OffsetDateTime, format_description};
 use serde::Deserialize;
+use time::{format_description, OffsetDateTime};
 use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
@@ -415,9 +415,8 @@ impl OperationStats {
     }
 
     pub fn validation_duration(&self) -> Option<i128> {
-        self.validation_started.and_then(|start| self.validation_result.map(|(end, _, _, _)| {
-            end - start
-        }))
+        self.validation_started
+            .and_then(|start| self.validation_result.map(|(end, _, _, _)| end - start))
     }
 
     pub fn validation_ended(&self) -> Option<i128> {
@@ -441,17 +440,12 @@ impl OperationStats {
         self.nodes
             .clone()
             .into_iter()
-            .filter_map(|(_, v)| {
-                v.content_requested_remote
-                    .into_iter()
-                    .min()
-            })
+            .filter_map(|(_, v)| v.content_requested_remote.into_iter().min())
             .min()
     }
 
     pub fn first_content_sent(&self) -> Option<i128> {
-        self
-            .nodes
+        self.nodes
             .clone()
             .into_iter()
             .filter_map(|(_, v)| v.content_sent.into_iter().min())
@@ -472,7 +466,9 @@ impl TuiTableData for OperationStatsSortable {
         //         .format("%H:%M:%S, %Y-%m-%d");
         let format_desc = format_description::parse("[hour]:[minute]:[second]").unwrap_or_default();
 
-        let datetime = OffsetDateTime::from_unix_timestamp(self.datetime as i64).ok().and_then(|dt| dt.format(&format_desc).ok());
+        let datetime = OffsetDateTime::from_unix_timestamp(self.datetime as i64)
+            .ok()
+            .and_then(|dt| dt.format(&format_desc).ok());
 
         final_vec.push((datetime.unwrap_or_default(), default_style));
         final_vec.push((self.hash.clone(), default_style));

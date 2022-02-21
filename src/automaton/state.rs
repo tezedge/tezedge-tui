@@ -1,8 +1,11 @@
 use slog::Logger;
 
 use crate::{
-    baking::BakingState, endorsements::EndrosementsState, operations::OperationsStatisticsState,
-    services::rpc_service::{CurrentHeadHeader, NetworkConstants}, synchronization::SynchronizationState,
+    baking::BakingState,
+    endorsements::EndrosementsState,
+    operations::OperationsStatisticsState,
+    services::rpc_service::{CurrentHeadHeader, NetworkConstants},
+    synchronization::SynchronizationState,
     terminal_ui::UiState,
 };
 

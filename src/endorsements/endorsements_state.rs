@@ -1,17 +1,22 @@
 use std::{collections::BTreeMap, str::FromStr};
 
-use time::{OffsetDateTime, Duration};
 use num::Zero;
 use serde::Deserialize;
 use strum_macros::EnumIter;
+use time::{Duration, OffsetDateTime};
 use tui::{
     layout::Constraint,
-    style::{Color, Modifier, Style}, text::Spans,
+    style::{Color, Modifier, Style},
+    text::Spans,
 };
 
-use crate::{extensions::{
-    convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData, StyledTime,
-}, operations::OperationStats};
+use crate::{
+    extensions::{
+        convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, StyledTime,
+        TuiTableData,
+    },
+    operations::OperationStats,
+};
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
@@ -50,7 +55,12 @@ impl EndorsementRightsWithTime {
     }
 
     // TODO: same thing as in baking rights, move to common trait?
-    pub fn next_endorsing(&self, level: i32, block_timestamp: OffsetDateTime, block_delay: i32) -> Option<(i32, String)> {
+    pub fn next_endorsing(
+        &self,
+        level: i32,
+        block_timestamp: OffsetDateTime,
+        block_delay: i32,
+    ) -> Option<(i32, String)> {
         self.rights
             .range(level..)
             .next()
@@ -59,7 +69,8 @@ impl EndorsementRightsWithTime {
                     let now = OffsetDateTime::now_utc().unix_timestamp();
                     let block_time = block_timestamp.unix_timestamp();
                     let level_delta = endorsement_level - level;
-                    let until_endorsing = Duration::seconds(block_time + ((level_delta * block_delay) as i64) - now);
+                    let until_endorsing =
+                        Duration::seconds(block_time + ((level_delta * block_delay) as i64) - now);
                     let mut final_str = String::from("");
 
                     if !until_endorsing.whole_days().is_zero() {
@@ -68,7 +79,9 @@ impl EndorsementRightsWithTime {
                         final_str += &format!("{} hours", until_endorsing.whole_hours());
                     } else if !until_endorsing.whole_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_endorsing.whole_minutes());
-                    } else if !until_endorsing.whole_seconds().is_zero() && until_endorsing.is_positive() {
+                    } else if !until_endorsing.whole_seconds().is_zero()
+                        && until_endorsing.is_positive()
+                    {
                         final_str += &format!("{} seconds", until_endorsing.whole_seconds());
                     } else {
                         final_str += &"now".to_string();
@@ -536,11 +549,19 @@ impl EndorsementOperationSummary {
 
         let validated = op_stats.validation_duration();
 
-        let operation_hash_sent = op_stats.first_sent().and_then(|sent| op_stats.validation_ended().map(|v_end| sent - v_end));
+        let operation_hash_sent = op_stats
+            .first_sent()
+            .and_then(|sent| op_stats.validation_ended().map(|v_end| sent - v_end));
 
-        let operation_requested = op_stats.first_content_requested_remote().and_then(|op_req| op_stats.first_sent().map(|sent| op_req - sent ));
+        let operation_requested = op_stats
+            .first_content_requested_remote()
+            .and_then(|op_req| op_stats.first_sent().map(|sent| op_req - sent));
 
-        let operation_sent = op_stats.first_content_sent().and_then(|cont_sent| op_stats.first_content_requested_remote().map(|op_req| cont_sent - op_req));
+        let operation_sent = op_stats.first_content_sent().and_then(|cont_sent| {
+            op_stats
+                .first_content_requested_remote()
+                .map(|op_req| cont_sent - op_req)
+        });
 
         Self {
             injected,
@@ -556,9 +577,18 @@ impl EndorsementOperationSummary {
         vec![
             (Spans::from("Injected"), StyledTime::new(self.injected)),
             (Spans::from("Validated"), StyledTime::new(self.validated)),
-            (Spans::from("Operation Hash Sent"), StyledTime::new(self.operation_hash_sent)),
-            (Spans::from("Operation Requested"), StyledTime::new(self.operation_requested)),
-            (Spans::from("Operation Sent"), StyledTime::new(self.operation_sent)),
+            (
+                Spans::from("Operation Hash Sent"),
+                StyledTime::new(self.operation_hash_sent),
+            ),
+            (
+                Spans::from("Operation Requested"),
+                StyledTime::new(self.operation_requested),
+            ),
+            (
+                Spans::from("Operation Sent"),
+                StyledTime::new(self.operation_sent),
+            ),
             // (
             //     Spans::from("Operation Hash Received back"),
             //     StyledTime::new(None),

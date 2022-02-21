@@ -72,12 +72,12 @@ where
                 store.dispatch(MempoolEndorsementStatsReceivedAction {
                     stats: stats.clone(),
                 });
-            },
+            }
             RpcResponse::NetworkConstants(constants) => {
                 store.dispatch(NetworkConstantsReceivedAction {
                     constants: constants.clone(),
                 });
-            },
+            }
         },
         Action::RpcResponseRead(_) => {
             while let Ok(response) = store.service().rpc().response_try_recv() {

@@ -1,19 +1,22 @@
 use std::collections::BTreeMap;
 
-use time::{OffsetDateTime, Duration};
 use hdrhistogram::Histogram;
 use num::Zero;
 use serde::Deserialize;
+use time::{Duration, OffsetDateTime};
 use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
     text::{Span, Spans},
 };
 
-use crate::{extensions::{
-    convert_time_to_unit_string, convert_time_to_unit_string_option, ExtendedTable,
-    SortableByFocus, StyledTime, TuiTableData,
-}, services::rpc_service::CurrentHeadHeader};
+use crate::{
+    extensions::{
+        convert_time_to_unit_string, convert_time_to_unit_string_option, ExtendedTable,
+        SortableByFocus, StyledTime, TuiTableData,
+    },
+    services::rpc_service::CurrentHeadHeader,
+};
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
 
@@ -148,12 +151,14 @@ impl BakingSummary {
         block_application_summary: BlockApplicationSummary,
         per_peer: PerPeerBlockStatisticsVector,
     ) -> Self {
-        let injected = block_application_summary.injected.map(|injected_timestamp| {
-            let previous_head_timestamp = previous_head_header.timestamp.unix_timestamp_nanos();
+        let injected = block_application_summary
+            .injected
+            .map(|injected_timestamp| {
+                let previous_head_timestamp = previous_head_header.timestamp.unix_timestamp_nanos();
 
-            // TODO: cleanup these casts
-            ((injected_timestamp as i128) - previous_head_timestamp) as u64
-        });
+                // TODO: cleanup these casts
+                ((injected_timestamp as i128) - previous_head_timestamp) as u64
+            });
         Self {
             level,
             injected,
@@ -424,7 +429,12 @@ impl BakingRights {
         Self { rights: organized }
     }
 
-    pub fn next_baking(&self, level: i32, block_timestamp: &OffsetDateTime, block_delay: i32) -> Option<(i32, String)> {
+    pub fn next_baking(
+        &self,
+        level: i32,
+        block_timestamp: &OffsetDateTime,
+        block_delay: i32,
+    ) -> Option<(i32, String)> {
         self.rights
             .range(level..)
             .next()
@@ -433,7 +443,8 @@ impl BakingRights {
                     let now = OffsetDateTime::now_utc().unix_timestamp();
                     let block_time = block_timestamp.unix_timestamp();
                     let level_delta = baking_level - level;
-                    let until_baking = Duration::seconds(block_time + ((level_delta * block_delay) as i64) - now);
+                    let until_baking =
+                        Duration::seconds(block_time + ((level_delta * block_delay) as i64) - now);
                     let mut final_str = String::from("");
 
                     if !until_baking.whole_days().is_zero() {
@@ -442,7 +453,8 @@ impl BakingRights {
                         final_str += &format!("{} hours", until_baking.whole_hours());
                     } else if !until_baking.whole_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_baking.whole_minutes());
-                    } else if !until_baking.whole_seconds().is_zero() && until_baking.is_positive() {
+                    } else if !until_baking.whole_seconds().is_zero() && until_baking.is_positive()
+                    {
                         final_str += &format!("{} seconds", until_baking.whole_seconds());
                     } else {
                         final_str += &"now".to_string();
