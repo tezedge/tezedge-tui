@@ -169,24 +169,93 @@ impl Renderable for EndorsementsScreen {
         // f.render_widget(block, endorsements_chunk);
 
         // ======================== BAKER ENDORSING PANEL ========================
-        let (endorsing_panel_title_chunk, endorsing_panel_inner_chunk) = Layout::default()
+        let (endorsing_panel_title_chunk, endorsing_panel_level_chunk, endorsing_panel_inner_chunk) = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(1)])
+            .constraints([Constraint::Length(3), Constraint::Length(2), Constraint::Min(1)])
             .split(endorsing_panel_chunk)
             .into_iter()
             .collect_tuple()
             .unwrap();
 
-        let endorser_panel_title = Paragraph::new(Spans::from(vec![Span::styled(
-            " ENDORSING PROGRESS ",
-            Style::default().fg(Color::White),
-        )]))
-        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+        // let endorser_panel_title = Paragraph::new(Spans::from(vec![Span::styled(
+        //     " ENDORSING PROGRESS ",
+        //     Style::default().fg(Color::White),
+        // )]))
+        // .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
-        f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
+        // f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
         let current_head_level = state.current_head_header.level;
 
+        // We need to get the next endorsement even when have endorsed in the current head
+        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level + 1);
+
+        let (next_endorsing_time_label, next_endorsing_delta_label) =
+            if let Some((level, time)) = next_endorsing {
+                let blocks_delta = level - current_head_level;
+                (
+                    Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
+                    Span::styled(
+                        format!("{} ({} blocks)", time, blocks_delta),
+                        Style::default().fg(Color::White),
+                    ),
+                )
+            } else {
+                (
+                    Span::styled(
+                        "No rights found",
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::DIM),
+                    ),
+                    Span::from(""),
+                )
+            };
+
+        let summary_dimmed_text_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
+
+        let summary_title = Paragraph::new(Spans::from(vec![
+            Span::styled(" ENDORSING PROGRESS - ", Style::default().fg(Color::White)),
+            Span::styled("Next endorsing at level ", summary_dimmed_text_style),
+            next_endorsing_time_label,
+            Span::styled("in ", summary_dimmed_text_style),
+            next_endorsing_delta_label,
+        ]))
+        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(summary_title, endorsing_panel_title_chunk);
+
+        // let last_endorsed_block_level_label =
+        //     if let Some(last_endorsed_block_level) = state.endorsmenents.last_endrosement_operation_level {
+        //         last_baked_block_level.to_string()
+        //     } else {
+        //         String::from(" - ")
+        //     };
+
+        // check whether the baker has rights for the current head
         let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level);
+
+        let last_endorsement_level_string = if let Some((level, _)) = next_endorsing {
+            if level == current_head_level {
+                current_head_level.to_string()
+            } else {
+                state.endorsmenents.last_endrosement_operation_level.to_string()
+            }
+        } else {
+            String::from("-")
+        };
+
+        let last_baked_block_label = Paragraph::new(Spans::from(vec![
+            Span::styled(" LAST ENDORSEMENT OPERTAION IN LEVEL ", Style::default().fg(Color::White)),
+            Span::styled(
+                last_endorsement_level_string,
+                Style::default().fg(Color::White),
+            ),
+        ]))
+        .block(Block::default().borders(Borders::LEFT | Borders::RIGHT));
+
+        f.render_widget(last_baked_block_label, endorsing_panel_level_chunk);
 
         if let Some((level, _)) = next_endorsing {
             let endorsement_summary = if level == current_head_level {

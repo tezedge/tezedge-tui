@@ -557,10 +557,10 @@ impl EndorsementOperationSummary {
             (Spans::from("Operation Hash Sent"), StyledTime::new(self.operation_hash_sent)),
             (Spans::from("Operation Requested"), StyledTime::new(self.operation_requested)),
             (Spans::from("Operation Sent"), StyledTime::new(self.operation_sent)),
-            (
-                Spans::from("Operation Hash Received back"),
-                StyledTime::new(None),
-            ),
+            // (
+            //     Spans::from("Operation Hash Received back"),
+            //     StyledTime::new(None),
+            // ),
         ]
     }
 }
