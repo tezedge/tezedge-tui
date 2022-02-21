@@ -424,14 +424,16 @@ impl BakingRights {
         Self { rights: organized }
     }
 
-    pub fn next_baking(&self, current_level: i32) -> Option<(i32, String)> {
+    pub fn next_baking(&self, level: i32, block_timestamp: &OffsetDateTime, block_delay: i32) -> Option<(i32, String)> {
         self.rights
-            .range(current_level..)
+            .range(level..)
             .next()
-            .map(|(level, time)| {
-                if let Some(estimated_baking_time) = time {
-                    let now = OffsetDateTime::now_utc().unix_timestamp_nanos();
-                    let until_baking = Duration::nanoseconds((estimated_baking_time.unix_timestamp_nanos() - now) as i64);
+            .map(|(baking_level, time)| {
+                if time.is_some() {
+                    let now = OffsetDateTime::now_utc().unix_timestamp();
+                    let block_time = block_timestamp.unix_timestamp();
+                    let level_delta = baking_level - level;
+                    let until_baking = Duration::seconds(block_time + ((level_delta * block_delay) as i64) - now);
                     let mut final_str = String::from("");
 
                     if !until_baking.whole_days().is_zero() {
@@ -440,14 +442,14 @@ impl BakingRights {
                         final_str += &format!("{} hours", until_baking.whole_hours());
                     } else if !until_baking.whole_minutes().is_zero() {
                         final_str += &format!("{} minutes", until_baking.whole_minutes());
-                    } else if !until_baking.whole_seconds().is_zero() {
+                    } else if !until_baking.whole_seconds().is_zero() && until_baking.is_positive() {
                         final_str += &format!("{} seconds", until_baking.whole_seconds());
                     } else {
                         final_str += &"now".to_string();
                     }
-                    (*level, final_str)
+                    (*baking_level, final_str)
                 } else {
-                    (*level, String::from(""))
+                    (*baking_level, String::from(""))
                 }
             })
     }

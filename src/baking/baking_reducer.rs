@@ -31,9 +31,9 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
             if let Some((baking_level, _)) = state
                 .baking
                 .baking_rights
-                .next_baking(action.current_head_header.level)
+                .next_baking(state.previous_head_header.level, &state.previous_head_header.timestamp, state.network_constants.minimal_block_delay)
             {
-                if baking_level == action.current_head_header.level {
+                if baking_level == state.previous_head_header.level {
                     state.baking.last_baked_block_level = Some(action.current_head_header.level);
                     state.baking.last_baked_block_hash =
                         Some(action.current_head_header.hash.clone());

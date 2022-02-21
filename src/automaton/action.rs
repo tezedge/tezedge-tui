@@ -20,7 +20,7 @@ use crate::{
         CurrentHeadHeaderRecievedAction, CycleChangedAction, DrawScreenAction,
         DrawScreenFailiureAction, DrawScreenSuccessAction, TuiDeltaToggleKeyPushedAction,
         TuiDownKeyPushedAction, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
-        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
+        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, NetworkConstantsGetAction, NetworkConstantsReceivedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -75,6 +75,8 @@ pub enum Action {
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
     CurrentHeadHeaderChanged(CurrentHeadHeaderChangedAction),
     CycleChanged(CycleChangedAction),
+    NetworkConstantsGet(NetworkConstantsGetAction),
+    NetworkConstantsReceived(NetworkConstantsReceivedAction),
 
     OperationsStatisticsGet(OperationsStatisticsGetAction),
     OperationsStatisticsReceived(OperationsStatisticsReceivedAction),

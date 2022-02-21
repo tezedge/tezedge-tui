@@ -1,6 +1,7 @@
 use std::io::Stdout;
 
 use itertools::Itertools;
+use time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
@@ -141,10 +142,11 @@ impl Renderable for BakingScreen {
         // TODO: only update this on Baking
 
         let current_head_level = state.current_head_header.level;
-        let next_baking = state.baking.baking_rights.next_baking(current_head_level);
+        let current_head_timestamp = state.current_head_header.timestamp;
+        let next_baking = state.baking.baking_rights.next_baking(current_head_level, &current_head_timestamp, state.network_constants.minimal_block_delay);
 
         let (next_baking_time_label, next_baking_delta_label) =
-            if let Some((level, time)) = next_baking.clone() {
+            if let Some((level, time)) = next_baking {
                 let blocks_delta = level - current_head_level;
                 (
                     Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
@@ -198,6 +200,7 @@ impl Renderable for BakingScreen {
 
         f.render_widget(last_baked_block_label, summary_baking_level_chunk);
 
+        let next_baking = state.baking.baking_rights.next_baking(current_head_level, &current_head_timestamp, state.network_constants.minimal_block_delay);
         if let Some((level, _)) = next_baking {
             // Only update on new baking
             let baking_summary = if level == current_head_level {

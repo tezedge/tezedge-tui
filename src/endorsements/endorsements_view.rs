@@ -1,5 +1,6 @@
 use std::io::Stdout;
 
+use time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::layout::Corner;
 use tui::style::Modifier;
@@ -185,9 +186,10 @@ impl Renderable for EndorsementsScreen {
 
         // f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
         let current_head_level = state.current_head_header.level;
-
+        let current_head_timestamp = &state.current_head_header.timestamp;
+        // TODO: constant
         // We need to get the next endorsement even when have endorsed in the current head
-        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level + 1);
+        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level + 1, current_head_timestamp.saturating_add(Duration::seconds(state.network_constants.minimal_block_delay.into())), state.network_constants.minimal_block_delay);
 
         let (next_endorsing_time_label, next_endorsing_delta_label) =
             if let Some((level, time)) = next_endorsing {
@@ -234,7 +236,7 @@ impl Renderable for EndorsementsScreen {
         //     };
 
         // check whether the baker has rights for the current head
-        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level);
+        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level, *current_head_timestamp, state.network_constants.minimal_block_delay);
 
         let last_endorsement_level_string = if let Some((level, _)) = next_endorsing {
             if level == current_head_level {
@@ -259,7 +261,6 @@ impl Renderable for EndorsementsScreen {
 
         if let Some((level, _)) = next_endorsing {
             let endorsement_summary = if level == current_head_level {
-                let current_head_timestamp = &state.current_head_header.timestamp;
                 let op_stats = state.endorsmenents.injected_endorsement_stats.get(&current_head_level).cloned().unwrap_or_default();
                 EndorsementOperationSummary::new(*current_head_timestamp, op_stats)
             } else {

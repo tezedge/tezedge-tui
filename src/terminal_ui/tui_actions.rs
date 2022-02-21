@@ -1,7 +1,7 @@
 use crossterm::event::KeyModifiers;
 use redux_rs::EnablingCondition;
 
-use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
+use crate::{automaton::State, services::rpc_service::{CurrentHeadHeader, NetworkConstants}};
 
 use super::ActivePage;
 
@@ -150,6 +150,26 @@ pub struct CycleChangedAction {
 }
 
 impl EnablingCondition<State> for CycleChangedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NetworkConstantsGetAction {}
+
+impl EnablingCondition<State> for NetworkConstantsGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NetworkConstantsReceivedAction {
+    pub constants: NetworkConstants,
+}
+
+impl EnablingCondition<State> for NetworkConstantsReceivedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

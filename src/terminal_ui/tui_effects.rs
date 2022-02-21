@@ -90,6 +90,11 @@ where
                 call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
             });
         }
+        Action::NetworkConstantsGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::NetworkConstants, None),
+            });
+        }
         Action::Shutdown(_) => {}
         _ => {}
     }

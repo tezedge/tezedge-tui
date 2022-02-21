@@ -77,7 +77,7 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
             if let Some((endorsing_level, _)) = state
                 .endorsmenents
                 .endorsement_rights_with_time
-                .next_endorsing(state.previous_head_header.level)
+                .next_endorsing(state.previous_head_header.level, state.previous_head_header.timestamp, state.network_constants.minimal_block_delay)
             {
                 if endorsing_level == state.previous_head_header.level {
                     state.endorsmenents.last_endrosement_operation_level = endorsing_level;

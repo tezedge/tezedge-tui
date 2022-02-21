@@ -370,6 +370,9 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
             state.previous_head_header = state.current_head_header.clone();
             state.current_head_header = action.current_head_header.clone();
         }
+        Action::NetworkConstantsReceived(action) => {
+            state.network_constants = action.constants.clone();
+        }
         _ => {}
     }
 }

@@ -149,6 +149,13 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::MempoolEndorsementStats(stats))
             },
+            RpcTarget::NetworkConstants => {
+                let constants: NetworkConstants = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::NetworkConstants(constants))
+            },
         }
     }
 }
@@ -186,6 +193,7 @@ pub enum RpcTarget {
     BakingRights,
     EndorsementRightsWithTime,
     MempoolEndorsementStats,
+    NetworkConstants,
 }
 
 #[derive(Clone, Debug)]
@@ -200,6 +208,7 @@ pub enum RpcResponse {
     BakingRights(Vec<BakingRightsPerLevel>),
     EndorsementRightsWithTime(Vec<EndorsementRightsWithTimePerLevel>),
     MempoolEndorsementStats(MempoolEndorsementStats),
+    NetworkConstants(NetworkConstants),
 }
 
 impl Display for RpcCall {
@@ -244,6 +253,9 @@ impl Display for RpcCall {
             RpcTarget::MempoolEndorsementStats => {
                 write!(f, "MempoolEndorsementStats - Query args: {:?}", self.query_arg)
             },
+            RpcTarget::NetworkConstants => {
+                write!(f, "NetworkConstants - Query args: {:?}", self.query_arg)
+            },
         }
     }
 }
@@ -266,6 +278,9 @@ impl RpcCall {
             RpcTarget::MempoolEndorsementStats => {
                 "dev/shell/automaton/stats/mempool/endorsements"
             },
+            RpcTarget::NetworkConstants => {
+                "chains/main/blocks/head/context/constants"
+            }
         }
     }
 }
@@ -294,4 +309,11 @@ impl Default for CurrentHeadHeader {
     fn default() -> Self {
         Self { level: Default::default(), hash: Default::default(), timestamp: OffsetDateTime::from_unix_timestamp(0).unwrap(), chain_id: Default::default(), predecessor: Default::default(), validation_pass: Default::default(), operations_hash: Default::default(), fitness: Default::default(), context: Default::default(), protocol: Default::default(), signature: Default::default(), priority: Default::default(), proof_of_work_nonce: Default::default(), liquidity_baking_escape_vote: Default::default() }
     }
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct NetworkConstants {
+    // we only need this one for now
+    #[serde(deserialize_with = "serde_aux::prelude::deserialize_number_from_string")]
+    pub minimal_block_delay: i32,
 }

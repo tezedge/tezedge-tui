@@ -2,12 +2,13 @@ use slog::Logger;
 
 use crate::{
     baking::BakingState, endorsements::EndrosementsState, operations::OperationsStatisticsState,
-    services::rpc_service::CurrentHeadHeader, synchronization::SynchronizationState,
+    services::rpc_service::{CurrentHeadHeader, NetworkConstants}, synchronization::SynchronizationState,
     terminal_ui::UiState,
 };
 
 #[derive(Debug, Clone)]
 pub struct State {
+    pub network_constants: NetworkConstants,
     pub last_applied_level: i32,
     pub current_head_header: CurrentHeadHeader,
     pub previous_head_header: CurrentHeadHeader,
@@ -39,6 +40,7 @@ impl State {
             operations_statistics: Default::default(),
             baking: Default::default(),
             ui: Default::default(),
+            network_constants: Default::default(),
         }
     }
 }

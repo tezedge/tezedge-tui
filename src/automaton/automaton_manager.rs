@@ -20,7 +20,7 @@ use crate::{
         ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
         TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction,
         TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
-        TuiWidgetSelectionKeyPushedAction,
+        TuiWidgetSelectionKeyPushedAction, NetworkConstantsGetAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -41,6 +41,7 @@ impl<Serv: Service> Automaton<Serv> {
     }
 
     pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
+        self.store.dispatch(NetworkConstantsGetAction {});
         loop {
             self.store.dispatch(RpcResponseReadAction {});
             self.store.dispatch(DrawScreenAction {});

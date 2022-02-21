@@ -13,7 +13,7 @@ use crate::{
         rpc_service::{RpcResponse, RpcService},
         Service,
     },
-    terminal_ui::CurrentHeadHeaderRecievedAction,
+    terminal_ui::{CurrentHeadHeaderRecievedAction, NetworkConstantsReceivedAction},
 };
 
 use super::RpcResponseAction;
@@ -71,6 +71,11 @@ where
             RpcResponse::MempoolEndorsementStats(stats) => {
                 store.dispatch(MempoolEndorsementStatsReceivedAction {
                     stats: stats.clone(),
+                });
+            },
+            RpcResponse::NetworkConstants(constants) => {
+                store.dispatch(NetworkConstantsReceivedAction {
+                    constants: constants.clone(),
                 });
             },
         },
