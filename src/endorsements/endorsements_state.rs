@@ -1,33 +1,37 @@
 use std::{collections::BTreeMap, str::FromStr};
 
-use chrono::{DateTime, Utc};
+use time::{OffsetDateTime, Duration};
 use num::Zero;
 use serde::Deserialize;
 use strum_macros::EnumIter;
 use tui::{
     layout::Constraint,
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style}, text::Spans,
 };
 
-use crate::extensions::{
-    convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData,
-};
+use crate::{extensions::{
+    convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, TuiTableData, StyledTime,
+}, operations::OperationStats};
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
 pub type EndorsementStatuses = BTreeMap<String, EndorsementStatus>;
 pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
+pub type MempoolEndorsementStats = BTreeMap<String, OperationStats>;
+pub type InjectedEndorsementStats = BTreeMap<i32, OperationStats>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct EndorsementRightsWithTimePerLevel {
     pub level: i32,
     pub slots: Vec<u16>,
     pub delegate: String,
-    pub estimated_time: Option<String>,
+    #[serde(default)]
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub estimated_time: Option<OffsetDateTime>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct EndorsementRightsWithTime {
-    pub rights: BTreeMap<i32, Option<String>>,
+    pub rights: BTreeMap<i32, Option<OffsetDateTime>>,
 }
 
 impl EndorsementRightsWithTime {
@@ -51,27 +55,25 @@ impl EndorsementRightsWithTime {
             .range(current_level..)
             .next()
             .map(|(level, time)| {
-                if let Ok(estimated_baking_time) =
-                    DateTime::parse_from_rfc3339(&time.clone().unwrap_or_default())
-                {
-                    let now = Utc::now();
-                    let until_baking = estimated_baking_time.signed_duration_since(now);
+                if let Some(estimated_baking_time) = time {
+                    let now = OffsetDateTime::now_utc().unix_timestamp_nanos();
+                    let until_baking = Duration::nanoseconds((estimated_baking_time.unix_timestamp_nanos() - now) as i64);
                     let mut final_str = String::from("");
 
-                    if !until_baking.num_days().is_zero() {
-                        final_str += &format!("{} days", until_baking.num_days());
-                    } else if !until_baking.num_hours().is_zero() {
-                        final_str += &format!("{} hours", until_baking.num_hours());
-                    } else if !until_baking.num_minutes().is_zero() {
-                        final_str += &format!("{} minutes", until_baking.num_minutes());
-                    } else if !until_baking.num_seconds().is_zero() {
-                        final_str += &format!("{} seconds", until_baking.num_seconds());
+                    if !until_baking.whole_days().is_zero() {
+                        final_str += &format!("{} days", until_baking.whole_days());
+                    } else if !until_baking.whole_hours().is_zero() {
+                        final_str += &format!("{} hours", until_baking.whole_hours());
+                    } else if !until_baking.whole_minutes().is_zero() {
+                        final_str += &format!("{} minutes", until_baking.whole_minutes());
+                    } else if !until_baking.whole_seconds().is_zero() {
+                        final_str += &format!("{} seconds", until_baking.whole_seconds());
                     } else {
                         final_str += &"now".to_string();
                     }
                     (*level, final_str)
                 } else {
-                    (*level, time.clone().unwrap_or_default())
+                    (*level, String::from(""))
                 }
             })
     }
@@ -82,7 +84,10 @@ pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
     pub endorsement_rights_with_time: EndorsementRightsWithTime,
+    pub injected_endorsement_stats: InjectedEndorsementStats,
     pub last_endorsement_operation: Option<String>,
+    pub last_injected_endorsement_summary: EndorsementOperationSummary,
+    pub last_endrosement_operation_level: i32,
 
     // ui specific states
     pub endorsement_table: ExtendedTable<EndorsementStatusSortableVec>,
@@ -127,6 +132,9 @@ impl Default for EndrosementsState {
             endorsement_rights: BTreeMap::new(),
             endorsement_rights_with_time: Default::default(),
             last_endorsement_operation: None,
+            injected_endorsement_stats: Default::default(),
+            last_injected_endorsement_summary: Default::default(),
+            last_endrosement_operation_level: Default::default(),
         }
     }
 }
@@ -504,5 +512,55 @@ impl EndorsementState {
             EndorsementState::Decoded => style.fg(Color::Magenta),
             EndorsementState::Received => style.fg(Color::Yellow),
         }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct EndorsementOperationSummary {
+    pub injected: Option<i128>,
+    pub validated: Option<i128>,
+    pub operation_hash_sent: Option<i128>,
+    pub operation_requested: Option<i128>,
+    pub operation_sent: Option<i128>,
+    pub operation_hash_received_back: Option<u64>,
+}
+
+impl EndorsementOperationSummary {
+    pub fn new(current_head_timestamp: OffsetDateTime, op_stats: OperationStats) -> Self {
+        let injected = op_stats.injected_timestamp.map(|inject_time| {
+            let current_head_nanos = current_head_timestamp.unix_timestamp_nanos();
+            (inject_time as i128) - current_head_nanos
+        });
+
+        let validated = op_stats.validation_duration();
+
+        let operation_hash_sent = op_stats.first_sent().and_then(|sent| op_stats.validation_ended().map(|v_end| sent - v_end));
+
+        let operation_requested = op_stats.first_content_requested_remote().and_then(|op_req| op_stats.first_sent().map(|sent| op_req - sent ));
+
+        let operation_sent = op_stats.first_content_sent().and_then(|cont_sent| op_stats.first_content_requested_remote().map(|op_req| cont_sent - op_req));
+
+        Self {
+            injected,
+            validated,
+            operation_hash_sent,
+            operation_requested,
+            operation_sent,
+            operation_hash_received_back: None, // TODO
+        }
+    }
+
+    pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<i128>)> {
+        vec![
+            (Spans::from("Injected"), StyledTime::new(self.injected)),
+            (Spans::from("Validated"), StyledTime::new(self.validated)),
+            (Spans::from("Operation Hash Sent"), StyledTime::new(self.operation_hash_sent)),
+            (Spans::from("Operation Requested"), StyledTime::new(self.operation_requested)),
+            (Spans::from("Operation Sent"), StyledTime::new(self.operation_sent)),
+            (
+                Spans::from("Operation Hash Received back"),
+                StyledTime::new(None),
+            ),
+        ]
     }
 }

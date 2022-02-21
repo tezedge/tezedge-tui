@@ -6,7 +6,7 @@ use crate::{
     },
     endorsements::{
         EndorsementsRightsReceivedAction, EndorsementsRightsWithTimeReceivedAction,
-        EndorsementsStatusesReceivedAction,
+        EndorsementsStatusesReceivedAction, MempoolEndorsementStatsReceivedAction,
     },
     operations::OperationsStatisticsReceivedAction,
     services::{
@@ -68,6 +68,11 @@ where
                     rights: rights.clone(),
                 });
             }
+            RpcResponse::MempoolEndorsementStats(stats) => {
+                store.dispatch(MempoolEndorsementStatsReceivedAction {
+                    stats: stats.clone(),
+                });
+            },
         },
         Action::RpcResponseRead(_) => {
             while let Ok(response) = store.service().rpc().response_try_recv() {

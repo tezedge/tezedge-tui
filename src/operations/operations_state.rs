@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use time::{OffsetDateTime, format_description};
 use serde::Deserialize;
 use tui::{
     layout::Constraint,
@@ -95,7 +95,7 @@ impl Default for OperationsStatisticsState {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationStats {
     kind: Option<OperationKind>,
@@ -108,6 +108,7 @@ pub struct OperationStats {
     validation_result: Option<(i128, OperationValidationResult, Option<i128>, Option<i128>)>,
     validations: Vec<OperationValidationStats>,
     nodes: HashMap<String, OperationNodeStats>,
+    pub injected_timestamp: Option<u64>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -274,17 +275,7 @@ impl OperationStats {
             })
             .min();
 
-        let first_sent = self
-            .nodes
-            .clone()
-            .into_iter()
-            .filter_map(|(_, v)| {
-                v.sent
-                    .into_iter()
-                    .min_by_key(|v| v.latency)
-                    .map(|v| v.latency)
-            })
-            .min();
+        let first_sent = self.first_sent();
 
         let delta = if let (Some(first_received), Some(first_sent)) = (first_received, first_sent) {
             Some(first_sent - first_received)
@@ -418,6 +409,54 @@ impl OperationStats {
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
+
+    pub fn is_injected(&self) -> bool {
+        self.injected_timestamp.is_some()
+    }
+
+    pub fn validation_duration(&self) -> Option<i128> {
+        self.validation_started.and_then(|start| self.validation_result.map(|(end, _, _, _)| {
+            end - start
+        }))
+    }
+
+    pub fn validation_ended(&self) -> Option<i128> {
+        self.validation_result.map(|(end, _, _, _)| end)
+    }
+
+    pub fn first_sent(&self) -> Option<i128> {
+        self.nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| {
+                v.sent
+                    .into_iter()
+                    .min_by_key(|v| v.latency)
+                    .map(|v| v.latency)
+            })
+            .min()
+    }
+
+    pub fn first_content_requested_remote(&self) -> Option<i128> {
+        self.nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| {
+                v.content_requested_remote
+                    .into_iter()
+                    .min()
+            })
+            .min()
+    }
+
+    pub fn first_content_sent(&self) -> Option<i128> {
+        self
+            .nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| v.content_sent.into_iter().min())
+            .min()
+    }
 }
 
 impl TuiTableData for OperationStatsSortable {
@@ -428,11 +467,14 @@ impl TuiTableData for OperationStatsSortable {
             .fg(Color::White)
             .add_modifier(Modifier::DIM);
 
-        let datetime =
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
-                .format("%H:%M:%S, %Y-%m-%d");
+        // let datetime =
+        //     DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
+        //         .format("%H:%M:%S, %Y-%m-%d");
+        let format_desc = format_description::parse("[hour]:[minute]:[second]").unwrap_or_default();
 
-        final_vec.push((datetime.to_string(), default_style));
+        let datetime = OffsetDateTime::from_unix_timestamp(self.datetime as i64).ok().and_then(|dt| dt.format(&format_desc).ok());
+
+        final_vec.push((datetime.unwrap_or_default(), default_style));
         final_vec.push((self.hash.clone(), default_style));
         final_vec.push((
             self.nodes.to_string(),

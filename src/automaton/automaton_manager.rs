@@ -8,7 +8,7 @@ use slog::Logger;
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
     baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction},
-    endorsements::EndorsementsStatusesGetAction,
+    endorsements::{EndorsementsStatusesGetAction, MempoolEndorsementStatsGetAction},
     operations::OperationsStatisticsGetAction,
     rpc::RpcResponseReadAction,
     services::{
@@ -56,6 +56,7 @@ impl<Serv: Service> Automaton<Serv> {
                     self.store.dispatch(PerPeerBlockStatisticsGetAction {
                         level: self.store.state().current_head_header.level,
                     });
+                    self.store.dispatch(MempoolEndorsementStatsGetAction {});
                 }
                 Some(TuiEvent::Input(key, modifier)) => match key {
                     KeyCode::F(10) => {

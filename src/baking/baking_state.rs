@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Utc};
+use time::{OffsetDateTime, Duration};
 use hdrhistogram::Histogram;
 use num::Zero;
 use serde::Deserialize;
@@ -10,10 +10,10 @@ use tui::{
     text::{Span, Spans},
 };
 
-use crate::extensions::{
+use crate::{extensions::{
     convert_time_to_unit_string, convert_time_to_unit_string_option, ExtendedTable,
     SortableByFocus, StyledTime, TuiTableData,
-};
+}, services::rpc_service::CurrentHeadHeader};
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
 
@@ -39,7 +39,7 @@ pub struct BlockApplicationStatistics {
     pub send_start: Option<u64>,
     pub send_end: Option<u64>,
     pub protocol_times: Option<BlockApplicationProtocolStatistics>,
-    pub injected: bool,
+    pub injected: Option<u64>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -58,7 +58,7 @@ pub struct BlockApplicationSummary {
     pub apply_collecting_new_rolls: Option<u64>,
     pub apply_commit: Option<u64>,
     pub store_data: Option<u64>,
-    pub injected: bool,
+    pub injected: Option<u64>,
 }
 
 impl BlockApplicationSummary {
@@ -136,7 +136,7 @@ impl BlockApplicationSummary {
 #[derive(Debug, Default, Clone)]
 pub struct BakingSummary {
     pub level: i32,
-    pub injected: bool,
+    pub injected: Option<u64>,
     pub block_application_summary: BlockApplicationSummary,
     pub per_peer: PerPeerBlockStatisticsVector,
 }
@@ -144,12 +144,19 @@ pub struct BakingSummary {
 impl BakingSummary {
     pub fn new(
         level: i32,
+        previous_head_header: CurrentHeadHeader,
         block_application_summary: BlockApplicationSummary,
         per_peer: PerPeerBlockStatisticsVector,
     ) -> Self {
+        let injected = block_application_summary.injected.map(|injected_timestamp| {
+            let previous_head_timestamp = previous_head_header.timestamp.unix_timestamp_nanos();
+
+            // TODO: cleanup these casts
+            ((injected_timestamp as i128) - previous_head_timestamp) as u64
+        });
         Self {
             level,
-            injected: block_application_summary.injected,
+            injected,
             block_application_summary,
             per_peer,
         }
@@ -162,11 +169,7 @@ impl BakingSummary {
         let injected = (
             Spans::from("Injected"),
             // TODO: get the correct stat for injected
-            if self.injected {
-                StyledTime::new(Some(0))
-            } else {
-                StyledTime::new(None)
-            },
+            StyledTime::new(self.injected),
         );
         let block_header_sent = (
             Spans::from("Block Header Sent"),
@@ -396,12 +399,14 @@ pub struct BakingRightsPerLevel {
     pub level: i32,
     pub priority: u64,
     pub delegate: String,
-    pub estimated_time: Option<String>,
+    #[serde(default)]
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub estimated_time: Option<OffsetDateTime>,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct BakingRights {
-    pub rights: BTreeMap<i32, Option<String>>,
+    pub rights: BTreeMap<i32, Option<OffsetDateTime>>,
 }
 
 impl BakingRights {
@@ -424,27 +429,25 @@ impl BakingRights {
             .range(current_level..)
             .next()
             .map(|(level, time)| {
-                if let Ok(estimated_baking_time) =
-                    DateTime::parse_from_rfc3339(&time.clone().unwrap_or_default())
-                {
-                    let now = Utc::now();
-                    let until_baking = estimated_baking_time.signed_duration_since(now);
+                if let Some(estimated_baking_time) = time {
+                    let now = OffsetDateTime::now_utc().unix_timestamp_nanos();
+                    let until_baking = Duration::nanoseconds((estimated_baking_time.unix_timestamp_nanos() - now) as i64);
                     let mut final_str = String::from("");
 
-                    if !until_baking.num_days().is_zero() {
-                        final_str += &format!("{} days", until_baking.num_days());
-                    } else if !until_baking.num_hours().is_zero() {
-                        final_str += &format!("{} hours", until_baking.num_hours());
-                    } else if !until_baking.num_minutes().is_zero() {
-                        final_str += &format!("{} minutes", until_baking.num_minutes());
-                    } else if !until_baking.num_seconds().is_zero() {
-                        final_str += &format!("{} seconds", until_baking.num_seconds());
+                    if !until_baking.whole_days().is_zero() {
+                        final_str += &format!("{} days", until_baking.whole_days());
+                    } else if !until_baking.whole_hours().is_zero() {
+                        final_str += &format!("{} hours", until_baking.whole_hours());
+                    } else if !until_baking.whole_minutes().is_zero() {
+                        final_str += &format!("{} minutes", until_baking.whole_minutes());
+                    } else if !until_baking.whole_seconds().is_zero() {
+                        final_str += &format!("{} seconds", until_baking.whole_seconds());
                     } else {
                         final_str += &"now".to_string();
                     }
                     (*level, final_str)
                 } else {
-                    (*level, time.clone().unwrap_or_default())
+                    (*level, String::from(""))
                 }
             })
     }

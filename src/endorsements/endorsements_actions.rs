@@ -4,7 +4,7 @@ use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
 
 use super::{
     EndorsementRights, EndorsementRightsWithTime, EndorsementRightsWithTimePerLevel,
-    EndorsementStatuses,
+    EndorsementStatuses, MempoolEndorsementStats,
 };
 
 #[derive(Debug, Clone)]
@@ -76,6 +76,27 @@ pub struct EndorsementsRightsWithTimeReceivedAction {
 }
 
 impl EnablingCondition<State> for EndorsementsRightsWithTimeReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+// MempoolEndorsementStats
+#[derive(Debug, Clone)]
+pub struct MempoolEndorsementStatsGetAction {}
+
+impl EnablingCondition<State> for MempoolEndorsementStatsGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MempoolEndorsementStatsReceivedAction {
+    pub stats: MempoolEndorsementStats,
+}
+
+impl EnablingCondition<State> for MempoolEndorsementStatsReceivedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

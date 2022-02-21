@@ -52,6 +52,11 @@ where
                 });
             }
         }
+        Action::MempoolEndorsementStatsGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::MempoolEndorsementStats, None),
+            });
+        }
         _ => {}
     }
 }

@@ -10,6 +10,7 @@ use crate::{
 pub struct State {
     pub last_applied_level: i32,
     pub current_head_header: CurrentHeadHeader,
+    pub previous_head_header: CurrentHeadHeader,
     pub baker_address: Option<String>,
 
     pub synchronization: SynchronizationState,
@@ -31,6 +32,7 @@ impl State {
             baker_address,
             delta_toggle: true,
             current_head_header: Default::default(),
+            previous_head_header: Default::default(),
             last_applied_level: Default::default(),
             synchronization: Default::default(),
             endorsmenents: Default::default(),

@@ -201,37 +201,9 @@ impl Renderable for BakingScreen {
         if let Some((level, _)) = next_baking {
             // Only update on new baking
             let baking_summary = if level == current_head_level {
-                BakingSummary::new(current_head_level, application_summary, per_peer_stats)
+                BakingSummary::new(current_head_level, state.previous_head_header.clone(), application_summary, per_peer_stats)
             } else {
-                let last_baked_block_hash = state
-                    .baking
-                    .last_baked_block_hash
-                    .clone()
-                    .unwrap_or_default();
-                let last_application_summary = if let Some(application_statistics) = state
-                    .baking
-                    .application_statistics
-                    .get(&last_baked_block_hash)
-                {
-                    BlockApplicationSummary::from(application_statistics.clone())
-                } else {
-                    BlockApplicationSummary::default()
-                };
-
-                let last_baked_per_peer_stats = if let Some(last_baked_per_peer_stats) = state
-                    .baking
-                    .per_peer_block_statistics
-                    .get(&last_baked_block_hash)
-                {
-                    last_baked_per_peer_stats.clone()
-                } else {
-                    Vec::new()
-                };
-                BakingSummary::new(
-                    state.baking.last_baked_block_level.unwrap_or_default(),
-                    last_application_summary,
-                    last_baked_per_peer_stats,
-                )
+                state.baking.last_baking_summary.clone()
             };
 
             let rows = baking_summary

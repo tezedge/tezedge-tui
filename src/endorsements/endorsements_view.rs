@@ -19,7 +19,7 @@ use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
 use crate::extensions::{CustomSeparator, Renderable};
 
-use super::EndorsementState;
+use super::{EndorsementState, EndorsementOperationSummary};
 pub struct EndorsementsScreen {}
 
 impl Renderable for EndorsementsScreen {
@@ -184,39 +184,54 @@ impl Renderable for EndorsementsScreen {
         .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
 
         f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
+        let current_head_level = state.current_head_header.level;
 
-        let selected_style = Style::default()
-            .remove_modifier(Modifier::DIM)
-            .bg(Color::Black);
+        let next_endorsing = state.endorsmenents.endorsement_rights_with_time.next_endorsing(current_head_level);
 
-        let rows = to_table_data_mocked()
-            .into_iter()
-            .enumerate()
-            .map(|(index, (tag, value))| {
-                let sequence_num_cell = Cell::from(index.to_string());
-                let tag_cell = Cell::from(tag);
-                let value_cell = Cell::from(value);
+        if let Some((level, _)) = next_endorsing {
+            let endorsement_summary = if level == current_head_level {
+                let current_head_timestamp = &state.current_head_header.timestamp;
+                let op_stats = state.endorsmenents.injected_endorsement_stats.get(&current_head_level).cloned().unwrap_or_default();
+                EndorsementOperationSummary::new(*current_head_timestamp, op_stats)
+            } else {
+                state.endorsmenents.last_injected_endorsement_summary.clone()
+            };
 
-                // stripes to differentiate between lines
-                if index % 2 == 0 {
-                    Row::new(vec![sequence_num_cell, tag_cell, value_cell])
-                        .height(1)
-                        .style(selected_style)
-                } else {
-                    Row::new(vec![sequence_num_cell, tag_cell, value_cell]).height(1)
-                }
-            });
+            let selected_style = Style::default()
+                .remove_modifier(Modifier::DIM)
+                .bg(Color::Black);
 
-        let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
-        let table = Table::new(rows)
-            // .header(header)
-            .block(block)
-            .widths(&[
-                Constraint::Length(2),
-                Constraint::Percentage(75),
-                Constraint::Percentage(25),
-            ]);
-        f.render_widget(table, endorsing_panel_inner_chunk);
+            let rows = endorsement_summary
+                .to_table_data()
+                .into_iter()
+                .enumerate()
+                .map(|(index, (tag, styled_time))| {
+                    let sequence_num_cell = Cell::from(index.to_string());
+                    let tag_cell = Cell::from(tag);
+                    let value_cell = Cell::from(styled_time.get_string_representation())
+                            .style(styled_time.get_style().remove_modifier(Modifier::DIM));
+
+                    // stripes to differentiate between lines
+                    if index % 2 == 0 {
+                        Row::new(vec![sequence_num_cell, tag_cell, value_cell])
+                            .height(1)
+                            .style(selected_style)
+                    } else {
+                        Row::new(vec![sequence_num_cell, tag_cell, value_cell]).height(1)
+                    }
+                });
+
+            let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+            let table = Table::new(rows)
+                // .header(header)
+                .block(block)
+                .widths(&[
+                    Constraint::Length(2),
+                    Constraint::Percentage(75),
+                    Constraint::Percentage(25),
+                ]);
+            f.render_widget(table, endorsing_panel_inner_chunk);
+        }
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);
@@ -225,19 +240,4 @@ impl Renderable for EndorsementsScreen {
         // ======================== Quit ========================
         create_quit(page_chunks[1], f);
     }
-}
-
-// TODO -> get from the data once the rpc is completed
-pub fn to_table_data_mocked() -> Vec<(Spans<'static>, String)> {
-    vec![
-        (Spans::from("Injected"), String::from(" - ")),
-        (Spans::from("Prechecked"), String::from(" - ")),
-        (Spans::from("Operation Hash Sent"), String::from(" - ")),
-        (Spans::from("Operation Requested"), String::from(" - ")),
-        (Spans::from("Operation Sent"), String::from(" - ")),
-        (
-            Spans::from("Operation Hash Received back"),
-            String::from(" - "),
-        ),
-    ]
 }

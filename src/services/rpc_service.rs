@@ -3,12 +3,13 @@ use std::fmt::Display;
 use serde::Deserialize;
 use slog::{info, warn, Logger};
 use thiserror::Error;
+use time::OffsetDateTime;
 use tokio::sync::mpsc;
 use url::Url;
 
 use crate::{
     baking::{BakingRightsPerLevel, BlockApplicationStatistics, PerPeerBlockStatisticsVector},
-    endorsements::{EndorsementRights, EndorsementRightsWithTimePerLevel, EndorsementStatuses},
+    endorsements::{EndorsementRights, EndorsementRightsWithTimePerLevel, EndorsementStatuses, MempoolEndorsementStats},
     operations::OperationsStats,
 };
 
@@ -141,6 +142,13 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::EndorsementRightsWithTime(rights))
             }
+            RpcTarget::MempoolEndorsementStats => {
+                let stats: MempoolEndorsementStats = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::MempoolEndorsementStats(stats))
+            },
         }
     }
 }
@@ -177,6 +185,7 @@ pub enum RpcTarget {
     PerPeerBlockStatistics,
     BakingRights,
     EndorsementRightsWithTime,
+    MempoolEndorsementStats,
 }
 
 #[derive(Clone, Debug)]
@@ -190,6 +199,7 @@ pub enum RpcResponse {
     PerPeerBlockStatistics(PerPeerBlockStatisticsVector),
     BakingRights(Vec<BakingRightsPerLevel>),
     EndorsementRightsWithTime(Vec<EndorsementRightsWithTimePerLevel>),
+    MempoolEndorsementStats(MempoolEndorsementStats),
 }
 
 impl Display for RpcCall {
@@ -231,6 +241,9 @@ impl Display for RpcCall {
                     self.query_arg
                 )
             }
+            RpcTarget::MempoolEndorsementStats => {
+                write!(f, "MempoolEndorsementStats - Query args: {:?}", self.query_arg)
+            },
         }
     }
 }
@@ -250,15 +263,19 @@ impl RpcCall {
             RpcTarget::EndorsementRightsWithTime => {
                 "chains/main/blocks/head/helpers/endorsing_rights"
             }
+            RpcTarget::MempoolEndorsementStats => {
+                "dev/shell/automaton/stats/mempool/endorsements"
+            },
         }
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct CurrentHeadHeader {
     pub level: i32,
     pub hash: String,
-    pub timestamp: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub timestamp: OffsetDateTime,
     pub chain_id: String,
     pub predecessor: String,
     pub validation_pass: u8,
@@ -270,4 +287,11 @@ pub struct CurrentHeadHeader {
     pub priority: i32,
     pub proof_of_work_nonce: String,
     pub liquidity_baking_escape_vote: bool,
+}
+
+// TODO: the unwrap in OffsetDateTime
+impl Default for CurrentHeadHeader {
+    fn default() -> Self {
+        Self { level: Default::default(), hash: Default::default(), timestamp: OffsetDateTime::from_unix_timestamp(0).unwrap(), chain_id: Default::default(), predecessor: Default::default(), validation_pass: Default::default(), operations_hash: Default::default(), fitness: Default::default(), context: Default::default(), protocol: Default::default(), signature: Default::default(), priority: Default::default(), proof_of_work_nonce: Default::default(), liquidity_baking_escape_vote: Default::default() }
+    }
 }
