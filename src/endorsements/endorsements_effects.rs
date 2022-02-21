@@ -2,7 +2,7 @@ use crate::{
     automaton::{Action, ActionWithMeta, Store},
     rpc::RpcRequestAction,
     services::{
-        rpc_service::{RpcCall, RpcTarget},
+        rpc_service_async::{RpcCall, RpcTarget},
         Service,
     },
 };

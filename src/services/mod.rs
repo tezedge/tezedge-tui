@@ -1,6 +1,8 @@
 pub use redux_rs::TimeService;
 
-pub mod rpc_service;
+// pub mod rpc_service;
+
+pub mod rpc_service_async;
 
 pub mod ws_service;
 
@@ -10,7 +12,8 @@ pub mod service_async_channel;
 pub use service_async_channel::*;
 
 use self::{
-    rpc_service::{RpcService, RpcServiceDefault},
+    // rpc_service::{RpcService, RpcServiceDefault},
+    rpc_service_async::{RpcService, RpcServiceDefault},
     tui_service::{TuiService, TuiServiceDefault},
     ws_service::{WebsocketService, WebsocketServiceDefault},
 };

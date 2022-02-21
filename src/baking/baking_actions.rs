@@ -51,7 +51,9 @@ impl EnablingCondition<State> for PerPeerBlockStatisticsReceivedAction {
 }
 
 #[derive(Debug, Clone)]
-pub struct BakingRightsGetAction {}
+pub struct BakingRightsGetAction {
+    // cycle: i32,
+}
 
 impl EnablingCondition<State> for BakingRightsGetAction {
     fn is_enabled(&self, _: &State) -> bool {

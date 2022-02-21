@@ -4,7 +4,7 @@ use crate::{
     baking::BakingState,
     endorsements::EndrosementsState,
     operations::OperationsStatisticsState,
-    services::rpc_service::{CurrentHeadHeader, NetworkConstants},
+    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants},
     synchronization::SynchronizationState,
     terminal_ui::UiState,
 };

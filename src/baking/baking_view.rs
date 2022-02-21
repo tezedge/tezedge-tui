@@ -1,7 +1,6 @@
 use std::io::Stdout;
 
 use itertools::Itertools;
-use time::Duration;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};

@@ -6,7 +6,7 @@ use crate::{
     operations::StatisticsScreen,
     rpc::RpcRequestAction,
     services::{
-        rpc_service::{RpcCall, RpcTarget},
+        rpc_service_async::{RpcCall, RpcTarget},
         tui_service::TuiService,
         Service,
     },

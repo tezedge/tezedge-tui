@@ -46,7 +46,7 @@ impl EndorsementRightsWithTime {
             .map(|rights_per_level| {
                 (
                     rights_per_level.level,
-                    rights_per_level.estimated_time.clone(),
+                    rights_per_level.estimated_time,
                 )
             })
             .collect();

@@ -2,7 +2,7 @@ use crate::{
     automaton::{Action, ActionWithMeta, Store},
     rpc::RpcRequestAction,
     services::{
-        rpc_service::{RpcCall, RpcTarget},
+        rpc_service_async::{RpcCall, RpcTarget},
         Service,
     },
 };
@@ -58,10 +58,14 @@ where
                 });
             }
         }
-        Action::CurrentHeadHeaderChanged(_) => {
+        Action::CurrentHeadHeaderChanged(action) => {
             let is_empty = store.state().baking.baking_rights.rights.is_empty();
             if is_empty {
                 store.dispatch(BakingRightsGetAction {});
+            }
+
+            if store.state().baking.baking_rights.next_baking(action.current_head_header.level, &action.current_head_header.timestamp, store.state().network_constants.minimal_block_delay).is_none() {
+                
             }
         }
         _ => {}

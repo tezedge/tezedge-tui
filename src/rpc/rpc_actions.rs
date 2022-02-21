@@ -2,7 +2,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{
     automaton::State,
-    services::rpc_service::{RpcCall, RpcResponse},
+    services::rpc_service_async::{RpcCall, RpcResponse},
 };
 
 #[derive(Debug, Clone)]

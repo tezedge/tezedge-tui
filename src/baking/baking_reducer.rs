@@ -1,6 +1,6 @@
 use crate::automaton::{Action, ActionWithMeta, State};
 
-use super::{BakingRights, BakingSummary, BlockApplicationSummary};
+use super::BakingRights;
 
 pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
@@ -25,7 +25,7 @@ pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
 
             state.baking.baking_table.sort_content(state.delta_toggle);
         }
-        Action::CurrentHeadHeaderChanged(action) => {
+        Action::CurrentHeadHeaderChanged(_) => {
             state.baking.baking_table.content.clear();
         }
         Action::BakingRightsReceived(action) => {

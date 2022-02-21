@@ -1,9 +1,9 @@
 use redux_rs::EnablingCondition;
 
-use crate::{automaton::State, services::rpc_service::CurrentHeadHeader};
+use crate::{automaton::State, services::rpc_service_async::CurrentHeadHeader};
 
 use super::{
-    EndorsementRights, EndorsementRightsWithTime, EndorsementRightsWithTimePerLevel,
+    EndorsementRights, EndorsementRightsWithTimePerLevel,
     EndorsementStatuses, MempoolEndorsementStats,
 };
 

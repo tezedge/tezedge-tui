@@ -3,7 +3,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{
     automaton::State,
-    services::rpc_service::{CurrentHeadHeader, NetworkConstants},
+    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants},
 };
 
 use super::ActivePage;

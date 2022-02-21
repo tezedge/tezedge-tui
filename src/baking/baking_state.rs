@@ -15,7 +15,7 @@ use crate::{
         convert_time_to_unit_string, convert_time_to_unit_string_option, ExtendedTable,
         SortableByFocus, StyledTime, TuiTableData,
     },
-    services::rpc_service::CurrentHeadHeader,
+    services::rpc_service_async::CurrentHeadHeader,
 };
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;

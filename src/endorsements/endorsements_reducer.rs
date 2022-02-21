@@ -78,7 +78,7 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
                 *injected_stat = injected_endrosement_stats.clone();
             }
         }
-        Action::CurrentHeadHeaderChanged(action) => {
+        Action::CurrentHeadHeaderChanged(_action) => {
             // we update the last summary AFTER the endorsement happened, so we use the notion of the previous head to get the stored data
             if let Some((endorsing_level, _)) = state
                 .endorsmenents

@@ -160,7 +160,7 @@ where
     }
 
     pub fn get_style(&self) -> Style {
-        self.style.clone()
+        self.style
     }
 
     pub fn get_string_representation(&self) -> String {

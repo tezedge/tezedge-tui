@@ -7,12 +7,11 @@ use slog::Logger;
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
-    baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction},
-    endorsements::{EndorsementsStatusesGetAction, MempoolEndorsementStatsGetAction},
-    operations::OperationsStatisticsGetAction,
-    rpc::RpcResponseReadAction,
+    baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction, ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction},
+    endorsements::{EndorsementsStatusesGetAction, MempoolEndorsementStatsGetAction, EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction, EndorsementsRightsWithTimeReceivedAction, MempoolEndorsementStatsReceivedAction},
+    operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     services::{
-        rpc_service::RpcServiceDefault,
+        rpc_service_async::{RpcServiceDefault, RpcService, RpcResponse},
         tui_service::{TuiService, TuiServiceDefault},
         ws_service::WebsocketServiceDefault,
     },
@@ -20,7 +19,7 @@ use crate::{
         ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
         NetworkConstantsGetAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent,
         TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
-        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CurrentHeadHeaderRecievedAction, NetworkConstantsReceivedAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -43,73 +42,136 @@ impl<Serv: Service> Automaton<Serv> {
     pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
         self.store.dispatch(NetworkConstantsGetAction {});
         loop {
-            self.store.dispatch(RpcResponseReadAction {});
+            // TODO: clean this up (create handler functions)
             self.store.dispatch(DrawScreenAction {});
-            match events.recv().await {
-                Some(TuiEvent::Tick) => {
-                    self.store.dispatch(WebsocketReadAction {});
-                    self.store.dispatch(CurrentHeadHeaderGetAction {});
-
-                    self.store.dispatch(EndorsementsStatusesGetAction {});
-                    self.store.dispatch(ApplicationStatisticsGetAction {
-                        level: self.store.state().current_head_header.level,
-                    });
-                    self.store.dispatch(PerPeerBlockStatisticsGetAction {
-                        level: self.store.state().current_head_header.level,
-                    });
-                    self.store.dispatch(MempoolEndorsementStatsGetAction {});
+            tokio::select! {
+                tui_event = events.recv() => {
+                    match tui_event {
+                        Some(TuiEvent::Tick) => {
+                            self.store.dispatch(WebsocketReadAction {});
+                            self.store.dispatch(CurrentHeadHeaderGetAction {});
+        
+                            self.store.dispatch(EndorsementsStatusesGetAction {});
+                            self.store.dispatch(ApplicationStatisticsGetAction {
+                                level: self.store.state().current_head_header.level,
+                            });
+                            self.store.dispatch(PerPeerBlockStatisticsGetAction {
+                                level: self.store.state().current_head_header.level,
+                            });
+                            self.store.dispatch(MempoolEndorsementStatsGetAction {});
+                        }
+                        Some(TuiEvent::Input(key, modifier)) => match key {
+                            KeyCode::F(10) => {
+                                self.store.dispatch(ShutdownAction {});
+                                return;
+                            }
+                            KeyCode::Char('s') => {
+                                self.store.dispatch(TuiSortKeyPushedAction { modifier });
+                            }
+                            KeyCode::Char('d') => {
+                                self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
+                            }
+                            KeyCode::F(1) => {
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Synchronization,
+                                });
+                            }
+                            KeyCode::F(2) => {
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Endorsements,
+                                });
+                            }
+                            KeyCode::F(3) => {
+                                self.store.dispatch(OperationsStatisticsGetAction {});
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Statistics,
+                                });
+                            }
+                            KeyCode::F(4) => {
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Baking,
+                                });
+                            }
+                            KeyCode::Tab => {
+                                self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
+                            }
+                            KeyCode::Right => {
+                                self.store.dispatch(TuiRightKeyPushedAction {});
+                            }
+                            KeyCode::Left => {
+                                self.store.dispatch(TuiLeftKeyPushedAction {});
+                            }
+                            KeyCode::Down => {
+                                self.store.dispatch(TuiDownKeyPushedAction {});
+                            }
+                            KeyCode::Up => {
+                                self.store.dispatch(TuiUpKeyPushedAction {});
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    }
                 }
-                Some(TuiEvent::Input(key, modifier)) => match key {
-                    KeyCode::F(10) => {
-                        self.store.dispatch(ShutdownAction {});
-                        return;
+                rpc_response = self.store.service().rpc().response_recv() => {
+                    if let Some(resp) = rpc_response {
+                        match resp {
+                            RpcResponse::EndorsementRights(rights) => {
+                                self.store.dispatch(EndorsementsRightsReceivedAction {
+                                    endorsement_rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::EndorsementsStatus(endorsements_statuses) => {
+                                self.store.dispatch(EndorsementsStatusesReceivedAction {
+                                    endorsements_statuses: endorsements_statuses.clone(),
+                                });
+                            }
+                            RpcResponse::CurrentHeadHeader(current_head_header) => {
+                                self.store.dispatch(CurrentHeadHeaderRecievedAction {
+                                    current_head_header: current_head_header.clone(),
+                                });
+                            }
+                            RpcResponse::OperationsStats(operations_statistics) => {
+                                self.store.dispatch(OperationsStatisticsReceivedAction {
+                                    operations_statistics: operations_statistics.clone(),
+                                });
+                            }
+                            RpcResponse::ApplicationStatistics(application_stats) => {
+                                self.store.dispatch(ApplicationStatisticsReceivedAction {
+                                    application_statistics: application_stats.clone(),
+                                });
+                            }
+                            RpcResponse::PerPeerBlockStatistics(per_peer_stats) => {
+                                self.store.dispatch(PerPeerBlockStatisticsReceivedAction {
+                                    per_peer_block_statistics: per_peer_stats.clone(),
+                                });
+                            }
+                            RpcResponse::BakingRights(rights) => {
+                                self.store.dispatch(BakingRightsReceivedAction {
+                                    rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::EndorsementRightsWithTime(rights) => {
+                                self.store.dispatch(EndorsementsRightsWithTimeReceivedAction {
+                                    rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::MempoolEndorsementStats(stats) => {
+                                self.store.dispatch(MempoolEndorsementStatsReceivedAction {
+                                    stats: stats.clone(),
+                                });
+                            }
+                            RpcResponse::NetworkConstants(constants) => {
+                                self.store.dispatch(NetworkConstantsReceivedAction {
+                                    constants: constants.clone(),
+                                });
+                            }
+                        }
                     }
-                    KeyCode::Char('s') => {
-                        self.store.dispatch(TuiSortKeyPushedAction { modifier });
-                    }
-                    KeyCode::Char('d') => {
-                        self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
-                    }
-                    KeyCode::F(1) => {
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Synchronization,
-                        });
-                    }
-                    KeyCode::F(2) => {
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Endorsements,
-                        });
-                    }
-                    KeyCode::F(3) => {
-                        self.store.dispatch(OperationsStatisticsGetAction {});
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Statistics,
-                        });
-                    }
-                    KeyCode::F(4) => {
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Baking,
-                        });
-                    }
-                    KeyCode::Tab => {
-                        self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
-                    }
-                    KeyCode::Right => {
-                        self.store.dispatch(TuiRightKeyPushedAction {});
-                    }
-                    KeyCode::Left => {
-                        self.store.dispatch(TuiLeftKeyPushedAction {});
-                    }
-                    KeyCode::Down => {
-                        self.store.dispatch(TuiDownKeyPushedAction {});
-                    }
-                    KeyCode::Up => {
-                        self.store.dispatch(TuiUpKeyPushedAction {});
-                    }
-                    _ => {}
-                },
-                _ => {}
+                }
             }
+            // match events.recv().await {
+                
+            // }
         }
     }
 }
@@ -143,7 +205,7 @@ impl AutomatonManager {
         let websocket_service =
             WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
-        let tui_event_receiver = TuiServiceDefault::start(Duration::from_millis(500));
+        let tui_event_receiver = TuiServiceDefault::start(Duration::from_millis(1000));
 
         let service = ServiceDefault {
             rpc: rpc_service,
