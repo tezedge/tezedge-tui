@@ -19,7 +19,7 @@ use crate::{
         ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
         NetworkConstantsGetAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent,
         TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
-        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CurrentHeadHeaderRecievedAction, NetworkConstantsReceivedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CurrentHeadHeaderRecievedAction, NetworkConstantsReceivedAction, CurrentHeadMetadataReceivedAction, CurrentHeadMetadataGetAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -50,6 +50,7 @@ impl<Serv: Service> Automaton<Serv> {
                         Some(TuiEvent::Tick) => {
                             self.store.dispatch(WebsocketReadAction {});
                             self.store.dispatch(CurrentHeadHeaderGetAction {});
+                            self.store.dispatch(CurrentHeadMetadataGetAction {});
         
                             self.store.dispatch(EndorsementsStatusesGetAction {});
                             self.store.dispatch(ApplicationStatisticsGetAction {
@@ -163,6 +164,11 @@ impl<Serv: Service> Automaton<Serv> {
                             RpcResponse::NetworkConstants(constants) => {
                                 self.store.dispatch(NetworkConstantsReceivedAction {
                                     constants: constants.clone(),
+                                });
+                            }
+                            RpcResponse::CurrentHeadMetadata(meta) => {
+                                self.store.dispatch(CurrentHeadMetadataReceivedAction {
+                                    metadata: meta.clone()
                                 });
                             }
                         }

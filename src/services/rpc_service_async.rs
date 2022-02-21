@@ -159,6 +159,13 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::NetworkConstants(constants))
             }
+            RpcTarget::CurrentHeadMetadata => {
+                let metadata: CurrentHeadMetadata = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::CurrentHeadMetadata(metadata))
+            },
         }
     }
 }
@@ -197,6 +204,7 @@ pub enum RpcTarget {
     EndorsementRightsWithTime,
     MempoolEndorsementStats,
     NetworkConstants,
+    CurrentHeadMetadata,
 }
 
 #[derive(Clone, Debug)]
@@ -212,6 +220,7 @@ pub enum RpcResponse {
     EndorsementRightsWithTime(Vec<EndorsementRightsWithTimePerLevel>),
     MempoolEndorsementStats(MempoolEndorsementStats),
     NetworkConstants(NetworkConstants),
+    CurrentHeadMetadata(CurrentHeadMetadata),
 }
 
 impl Display for RpcCall {
@@ -263,6 +272,9 @@ impl Display for RpcCall {
             RpcTarget::NetworkConstants => {
                 write!(f, "NetworkConstants - Query args: {:?}", self.query_arg)
             }
+            RpcTarget::CurrentHeadMetadata => {
+                write!(f, "CurrentHeadMetadata - Query args: {:?}", self.query_arg)
+            },
         }
     }
 }
@@ -284,6 +296,7 @@ impl RpcCall {
             }
             RpcTarget::MempoolEndorsementStats => "dev/shell/automaton/stats/mempool/endorsements",
             RpcTarget::NetworkConstants => "chains/main/blocks/head/context/constants",
+            RpcTarget::CurrentHeadMetadata => "chains/main/blocks/head/metadata"
         }
     }
 }
@@ -334,4 +347,19 @@ pub struct NetworkConstants {
     // we only need this one for now
     #[serde(deserialize_with = "serde_aux::prelude::deserialize_number_from_string")]
     pub minimal_block_delay: i32,
+    pub preserved_cycles: i32,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct CurrentHeadMetadata {
+    pub level_info: LevelInfo,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct LevelInfo {
+    pub cycle: i32,
+    cycle_position: i32,
+    expected_commitment: bool,
+    pub level: i32,
+    level_position: i32,
 }

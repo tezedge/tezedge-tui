@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    ActivePage, CurrentHeadHeaderChangedAction, CycleChangedAction, DrawScreenSuccessAction,
+    ActivePage, CurrentHeadHeaderChangedAction, CycleChangedAction, DrawScreenSuccessAction, CurrentHeadMetadataChangedAction,
 };
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
@@ -74,16 +74,6 @@ where
                     current_head_header: action.current_head_header.clone(),
                 });
             }
-
-            // TODO: correct cycle info is needed from the block (not header)
-            // remove after implemented
-            let old_cycle = store.state().current_head_header.level / 4096;
-            let new_cycle = action.current_head_header.level / 4096;
-
-            if new_cycle > old_cycle {
-                // dispatch cycle changed
-                store.dispatch(CycleChangedAction { new_cycle });
-            }
         }
         Action::CurrentHeadHeaderGet(_) => {
             store.dispatch(RpcRequestAction {
@@ -94,6 +84,25 @@ where
             store.dispatch(RpcRequestAction {
                 call: RpcCall::new(RpcTarget::NetworkConstants, None),
             });
+        }
+        Action::CurrentHeadMetadataGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::CurrentHeadMetadata, None),
+            });
+        }
+        Action::CurrentHeadMetadataReceived(action) => {
+            if store.state().current_head_metadata.level_info.level < action.metadata.level_info.level {
+                store.dispatch(CurrentHeadMetadataChangedAction {
+                    new_metadata: action.metadata.clone(),
+                });
+            }
+
+            if store.state().current_head_metadata.level_info.cycle < action.metadata.level_info.cycle {
+                store.dispatch(CycleChangedAction {
+                    new_cycle: action.metadata.level_info.cycle,
+                    at_level: action.metadata.level_info.level,
+                });
+            }
         }
         Action::Shutdown(_) => {}
         _ => {}

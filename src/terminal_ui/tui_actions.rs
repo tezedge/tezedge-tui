@@ -3,7 +3,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{
     automaton::State,
-    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants},
+    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants, CurrentHeadMetadata},
 };
 
 use super::ActivePage;
@@ -150,6 +150,7 @@ impl EnablingCondition<State> for CurrentHeadHeaderChangedAction {
 #[derive(Debug, Clone)]
 pub struct CycleChangedAction {
     pub new_cycle: i32,
+    pub at_level: i32,
 }
 
 impl EnablingCondition<State> for CycleChangedAction {
@@ -173,6 +174,37 @@ pub struct NetworkConstantsReceivedAction {
 }
 
 impl EnablingCondition<State> for NetworkConstantsReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadMetadataGetAction {}
+
+impl EnablingCondition<State> for CurrentHeadMetadataGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadMetadataReceivedAction {
+    pub metadata: CurrentHeadMetadata,
+}
+
+impl EnablingCondition<State> for CurrentHeadMetadataReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CurrentHeadMetadataChangedAction {
+    pub new_metadata: CurrentHeadMetadata,
+}
+
+impl EnablingCondition<State> for CurrentHeadMetadataChangedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

@@ -52,7 +52,7 @@ impl EnablingCondition<State> for PerPeerBlockStatisticsReceivedAction {
 
 #[derive(Debug, Clone)]
 pub struct BakingRightsGetAction {
-    // cycle: i32,
+    pub cycle: i32,
 }
 
 impl EnablingCondition<State> for BakingRightsGetAction {

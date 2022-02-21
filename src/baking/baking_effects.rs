@@ -1,3 +1,5 @@
+use slog::info;
+
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
     rpc::RpcRequestAction,
@@ -31,41 +33,37 @@ where
             });
         }
         Action::CycleChanged(action) => {
+            if store.state().baker_address.is_some() {
+                let preserved_cycles = store.state().network_constants.preserved_cycles;
+                store.dispatch(BakingRightsGetAction {
+                    cycle: action.new_cycle + preserved_cycles,
+                });
+            }
+        }
+        Action::BakingRightsGet(action) => {
             if let Some(delegate) = store.state().baker_address.clone() {
                 store.dispatch(RpcRequestAction {
                     call: RpcCall::new(
                         RpcTarget::BakingRights,
                         Some(format!(
                             "?delegate={}&max_priority=0&cycle={}",
-                            delegate, action.new_cycle
+                            delegate, action.cycle
                         )),
                     ),
                 });
             }
         }
-        Action::BakingRightsGet(_) => {
-            // TODO: change this to correnct cycle
-            let cycle = store.state().current_head_header.level / 4096;
-            if let Some(delegate) = store.state().baker_address.clone() {
-                store.dispatch(RpcRequestAction {
-                    call: RpcCall::new(
-                        RpcTarget::BakingRights,
-                        Some(format!(
-                            "?delegate={}&max_priority=0&cycle={}",
-                            delegate, cycle
-                        )),
-                    ),
-                });
-            }
-        }
-        Action::CurrentHeadHeaderChanged(action) => {
+        Action::CurrentHeadMetadataChanged(action) => {
             let is_empty = store.state().baking.baking_rights.rights.is_empty();
             if is_empty {
-                store.dispatch(BakingRightsGetAction {});
-            }
-
-            if store.state().baking.baking_rights.next_baking(action.current_head_header.level, &action.current_head_header.timestamp, store.state().network_constants.minimal_block_delay).is_none() {
+                let preserved_cycles = store.state().network_constants.preserved_cycles;
+                let current_cycle = action.new_metadata.level_info.cycle;
                 
+                for cycle in current_cycle..=current_cycle + preserved_cycles {
+                    store.dispatch(BakingRightsGetAction {
+                        cycle,
+                    });
+                }
             }
         }
         _ => {}

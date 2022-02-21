@@ -1,3 +1,5 @@
+use slog::info;
+
 use crate::{automaton::{Action, ActionWithMeta, State}, baking::{BlockApplicationSummary, BakingSummary}};
 
 use super::{ActivePage, ActiveWidget};
@@ -416,6 +418,14 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
         }
         Action::NetworkConstantsReceived(action) => {
             state.network_constants = action.constants.clone();
+        }
+        Action::CurrentHeadMetadataChanged(action) => {
+            state.current_head_metadata = action.new_metadata.clone();
+        }
+        Action::CycleChanged(action) => {
+            info!(state.log, "Cleanning up baking rights up until level: {}", action.at_level);
+            state.baking.baking_rights.cleanup(&action.at_level);
+            // TODO: also cleanup endorsement rights
         }
         _ => {}
     }

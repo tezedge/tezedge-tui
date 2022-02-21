@@ -415,7 +415,7 @@ pub struct BakingRights {
 }
 
 impl BakingRights {
-    pub fn new(raw: &[BakingRightsPerLevel]) -> Self {
+    pub fn add(&mut self, raw: &[BakingRightsPerLevel]) {
         let organized = raw
             .iter()
             .map(|rights_per_level| {
@@ -423,10 +423,14 @@ impl BakingRights {
                     rights_per_level.level,
                     rights_per_level.estimated_time.clone(),
                 )
-            })
-            .collect();
+            });
+        self.rights.extend(organized);
+    }
 
-        Self { rights: organized }
+    pub fn cleanup(&mut self, to_level: &i32) {
+        self.rights.retain(|key, _| {
+            key >= to_level
+        });
     }
 
     pub fn next_baking(
