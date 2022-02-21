@@ -24,7 +24,7 @@ pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
 pub struct BlockApplicationStatistics {
     pub block_hash: String,
     pub block_timestamp: u64,
-    pub receive_timestamp: u64,
+    pub receive_timestamp: i128,
     pub baker: Option<String>,
     pub baker_priority: Option<u16>,
     pub download_block_header_start: Option<u64>,

@@ -15,7 +15,7 @@ use crate::{
         convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, StyledTime,
         TuiTableData,
     },
-    operations::OperationStats,
+    operations::OperationStats, baking::BlockApplicationStatistics,
 };
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
@@ -532,6 +532,8 @@ impl EndorsementState {
 
 #[derive(Clone, Debug, Default)]
 pub struct EndorsementOperationSummary {
+    pub block_application: Option<i128>,
+    pub block_received: Option<i128>,
     pub injected: Option<i128>,
     pub validated: Option<i128>,
     pub operation_hash_sent: Option<i128>,
@@ -541,10 +543,18 @@ pub struct EndorsementOperationSummary {
 }
 
 impl EndorsementOperationSummary {
-    pub fn new(current_head_timestamp: OffsetDateTime, op_stats: OperationStats) -> Self {
-        let injected = op_stats.injected_timestamp.map(|inject_time| {
+    pub fn new(current_head_timestamp: OffsetDateTime, op_stats: OperationStats, block_stats: Option<BlockApplicationStatistics>) -> Self {
+        let block_received = block_stats.clone().map(|stats| {
             let current_head_nanos = current_head_timestamp.unix_timestamp_nanos();
-            (inject_time as i128) - current_head_nanos
+            (stats.receive_timestamp as i128) - current_head_nanos
+        });
+
+        let block_application = block_stats.clone().and_then(|stats| {
+            stats.apply_block_end.and_then(|end| stats.apply_block_start.map(|start| (end - start) as i128))
+        });
+
+        let injected = op_stats.injected_timestamp.and_then(|inject_time| {
+                block_stats.map(|stats| (inject_time as i128) - stats.receive_timestamp)
         });
 
         let validated = op_stats.validation_duration();
@@ -564,6 +574,8 @@ impl EndorsementOperationSummary {
         });
 
         Self {
+            block_received,
+            block_application,
             injected,
             validated,
             operation_hash_sent,
@@ -575,18 +587,20 @@ impl EndorsementOperationSummary {
 
     pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<i128>)> {
         vec![
-            (Spans::from("Injected"), StyledTime::new(self.injected)),
-            (Spans::from("Validated"), StyledTime::new(self.validated)),
+            (Spans::from("Block Received"), StyledTime::new(self.block_received)),
+            (Spans::from("Block Application"), StyledTime::new(self.block_application)),
+            (Spans::from("Endorsement Operation Injected"), StyledTime::new(self.injected)),
+            (Spans::from("Endorsement Operation Validated"), StyledTime::new(self.validated)),
             (
-                Spans::from("Operation Hash Sent"),
+                Spans::from("Endorsement Operation Hash Sent"),
                 StyledTime::new(self.operation_hash_sent),
             ),
             (
-                Spans::from("Operation Requested"),
+                Spans::from("Endorsement Operation Requested"),
                 StyledTime::new(self.operation_requested),
             ),
             (
-                Spans::from("Operation Sent"),
+                Spans::from("Endorsement Operation Sent"),
                 StyledTime::new(self.operation_sent),
             ),
             // (

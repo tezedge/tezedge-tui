@@ -1,4 +1,4 @@
-use crate::automaton::{Action, ActionWithMeta, State};
+use crate::{automaton::{Action, ActionWithMeta, State}, baking::{BlockApplicationSummary, BakingSummary}};
 
 use super::{ActivePage, ActiveWidget};
 
@@ -367,6 +367,50 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
             ActivePage::Baking => state.ui.active_widget = ActiveWidget::BakingTable,
         },
         Action::CurrentHeadHeaderChanged(action) => {
+            // in this context the state.current_head_header is the previous, and state.previous_head_header is the previous of the previous
+            // we need to store the last baking data that needs all the updated stats until a new block
+            // this block is now in the past so we store it's final summary
+            if let Some((baking_level, _)) = state.baking.baking_rights.next_baking(
+                state.current_head_header.level,
+                &state.current_head_header.timestamp,
+                state.network_constants.minimal_block_delay,
+            ) {
+                if baking_level == state.current_head_header.level {
+                    state.baking.last_baked_block_level = Some(state.current_head_header.level);
+                    state.baking.last_baked_block_hash =
+                        Some(state.current_head_header.hash.clone());
+
+                    let block_application_summary = if let Some(application_statistics) = state
+                        .baking
+                        .application_statistics
+                        .get(&state.current_head_header.hash)
+                    {
+                        BlockApplicationSummary::from(application_statistics.clone())
+                    } else {
+                        BlockApplicationSummary::default()
+                    };
+
+                    let per_peer = if let Some(last_baked_per_peer_stats) = state
+                        .baking
+                        .per_peer_block_statistics
+                        .get(&state.current_head_header.hash)
+                    {
+                        last_baked_per_peer_stats.clone()
+                    } else {
+                        Vec::new()
+                    };
+
+                    let summary = BakingSummary::new(
+                        baking_level,
+                        state.previous_head_header.clone(),
+                        block_application_summary,
+                        per_peer,
+                    );
+
+                    state.baking.last_baking_summary = summary;
+                }
+            }
+            // update the state with new headers
             state.previous_head_header = state.current_head_header.clone();
             state.current_head_header = action.current_head_header.clone();
         }

@@ -288,13 +288,19 @@ impl Renderable for EndorsementsScreen {
 
         if let Some((level, _)) = next_endorsing {
             let endorsement_summary = if level == current_head_level {
-                let op_stats = state
-                    .endorsmenents
-                    .injected_endorsement_stats
-                    .get(&current_head_level)
-                    .cloned()
-                    .unwrap_or_default();
-                EndorsementOperationSummary::new(*current_head_timestamp, op_stats)
+                // we receive the operation stats from node earlier than the block statistics
+                // so only display the full stats when everything is ready. This would confuse the user
+                if let Some(block_stats) = state.baking.application_statistics.get(&state.current_head_header.hash).cloned() {
+                    let op_stats = state
+                        .endorsmenents
+                        .injected_endorsement_stats
+                        .get(&current_head_level)
+                        .cloned()
+                        .unwrap_or_default();
+                    EndorsementOperationSummary::new(*current_head_timestamp, op_stats, Some(block_stats))
+                } else {
+                    EndorsementOperationSummary::default()
+                }
             } else {
                 state
                     .endorsmenents
