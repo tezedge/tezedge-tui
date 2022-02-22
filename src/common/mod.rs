@@ -79,6 +79,7 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
 
 pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut Frame<B>) {
     let header = &state.current_head_header;
+    let remote_level = state.best_remote_level.unwrap_or_default();
     // wrap the header info in borders
     let block = Block::default()
         .borders(Borders::BOTTOM)
@@ -116,6 +117,12 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
 
     f.render_widget(block_hash, header_chunks[0]);
 
+    let block_num_style = if header.level >= remote_level {
+        Style::default().fg(Color::Green)
+    } else {
+        Style::default().fg(Color::White)
+    };
+
     let block_level = Paragraph::new(Spans::from(vec![
         Span::styled(
             "Local Level: ",
@@ -123,13 +130,13 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         ),
         Span::styled(
             format!("{} ", header.level),
-            Style::default().fg(Color::White),
+            block_num_style,
         ),
     ]));
 
     f.render_widget(block_level, header_chunks[1]);
 
-    let remote_level = Paragraph::new(Spans::from(vec![
+    let remote_level_paragraph = Paragraph::new(Spans::from(vec![
         Span::styled(
             "Remote Level: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
@@ -140,7 +147,7 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         ),
     ]));
 
-    f.render_widget(remote_level, header_chunks[2]);
+    f.render_widget(remote_level_paragraph, header_chunks[2]);
 
     // show only the shorter version of the protocol
     let protocol_short = if !header.protocol.is_empty() {
