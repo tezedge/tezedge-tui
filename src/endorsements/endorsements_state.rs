@@ -11,11 +11,12 @@ use tui::{
 };
 
 use crate::{
+    baking::BlockApplicationStatistics,
     extensions::{
         convert_time_to_unit_string, get_time_style, ExtendedTable, SortableByFocus, StyledTime,
         TuiTableData,
     },
-    operations::OperationStats, baking::BlockApplicationStatistics,
+    operations::OperationStats,
 };
 
 pub type EndorsementRights = BTreeMap<String, Vec<u32>>;
@@ -43,12 +44,7 @@ impl EndorsementRightsWithTime {
     pub fn new(raw: &[EndorsementRightsWithTimePerLevel]) -> Self {
         let organized = raw
             .iter()
-            .map(|rights_per_level| {
-                (
-                    rights_per_level.level,
-                    rights_per_level.estimated_time,
-                )
-            })
+            .map(|rights_per_level| (rights_per_level.level, rights_per_level.estimated_time))
             .collect();
 
         Self { rights: organized }
@@ -543,18 +539,24 @@ pub struct EndorsementOperationSummary {
 }
 
 impl EndorsementOperationSummary {
-    pub fn new(current_head_timestamp: OffsetDateTime, op_stats: OperationStats, block_stats: Option<BlockApplicationStatistics>) -> Self {
+    pub fn new(
+        current_head_timestamp: OffsetDateTime,
+        op_stats: OperationStats,
+        block_stats: Option<BlockApplicationStatistics>,
+    ) -> Self {
         let block_received = block_stats.clone().map(|stats| {
             let current_head_nanos = current_head_timestamp.unix_timestamp_nanos();
-            (stats.receive_timestamp as i128) - current_head_nanos
+            stats.receive_timestamp - current_head_nanos
         });
 
         let block_application = block_stats.clone().and_then(|stats| {
-            stats.apply_block_end.and_then(|end| stats.apply_block_start.map(|start| (end - start) as i128))
+            stats
+                .apply_block_end
+                .and_then(|end| stats.apply_block_start.map(|start| (end - start) as i128))
         });
 
         let injected = op_stats.injected_timestamp.and_then(|inject_time| {
-                block_stats.map(|stats| (inject_time as i128) - stats.receive_timestamp)
+            block_stats.map(|stats| (inject_time as i128) - stats.receive_timestamp)
         });
 
         let validated = op_stats.validation_duration();
@@ -587,10 +589,22 @@ impl EndorsementOperationSummary {
 
     pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<i128>)> {
         vec![
-            (Spans::from("Block Received"), StyledTime::new(self.block_received)),
-            (Spans::from("Block Application"), StyledTime::new(self.block_application)),
-            (Spans::from("Endorsement Operation Injected"), StyledTime::new(self.injected)),
-            (Spans::from("Endorsement Operation Validated"), StyledTime::new(self.validated)),
+            (
+                Spans::from("Block Received"),
+                StyledTime::new(self.block_received),
+            ),
+            (
+                Spans::from("Block Application"),
+                StyledTime::new(self.block_application),
+            ),
+            (
+                Spans::from("Endorsement Operation Injected"),
+                StyledTime::new(self.injected),
+            ),
+            (
+                Spans::from("Endorsement Operation Validated"),
+                StyledTime::new(self.validated),
+            ),
             (
                 Spans::from("Endorsement Operation Hash Sent"),
                 StyledTime::new(self.operation_hash_sent),

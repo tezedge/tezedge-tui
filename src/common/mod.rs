@@ -89,7 +89,8 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(23),
-            Constraint::Length(16),
+            Constraint::Length(22),
+            Constraint::Length(23),
             Constraint::Length(18),
             Constraint::Min(50),
         ])
@@ -117,7 +118,7 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
 
     let block_level = Paragraph::new(Spans::from(vec![
         Span::styled(
-            "Level: ",
+            "Local Level: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ),
         Span::styled(
@@ -127,6 +128,19 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
     ]));
 
     f.render_widget(block_level, header_chunks[1]);
+
+    let remote_level = Paragraph::new(Spans::from(vec![
+        Span::styled(
+            "Remote Level: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
+        Span::styled(
+            format!("{} ", state.best_remote_level.unwrap_or_default()),
+            Style::default().fg(Color::White),
+        ),
+    ]));
+
+    f.render_widget(remote_level, header_chunks[2]);
 
     // show only the shorter version of the protocol
     let protocol_short = if !header.protocol.is_empty() {
@@ -146,12 +160,12 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
         ),
     ]));
 
-    f.render_widget(block_protocol, header_chunks[2]);
+    f.render_widget(block_protocol, header_chunks[3]);
 
     let baker_info_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Min(21), Constraint::Length(26)])
-        .split(header_chunks[3]);
+        .split(header_chunks[4]);
 
     // render next baking endorsements if we have baker address specified
     if state.baker_address.is_some() {

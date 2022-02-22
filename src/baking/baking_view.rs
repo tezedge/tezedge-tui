@@ -142,6 +142,7 @@ impl Renderable for BakingScreen {
 
         let current_head_level = state.current_head_header.level;
         let current_head_timestamp = state.current_head_header.timestamp;
+        let block_delay = state.network_constants.minimal_block_delay;
         let next_baking = state.baking.baking_rights.next_baking(
             current_head_level,
             &current_head_timestamp,
@@ -213,6 +214,7 @@ impl Renderable for BakingScreen {
             let baking_summary = if level == current_head_level {
                 BakingSummary::new(
                     current_head_level,
+                    block_delay,
                     state.previous_head_header.clone(),
                     application_summary,
                     per_peer_stats,

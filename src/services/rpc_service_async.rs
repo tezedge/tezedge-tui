@@ -42,7 +42,9 @@ impl RpcServiceDefault {
         let t_url = url.clone();
         let t_log = log.clone();
 
-        tokio::task::spawn(async move { Self::run_worker(call_rx, response_tx, &t_url, &t_log).await });
+        tokio::task::spawn(
+            async move { Self::run_worker(call_rx, response_tx, &t_url, &t_log).await },
+        );
 
         Self {
             sender: call_tx,
@@ -64,7 +66,12 @@ impl RpcService for RpcServiceDefault {
 }
 
 impl RpcServiceDefault {
-    async fn run_worker(mut call_receiver: mpsc::Receiver<RpcCall>, response_sender: mpsc::Sender<RpcResponse>, url: &Url, log: &Logger) {
+    async fn run_worker(
+        mut call_receiver: mpsc::Receiver<RpcCall>,
+        response_sender: mpsc::Sender<RpcResponse>,
+        url: &Url,
+        log: &Logger,
+    ) {
         info!(log, "Rpc service started. Rpc url: {}", url);
         while let Some(req) = call_receiver.recv().await {
             match Self::call_rpc(req, url).await {
@@ -165,7 +172,14 @@ impl RpcServiceDefault {
                     .await
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::CurrentHeadMetadata(metadata))
-            },
+            }
+            RpcTarget::BestRemoteLevel => {
+                let level: Option<i32> = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::BestRemoteLevel(level))
+            }
         }
     }
 }
@@ -205,6 +219,7 @@ pub enum RpcTarget {
     MempoolEndorsementStats,
     NetworkConstants,
     CurrentHeadMetadata,
+    BestRemoteLevel,
 }
 
 #[derive(Clone, Debug)]
@@ -221,6 +236,7 @@ pub enum RpcResponse {
     MempoolEndorsementStats(MempoolEndorsementStats),
     NetworkConstants(NetworkConstants),
     CurrentHeadMetadata(CurrentHeadMetadata),
+    BestRemoteLevel(Option<i32>),
 }
 
 impl Display for RpcCall {
@@ -274,7 +290,10 @@ impl Display for RpcCall {
             }
             RpcTarget::CurrentHeadMetadata => {
                 write!(f, "CurrentHeadMetadata - Query args: {:?}", self.query_arg)
-            },
+            }
+            RpcTarget::BestRemoteLevel => {
+                write!(f, "BestRemoteLevel - Query args: {:?}", self.query_arg)
+            }
         }
     }
 }
@@ -296,7 +315,8 @@ impl RpcCall {
             }
             RpcTarget::MempoolEndorsementStats => "dev/shell/automaton/stats/mempool/endorsements",
             RpcTarget::NetworkConstants => "chains/main/blocks/head/context/constants",
-            RpcTarget::CurrentHeadMetadata => "chains/main/blocks/head/metadata"
+            RpcTarget::CurrentHeadMetadata => "chains/main/blocks/head/metadata",
+            RpcTarget::BestRemoteLevel => "dev/peers/best_remote_level",
         }
     }
 }

@@ -3,8 +3,8 @@ use redux_rs::EnablingCondition;
 use crate::{automaton::State, services::rpc_service_async::CurrentHeadHeader};
 
 use super::{
-    EndorsementRights, EndorsementRightsWithTimePerLevel,
-    EndorsementStatuses, MempoolEndorsementStats,
+    EndorsementRights, EndorsementRightsWithTimePerLevel, EndorsementStatuses,
+    MempoolEndorsementStats,
 };
 
 #[derive(Debug, Clone)]

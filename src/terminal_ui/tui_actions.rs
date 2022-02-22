@@ -3,7 +3,7 @@ use redux_rs::EnablingCondition;
 
 use crate::{
     automaton::State,
-    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants, CurrentHeadMetadata},
+    services::rpc_service_async::{CurrentHeadHeader, CurrentHeadMetadata, NetworkConstants},
 };
 
 use super::ActivePage;
@@ -205,6 +205,37 @@ pub struct CurrentHeadMetadataChangedAction {
 }
 
 impl EnablingCondition<State> for CurrentHeadMetadataChangedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BestRemoteLevelGetAction {}
+
+impl EnablingCondition<State> for BestRemoteLevelGetAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BestRemoteLevelReceivedAction {
+    pub level: Option<i32>,
+}
+
+impl EnablingCondition<State> for BestRemoteLevelReceivedAction {
+    fn is_enabled(&self, _: &State) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BestRemoteLevelChangedAction {
+    pub level: Option<i32>,
+}
+
+impl EnablingCondition<State> for BestRemoteLevelChangedAction {
     fn is_enabled(&self, _: &State) -> bool {
         true
     }

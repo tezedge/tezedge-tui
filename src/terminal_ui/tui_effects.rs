@@ -14,7 +14,8 @@ use crate::{
 };
 
 use super::{
-    ActivePage, CurrentHeadHeaderChangedAction, CycleChangedAction, DrawScreenSuccessAction, CurrentHeadMetadataChangedAction,
+    ActivePage, BestRemoteLevelChangedAction, CurrentHeadHeaderChangedAction,
+    CurrentHeadMetadataChangedAction, CycleChangedAction, DrawScreenSuccessAction,
 };
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
@@ -90,18 +91,42 @@ where
                 call: RpcCall::new(RpcTarget::CurrentHeadMetadata, None),
             });
         }
+        Action::BestRemoteLevelGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::BestRemoteLevel, None),
+            });
+        }
         Action::CurrentHeadMetadataReceived(action) => {
-            if store.state().current_head_metadata.level_info.level < action.metadata.level_info.level {
+            if store.state().current_head_metadata.level_info.level
+                < action.metadata.level_info.level
+            {
                 store.dispatch(CurrentHeadMetadataChangedAction {
                     new_metadata: action.metadata.clone(),
                 });
             }
 
-            if store.state().current_head_metadata.level_info.cycle < action.metadata.level_info.cycle {
+            if store.state().current_head_metadata.level_info.cycle
+                < action.metadata.level_info.cycle
+            {
                 store.dispatch(CycleChangedAction {
                     new_cycle: action.metadata.level_info.cycle,
                     at_level: action.metadata.level_info.level,
                 });
+            }
+        }
+        Action::BestRemoteLevelReceived(action) => {
+            if let Some(new_best_level) = action.level {
+                if let Some(current_best_level) = store.state().best_remote_level {
+                    if current_best_level < new_best_level {
+                        store.dispatch(BestRemoteLevelChangedAction {
+                            level: Some(new_best_level),
+                        });
+                    }
+                } else {
+                    store.dispatch(BestRemoteLevelChangedAction {
+                        level: Some(new_best_level),
+                    });
+                }
             }
         }
         Action::Shutdown(_) => {}

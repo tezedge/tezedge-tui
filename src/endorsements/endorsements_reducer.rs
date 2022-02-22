@@ -92,7 +92,11 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
                 if endorsing_level == state.previous_head_header.level {
                     state.endorsmenents.last_endrosement_operation_level = endorsing_level;
 
-                    let block_stats = state.baking.application_statistics.get(&state.previous_head_header.hash).cloned();
+                    let block_stats = state
+                        .baking
+                        .application_statistics
+                        .get(&state.previous_head_header.hash)
+                        .cloned();
 
                     let op_stats = state
                         .endorsmenents
@@ -103,7 +107,7 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
                     let injected_endorsement_summary = EndorsementOperationSummary::new(
                         state.previous_head_header.timestamp,
                         op_stats,
-                        block_stats
+                        block_stats,
                     );
 
                     state.endorsmenents.last_injected_endorsement_summary =

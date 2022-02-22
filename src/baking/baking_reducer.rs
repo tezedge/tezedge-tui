@@ -1,8 +1,4 @@
-use slog::info;
-
 use crate::automaton::{Action, ActionWithMeta, State};
-
-use super::BakingRights;
 
 pub fn baking_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {

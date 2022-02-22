@@ -147,6 +147,7 @@ pub struct BakingSummary {
 impl BakingSummary {
     pub fn new(
         level: i32,
+        block_delay: i32,
         previous_head_header: CurrentHeadHeader,
         block_application_summary: BlockApplicationSummary,
         per_peer: PerPeerBlockStatisticsVector,
@@ -157,7 +158,8 @@ impl BakingSummary {
                 let previous_head_timestamp = previous_head_header.timestamp.unix_timestamp_nanos();
 
                 // TODO: cleanup these casts
-                ((injected_timestamp as i128) - previous_head_timestamp) as u64
+                ((injected_timestamp as i128) - previous_head_timestamp + (block_delay as i128))
+                    as u64
             });
         Self {
             level,
@@ -418,19 +420,12 @@ impl BakingRights {
     pub fn add(&mut self, raw: &[BakingRightsPerLevel]) {
         let organized = raw
             .iter()
-            .map(|rights_per_level| {
-                (
-                    rights_per_level.level,
-                    rights_per_level.estimated_time.clone(),
-                )
-            });
+            .map(|rights_per_level| (rights_per_level.level, rights_per_level.estimated_time));
         self.rights.extend(organized);
     }
 
     pub fn cleanup(&mut self, to_level: &i32) {
-        self.rights.retain(|key, _| {
-            key >= to_level
-        });
+        self.rights.retain(|key, _| key >= to_level);
     }
 
     pub fn next_baking(

@@ -1,6 +1,9 @@
 use slog::info;
 
-use crate::{automaton::{Action, ActionWithMeta, State}, baking::{BlockApplicationSummary, BakingSummary}};
+use crate::{
+    automaton::{Action, ActionWithMeta, State},
+    baking::{BakingSummary, BlockApplicationSummary},
+};
 
 use super::{ActivePage, ActiveWidget};
 
@@ -404,6 +407,7 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
 
                     let summary = BakingSummary::new(
                         baking_level,
+                        state.network_constants.minimal_block_delay,
                         state.previous_head_header.clone(),
                         block_application_summary,
                         per_peer,
@@ -423,9 +427,15 @@ pub fn tui_reducer(state: &mut State, action: &ActionWithMeta) {
             state.current_head_metadata = action.new_metadata.clone();
         }
         Action::CycleChanged(action) => {
-            info!(state.log, "Cleanning up baking rights up until level: {}", action.at_level);
+            info!(
+                state.log,
+                "Cleanning up baking rights up until level: {}", action.at_level
+            );
             state.baking.baking_rights.cleanup(&action.at_level);
             // TODO: also cleanup endorsement rights
+        }
+        Action::BestRemoteLevelChanged(action) => {
+            state.best_remote_level = action.level;
         }
         _ => {}
     }

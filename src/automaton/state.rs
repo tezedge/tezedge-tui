@@ -4,7 +4,7 @@ use crate::{
     baking::BakingState,
     endorsements::EndrosementsState,
     operations::OperationsStatisticsState,
-    services::rpc_service_async::{CurrentHeadHeader, NetworkConstants, CurrentHeadMetadata},
+    services::rpc_service_async::{CurrentHeadHeader, CurrentHeadMetadata, NetworkConstants},
     synchronization::SynchronizationState,
     terminal_ui::UiState,
 };
@@ -16,6 +16,7 @@ pub struct State {
     pub current_head_header: CurrentHeadHeader,
     pub current_head_metadata: CurrentHeadMetadata,
     pub previous_head_header: CurrentHeadHeader,
+    pub best_remote_level: Option<i32>,
     pub baker_address: Option<String>,
 
     pub synchronization: SynchronizationState,
@@ -46,6 +47,7 @@ impl State {
             baking: Default::default(),
             ui: Default::default(),
             network_constants: Default::default(),
+            best_remote_level: Default::default(),
         }
     }
 }

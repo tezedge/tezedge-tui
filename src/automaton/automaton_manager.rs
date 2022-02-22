@@ -7,19 +7,29 @@ use slog::Logger;
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
-    baking::{ApplicationStatisticsGetAction, PerPeerBlockStatisticsGetAction, ApplicationStatisticsReceivedAction, PerPeerBlockStatisticsReceivedAction, BakingRightsReceivedAction},
-    endorsements::{EndorsementsStatusesGetAction, MempoolEndorsementStatsGetAction, EndorsementsRightsReceivedAction, EndorsementsStatusesReceivedAction, EndorsementsRightsWithTimeReceivedAction, MempoolEndorsementStatsReceivedAction},
+    baking::{
+        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
+        BakingRightsReceivedAction, PerPeerBlockStatisticsGetAction,
+        PerPeerBlockStatisticsReceivedAction,
+    },
+    endorsements::{
+        EndorsementsRightsReceivedAction, EndorsementsRightsWithTimeReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
+        MempoolEndorsementStatsGetAction, MempoolEndorsementStatsReceivedAction,
+    },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     services::{
-        rpc_service_async::{RpcServiceDefault, RpcService, RpcResponse},
+        rpc_service_async::{RpcResponse, RpcService, RpcServiceDefault},
         tui_service::{TuiService, TuiServiceDefault},
         ws_service::WebsocketServiceDefault,
     },
     terminal_ui::{
-        ActivePage, ChangeScreenAction, CurrentHeadHeaderGetAction, DrawScreenAction,
-        NetworkConstantsGetAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiEvent,
-        TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
-        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction, CurrentHeadHeaderRecievedAction, NetworkConstantsReceivedAction, CurrentHeadMetadataReceivedAction, CurrentHeadMetadataGetAction,
+        ActivePage, BestRemoteLevelGetAction, BestRemoteLevelReceivedAction, ChangeScreenAction,
+        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, CurrentHeadMetadataGetAction,
+        CurrentHeadMetadataReceivedAction, DrawScreenAction, NetworkConstantsGetAction,
+        NetworkConstantsReceivedAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction,
+        TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -49,9 +59,10 @@ impl<Serv: Service> Automaton<Serv> {
                     match tui_event {
                         Some(TuiEvent::Tick) => {
                             self.store.dispatch(WebsocketReadAction {});
+                            self.store.dispatch(BestRemoteLevelGetAction {});
                             self.store.dispatch(CurrentHeadHeaderGetAction {});
                             self.store.dispatch(CurrentHeadMetadataGetAction {});
-        
+
                             self.store.dispatch(EndorsementsStatusesGetAction {});
                             self.store.dispatch(ApplicationStatisticsGetAction {
                                 level: self.store.state().current_head_header.level,
@@ -171,12 +182,17 @@ impl<Serv: Service> Automaton<Serv> {
                                     metadata: meta.clone()
                                 });
                             }
+                            RpcResponse::BestRemoteLevel(level) => {
+                                self.store.dispatch(BestRemoteLevelReceivedAction {
+                                    level
+                                });
+                            }
                         }
                     }
                 }
             }
             // match events.recv().await {
-                
+
             // }
         }
     }

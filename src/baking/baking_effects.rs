@@ -1,5 +1,3 @@
-use slog::info;
-
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
     rpc::RpcRequestAction,
@@ -58,11 +56,9 @@ where
             if is_empty {
                 let preserved_cycles = store.state().network_constants.preserved_cycles;
                 let current_cycle = action.new_metadata.level_info.cycle;
-                
+
                 for cycle in current_cycle..=current_cycle + preserved_cycles {
-                    store.dispatch(BakingRightsGetAction {
-                        cycle,
-                    });
+                    store.dispatch(BakingRightsGetAction { cycle });
                 }
             }
         }

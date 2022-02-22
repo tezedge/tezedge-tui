@@ -1,9 +1,6 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
-    services::{
-        rpc_service_async::RpcService,
-        Service,
-    },
+    services::{rpc_service_async::RpcService, Service},
 };
 
 pub fn rpc_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
