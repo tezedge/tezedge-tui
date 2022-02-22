@@ -156,9 +156,9 @@ impl BakingSummary {
             .injected
             .map(|injected_timestamp| {
                 let previous_head_timestamp = previous_head_header.timestamp.unix_timestamp_nanos();
-
+                let block_delay_nanos: i128 = (block_delay as i128) * 1_000_000_000;
                 // TODO: cleanup these casts
-                ((injected_timestamp as i128) - previous_head_timestamp + (block_delay as i128))
+                ((injected_timestamp as i128) - (previous_head_timestamp + block_delay_nanos))
                     as u64
             });
         Self {
