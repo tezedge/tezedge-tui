@@ -120,7 +120,7 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
     let block_num_style = if header.level >= remote_level {
         Style::default().fg(Color::Green)
     } else {
-        Style::default().fg(Color::White)
+        Style::default().fg(Color::Red)
     };
 
     let block_level = Paragraph::new(Spans::from(vec![

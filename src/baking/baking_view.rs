@@ -56,22 +56,30 @@ impl Renderable for BakingScreen {
             BlockApplicationSummary::default()
         };
 
+        let (top_panel, bottom_panel) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(summary_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        let summary_panel = if state.baker_address.is_some() {
+            bottom_panel
+        } else {
+            top_panel
+        };
+        
         let (
-            summary_baking_title_chunk,
-            summary_baking_level_chunk,
-            summary_baking_inner_chunk,
             summary_title_chunk,
             summary_inner_chunk,
         ) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),
-                Constraint::Length(2),
-                Constraint::Min(15),
                 Constraint::Length(4),
                 Constraint::Min(17),
             ])
-            .split(summary_chunk)
+            .split(summary_panel)
             .into_iter()
             .collect_tuple()
             .unwrap();
@@ -138,124 +146,140 @@ impl Renderable for BakingScreen {
         f.render_widget(table, summary_inner_chunk);
 
         // ======================== SUMMRAY PANEL BAKING ========================
-        // TODO: only update this on Baking
-
-        let current_head_level = state.current_head_header.level;
-        let current_head_timestamp = state.current_head_header.timestamp;
-        let block_delay = state.network_constants.minimal_block_delay;
-        let next_baking = state.baking.baking_rights.next_baking(
-            current_head_level,
-            &current_head_timestamp,
-            state.network_constants.minimal_block_delay,
-        );
-
-        let (next_baking_time_label, next_baking_delta_label) =
-            if let Some((level, time)) = next_baking {
-                let blocks_delta = level - current_head_level;
-                (
-                    Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
-                    Span::styled(
-                        format!("{} ({} blocks)", time, blocks_delta),
-                        Style::default().fg(Color::White),
-                    ),
-                )
-            } else {
-                (
-                    Span::styled(
-                        "No rights found",
-                        Style::default()
-                            .fg(Color::White)
-                            .add_modifier(Modifier::DIM),
-                    ),
-                    Span::from(""),
-                )
-            };
-
-        let summary_dimmed_text_style = Style::default()
-            .fg(Color::White)
-            .add_modifier(Modifier::DIM);
-
-        let summary_title = Paragraph::new(Spans::from(vec![
-            Span::styled(" BAKING PROGRESS - ", Style::default().fg(Color::White)),
-            Span::styled("Next baking at level ", summary_dimmed_text_style),
-            next_baking_time_label,
-            Span::styled("in ", summary_dimmed_text_style),
-            next_baking_delta_label,
-        ]))
-        .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
-
-        f.render_widget(summary_title, summary_baking_title_chunk);
-
-        let last_baked_block_level_label =
-            if let Some(last_baked_block_level) = state.baking.last_baked_block_level {
-                last_baked_block_level.to_string()
-            } else {
-                String::from(" - ")
-            };
-
-        let last_baked_block_label = Paragraph::new(Spans::from(vec![
-            Span::styled(" LAST BAKED LEVEL ", Style::default().fg(Color::White)),
-            Span::styled(
-                last_baked_block_level_label,
-                Style::default().fg(Color::White),
-            ),
-        ]))
-        .block(Block::default().borders(Borders::LEFT | Borders::RIGHT));
-
-        f.render_widget(last_baked_block_label, summary_baking_level_chunk);
-
-        let next_baking = state.baking.baking_rights.next_baking(
-            current_head_level,
-            &current_head_timestamp,
-            state.network_constants.minimal_block_delay,
-        );
-        if let Some((level, _)) = next_baking {
-            // Only update on new baking
-            let baking_summary = if level == current_head_level {
-                BakingSummary::new(
-                    current_head_level,
-                    block_delay,
-                    state.previous_head_header.clone(),
-                    application_summary,
-                    per_peer_stats,
-                )
-            } else {
-                state.baking.last_baking_summary.clone()
-            };
-
-            let rows = baking_summary
-                .to_table_data()
-                .clone()
-                .into_iter()
-                .enumerate()
-                .map(|(index, (tag, styled_time))| {
-                    let height = 1;
-
-                    let sequence_num = Cell::from(index.to_string());
-                    let tag = Cell::from(tag);
-                    let value = Cell::from(styled_time.get_string_representation())
-                        .style(styled_time.get_style().remove_modifier(Modifier::DIM));
-
-                    // stripes to differentiate between lines
-                    if index % 2 == 0 {
-                        Row::new(vec![sequence_num, tag, value])
-                            .height(height)
-                            .style(selected_style)
-                    } else {
-                        Row::new(vec![sequence_num, tag, value]).height(height)
-                    }
-                });
-
-            let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
-            let table = Table::new(rows)
-                // .header(header)
-                .block(block)
-                .widths(&[
+        if state.baker_address.is_some() {
+            let (
+                summary_baking_title_chunk,
+                summary_baking_level_chunk,
+                summary_baking_inner_chunk,
+            ) = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
                     Constraint::Length(2),
-                    Constraint::Percentage(75),
-                    Constraint::Percentage(25),
-                ]);
-            f.render_widget(table, summary_baking_inner_chunk);
+                    Constraint::Min(15),
+                ])
+                .split(top_panel)
+                .into_iter()
+                .collect_tuple()
+                .unwrap();
+
+            let current_head_level = state.current_head_header.level;
+            let current_head_timestamp = state.current_head_header.timestamp;
+            let block_delay = state.network_constants.minimal_block_delay;
+            let next_baking = state.baking.baking_rights.next_baking(
+                current_head_level,
+                &current_head_timestamp,
+                state.network_constants.minimal_block_delay,
+            );
+
+            let (next_baking_time_label, next_baking_delta_label) =
+                if let Some((level, time)) = next_baking {
+                    let blocks_delta = level - current_head_level;
+                    (
+                        Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
+                        Span::styled(
+                            format!("{} ({} blocks)", time, blocks_delta),
+                            Style::default().fg(Color::White),
+                        ),
+                    )
+                } else {
+                    (
+                        Span::styled(
+                            "No rights found",
+                            Style::default()
+                                .fg(Color::White)
+                                .add_modifier(Modifier::DIM),
+                        ),
+                        Span::from(""),
+                    )
+                };
+
+            let summary_dimmed_text_style = Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM);
+
+            let summary_title = Paragraph::new(Spans::from(vec![
+                Span::styled(" BAKING PROGRESS - ", Style::default().fg(Color::White)),
+                Span::styled("Next baking at level ", summary_dimmed_text_style),
+                next_baking_time_label,
+                Span::styled("in ", summary_dimmed_text_style),
+                next_baking_delta_label,
+            ]))
+            .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+            f.render_widget(summary_title, summary_baking_title_chunk);
+
+            let last_baked_block_level_label =
+                if let Some(last_baked_block_level) = state.baking.last_baked_block_level {
+                    last_baked_block_level.to_string()
+                } else {
+                    String::from(" - ")
+                };
+
+            let last_baked_block_label = Paragraph::new(Spans::from(vec![
+                Span::styled(" LAST BAKED LEVEL ", Style::default().fg(Color::White)),
+                Span::styled(
+                    last_baked_block_level_label,
+                    Style::default().fg(Color::White),
+                ),
+            ]))
+            .block(Block::default().borders(Borders::LEFT | Borders::RIGHT));
+
+            f.render_widget(last_baked_block_label, summary_baking_level_chunk);
+
+            let next_baking = state.baking.baking_rights.next_baking(
+                current_head_level,
+                &current_head_timestamp,
+                state.network_constants.minimal_block_delay,
+            );
+            if let Some((level, _)) = next_baking {
+                // Only update on new baking
+                let baking_summary = if level == current_head_level {
+                    BakingSummary::new(
+                        current_head_level,
+                        block_delay,
+                        state.previous_head_header.clone(),
+                        application_summary,
+                        per_peer_stats,
+                    )
+                } else {
+                    state.baking.last_baking_summary.clone()
+                };
+
+                let rows = baking_summary
+                    .to_table_data()
+                    .clone()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, (tag, styled_time))| {
+                        let height = 1;
+
+                        let sequence_num = Cell::from(index.to_string());
+                        let tag = Cell::from(tag);
+                        let value = Cell::from(styled_time.get_string_representation())
+                            .style(styled_time.get_style().remove_modifier(Modifier::DIM));
+
+                        // stripes to differentiate between lines
+                        if index % 2 == 0 {
+                            Row::new(vec![sequence_num, tag, value])
+                                .height(height)
+                                .style(selected_style)
+                        } else {
+                            Row::new(vec![sequence_num, tag, value]).height(height)
+                        }
+                    });
+
+                let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+                let table = Table::new(rows)
+                    // .header(header)
+                    .block(block)
+                    .widths(&[
+                        Constraint::Length(2),
+                        Constraint::Percentage(75),
+                        Constraint::Percentage(25),
+                    ]);
+                f.render_widget(table, summary_baking_inner_chunk);
+            }
         }
 
         // ======================== BAKING TABLE (help) ========================
