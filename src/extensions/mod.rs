@@ -3,13 +3,16 @@ use std::io::Stdout;
 
 pub use extended_table::*;
 use num::{FromPrimitive, ToPrimitive};
+use serde::{Deserialize, Serialize};
 use tui::{
     backend::CrosstermBackend,
+    layout::Constraint,
     style::{Color, Modifier, Style},
+    widgets::TableState,
     Frame,
 };
 
-use crate::automaton::State;
+use crate::automaton::{State, ActionWithMeta, Action};
 
 pub mod custom_border_separator;
 pub use custom_border_separator::*;
@@ -86,7 +89,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StyledTime<T> {
     value: T,
     pub style: Style,
@@ -165,5 +168,81 @@ where
 
     pub fn get_string_representation(&self) -> String {
         self.string_representation.clone()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "TableState")]
+pub struct TableStateDef {
+    #[serde(skip)]
+    offset: usize,
+    #[serde(getter = "TableState::selected")]
+    selected: Option<usize>,
+}
+
+// Provide a conversion to construct the remote type.
+impl From<TableStateDef> for TableState {
+    fn from(def: TableStateDef) -> TableState {
+        let mut state = TableState::default();
+        state.select(def.selected);
+        state
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Constraint")]
+pub enum ConstraintDef {
+    Percentage(u16),
+    Ratio(u32, u32),
+    Length(u16),
+    Max(u16),
+    Min(u16),
+}
+
+mod vec_constraint {
+    use serde::{Deserialize, Serialize, Deserializer, Serializer, ser::SerializeSeq};
+    use tui::layout::Constraint;
+    
+    use super::ConstraintDef;
+
+    #[derive(Deserialize, Serialize)]
+    struct Wrapper(#[serde(with = "ConstraintDef")] Constraint);
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Constraint>, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+
+        let v = Vec::deserialize(deserializer)?;
+        Ok(v.into_iter().map(|Wrapper(a)| a).collect())
+    }
+    
+    pub fn serialize<S>(vec_constraint: &[Constraint], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let v: Vec<Wrapper> = vec_constraint.iter().map(|a| Wrapper(*a)).collect();
+        let mut seq = serializer.serialize_seq(Some(vec_constraint.len()))?;
+        for constraint in v {
+            seq.serialize_element(&constraint)?;
+        }
+        seq.end()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AutomatonDump {
+    pub init_state: State,
+    pub end_state: State,
+    pub actions: Vec<ActionWithMeta>,
+}
+
+impl AutomatonDump {
+    pub fn new(init_state: State, end_state: State, actions: &[ActionWithMeta]) -> Self {
+        Self {
+            init_state,
+            end_state,
+            actions: actions.to_vec()
+        }
     }
 }

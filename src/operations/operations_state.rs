@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use time::{format_description, OffsetDateTime};
 use tui::{
     layout::Constraint,
@@ -15,12 +15,14 @@ pub type OperationsStats = BTreeMap<String, OperationStats>;
 pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
 pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OperationsStatisticsState {
     pub operations_statistics: OperationsStats,
 
     // ui specific states
+    #[serde(skip)]
     pub main_operation_statistics_table: ExtendedTable<OperationsStatsSortable>,
+    #[serde(skip)]
     pub details_operation_statistics_table: ExtendedTable<OperationDetailsSortable>,
 }
 
@@ -95,7 +97,7 @@ impl Default for OperationsStatisticsState {
     }
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Clone, Debug, Default, Serialize)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationStats {
     kind: Option<OperationKind>,
@@ -111,7 +113,7 @@ pub struct OperationStats {
     pub injected_timestamp: Option<u64>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeStats {
     received: Vec<OperationNodeCurrentHeadStats>,
@@ -124,7 +126,7 @@ pub struct OperationNodeStats {
     content_sent: Vec<i128>,
 }
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone, Default, Serialize)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeCurrentHeadStats {
     /// Latency from first time we have seen that operation.
@@ -133,7 +135,7 @@ pub struct OperationNodeCurrentHeadStats {
     block_timestamp: i64,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationValidationStats {
     started: Option<i128>,
@@ -145,7 +147,7 @@ pub struct OperationValidationStats {
 }
 
 #[derive(
-    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord,
+    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord, Serialize
 )]
 pub enum OperationKind {
     Endorsement,
@@ -172,7 +174,7 @@ impl Default for OperationKind {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display)]
+#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display, Serialize)]
 pub enum OperationValidationResult {
     Applied,
     Refused,

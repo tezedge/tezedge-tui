@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use hdrhistogram::Histogram;
 use num::Zero;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tui::{
     layout::Constraint,
@@ -20,7 +20,7 @@ use crate::{
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
 
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone, Serialize)]
 pub struct BlockApplicationStatistics {
     pub block_hash: String,
     pub block_timestamp: u64,
@@ -45,7 +45,7 @@ pub struct BlockApplicationStatistics {
     pub injected: Option<u64>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct BlockApplicationSummary {
     pub precheck: Option<u64>,
     pub send_data: Option<u64>,
@@ -136,7 +136,7 @@ impl BlockApplicationSummary {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct BakingSummary {
     pub level: i32,
     pub injected: Option<u64>,
@@ -277,7 +277,7 @@ impl From<BlockApplicationStatistics> for BlockApplicationSummary {
     }
 }
 
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone, Serialize)]
 pub struct BlockApplicationProtocolStatistics {
     pub apply_start: u64,
     pub operations_decoding_start: u64,
@@ -296,7 +296,7 @@ pub struct BlockApplicationProtocolStatistics {
     pub apply_end: u64,
 }
 
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone, Serialize)]
 pub struct PerPeerBlockStatistics {
     pub address: String, // TODO: url?
     pub block_hash: String,
@@ -401,7 +401,7 @@ impl From<PerPeerBlockStatisticsVector> for ApplicationSummary {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BakingRightsPerLevel {
     pub level: i32,
     pub priority: u64,
@@ -411,7 +411,7 @@ pub struct BakingRightsPerLevel {
     pub estimated_time: Option<OffsetDateTime>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct BakingRights {
     pub rights: BTreeMap<i32, Option<OffsetDateTime>>,
 }
@@ -466,10 +466,11 @@ impl BakingRights {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BakingState {
     pub application_statistics: BTreeMap<String, BlockApplicationStatistics>,
     pub per_peer_block_statistics: BTreeMap<String, PerPeerBlockStatisticsVector>,
+    #[serde(skip)]
     pub baking_table: ExtendedTable<PerPeerBlockStatisticsVector>,
     pub baking_rights: BakingRights,
     pub last_baking_summary: BakingSummary,

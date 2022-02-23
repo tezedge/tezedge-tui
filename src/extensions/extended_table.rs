@@ -1,15 +1,19 @@
 use itertools::Itertools;
+use serde::{Serialize, Deserialize};
 use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
     widgets::{Cell, Row, TableState},
 };
 
+use super::{ConstraintDef, TableStateDef, vec_constraint};
+
 const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ExtendedTable<S: SortableByFocus> {
+    #[serde(with = "TableStateDef")]
     pub table_state: TableState,
     pub content: S,
 
@@ -19,6 +23,7 @@ pub struct ExtendedTable<S: SortableByFocus> {
     modified_headers: Vec<String>,
 
     /// Constrainst of the colums
+    #[serde(with = "vec_constraint")]
     constraints: Vec<Constraint>,
 
     /// Total number of indexex able to be rendered
@@ -271,7 +276,7 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SortOrder {
     Ascending,
     Descending,

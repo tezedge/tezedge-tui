@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use slog::Logger;
 
 use crate::{
@@ -9,7 +10,9 @@ use crate::{
     terminal_ui::UiState,
 };
 
-#[derive(Debug, Clone)]
+use super::ActionWithMeta;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
     pub network_constants: NetworkConstants,
     pub last_applied_level: i32,
@@ -28,13 +31,16 @@ pub struct State {
 
     pub ui: UiState,
 
-    pub log: Logger,
+    #[serde(skip)]
+    pub log: crate::automaton::Logger,
+    #[serde(skip)]
+    pub recorded_actions: Vec<ActionWithMeta>
 }
 
 impl State {
     pub fn new(baker_address: Option<String>, log: Logger) -> Self {
         Self {
-            log,
+            log: crate::automaton::Logger(log),
             baker_address,
             delta_toggle: true,
             current_head_header: Default::default(),
@@ -48,6 +54,7 @@ impl State {
             ui: Default::default(),
             network_constants: Default::default(),
             best_remote_level: Default::default(),
+            recorded_actions: Vec::new(),
         }
     }
 }

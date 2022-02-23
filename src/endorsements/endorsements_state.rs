@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, str::FromStr};
 
 use num::Zero;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use time::{Duration, OffsetDateTime};
 use tui::{
@@ -25,7 +25,7 @@ pub type EndorsementStatusSortableVec = Vec<EndorsementStatusSortable>;
 pub type MempoolEndorsementStats = BTreeMap<String, OperationStats>;
 pub type InjectedEndorsementStats = BTreeMap<i32, OperationStats>;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct EndorsementRightsWithTimePerLevel {
     pub level: i32,
     pub slots: Vec<u16>,
@@ -35,7 +35,7 @@ pub struct EndorsementRightsWithTimePerLevel {
     pub estimated_time: Option<OffsetDateTime>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EndorsementRightsWithTime {
     pub rights: BTreeMap<i32, Option<OffsetDateTime>>,
 }
@@ -90,7 +90,7 @@ impl EndorsementRightsWithTime {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
@@ -202,7 +202,7 @@ impl SortableByFocus for EndorsementStatusSortableVec {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct EndorsementStatus {
     // pub block_timestamp: u64,
     pub decoded_time: Option<u64>,
@@ -216,7 +216,7 @@ pub struct EndorsementStatus {
     pub broadcast: bool,
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, EnumIter, Serialize, Deserialize)]
 pub enum EndorsementState {
     Missing = 0,
     Broadcast = 1,
@@ -226,7 +226,7 @@ pub enum EndorsementState {
     Received = 5,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EndorsementStatusSortable {
     pub delta: Option<u64>,
     pub decoded_time: Option<u64>,
@@ -526,7 +526,7 @@ impl EndorsementState {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EndorsementOperationSummary {
     pub block_application: Option<i128>,
     pub block_received: Option<i128>,

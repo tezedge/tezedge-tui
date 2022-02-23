@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use slog::{info, warn, Logger};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -194,7 +194,7 @@ pub enum RpcError {
     DeserializationError(#[from] serde_json::Error),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RpcCall {
     pub target: RpcTarget,
     query_arg: Option<String>,
@@ -206,7 +206,7 @@ impl RpcCall {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum RpcTarget {
     EndorsementRights,
     EndersementsStatus,
@@ -222,7 +222,7 @@ pub enum RpcTarget {
     BestRemoteLevel,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum RpcResponse {
     EndorsementRights(EndorsementRights),
@@ -321,7 +321,7 @@ impl RpcCall {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CurrentHeadHeader {
     pub level: i32,
     pub hash: String,
@@ -362,7 +362,7 @@ impl Default for CurrentHeadHeader {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct NetworkConstants {
     // we only need this one for now
     #[serde(deserialize_with = "serde_aux::prelude::deserialize_number_from_string")]
@@ -370,12 +370,12 @@ pub struct NetworkConstants {
     pub preserved_cycles: i32,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct CurrentHeadMetadata {
     pub level_info: LevelInfo,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct LevelInfo {
     pub cycle: i32,
     cycle_position: i32,

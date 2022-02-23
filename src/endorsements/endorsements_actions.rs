@@ -1,4 +1,5 @@
 use redux_rs::EnablingCondition;
+use serde::{Serialize, Deserialize};
 
 use crate::{automaton::State, services::rpc_service_async::CurrentHeadHeader};
 
@@ -7,7 +8,7 @@ use super::{
     MempoolEndorsementStats,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsRightsGetAction {
     pub block: String,
     pub level: i32,
@@ -19,7 +20,7 @@ impl EnablingCondition<State> for EndorsementsRightsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsRightsReceivedAction {
     pub endorsement_rights: EndorsementRights,
 }
@@ -30,7 +31,7 @@ impl EnablingCondition<State> for EndorsementsRightsReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsStatusesGetAction {}
 
 impl EnablingCondition<State> for EndorsementsStatusesGetAction {
@@ -39,7 +40,7 @@ impl EnablingCondition<State> for EndorsementsStatusesGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsStatusesReceivedAction {
     pub endorsements_statuses: EndorsementStatuses,
 }
@@ -50,7 +51,7 @@ impl EnablingCondition<State> for EndorsementsStatusesReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawEndorsementsScreenAction {
     pub current_head_header: CurrentHeadHeader,
 }
@@ -61,7 +62,7 @@ impl EnablingCondition<State> for DrawEndorsementsScreenAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsRightsWithTimeGetAction {}
 
 impl EnablingCondition<State> for EndorsementsRightsWithTimeGetAction {
@@ -70,7 +71,7 @@ impl EnablingCondition<State> for EndorsementsRightsWithTimeGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndorsementsRightsWithTimeReceivedAction {
     pub rights: Vec<EndorsementRightsWithTimePerLevel>,
 }
@@ -82,7 +83,7 @@ impl EnablingCondition<State> for EndorsementsRightsWithTimeReceivedAction {
 }
 
 // MempoolEndorsementStats
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MempoolEndorsementStatsGetAction {}
 
 impl EnablingCondition<State> for MempoolEndorsementStatsGetAction {
@@ -91,7 +92,7 @@ impl EnablingCondition<State> for MempoolEndorsementStatsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MempoolEndorsementStatsReceivedAction {
     pub stats: MempoolEndorsementStats,
 }

@@ -1,19 +1,6 @@
-use automaton::AutomatonManager;
+use tezedge_tui::{automaton::AutomatonManager, configuration};
 use clap::Parser;
 use std::error::Error;
-
-pub mod automaton;
-pub mod baking;
-pub mod common;
-pub mod configuration;
-pub mod endorsements;
-pub mod extensions;
-pub mod operations;
-pub mod rpc;
-pub mod services;
-pub mod synchronization;
-pub mod terminal_ui;
-pub mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

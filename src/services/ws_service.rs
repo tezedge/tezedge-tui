@@ -1,5 +1,5 @@
 use futures_util::stream::StreamExt;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use slog::{error, info, warn, Logger};
 use thiserror::Error;
 use tokio::sync::mpsc;
@@ -81,7 +81,7 @@ impl WebsocketServiceDefault {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type", content = "payload")]
 pub enum WebsocketMessage {

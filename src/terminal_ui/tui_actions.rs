@@ -1,5 +1,6 @@
 use crossterm::event::KeyModifiers;
 use redux_rs::EnablingCondition;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     automaton::State,
@@ -8,7 +9,7 @@ use crate::{
 
 use super::ActivePage;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawScreenAction {}
 
 impl EnablingCondition<State> for DrawScreenAction {
@@ -17,7 +18,7 @@ impl EnablingCondition<State> for DrawScreenAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawScreenSuccessAction {
     pub screen_width: u16,
 }
@@ -28,7 +29,7 @@ impl EnablingCondition<State> for DrawScreenSuccessAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawScreenFailiureAction {
     // TODO: return proper error variants
     _error: String,
@@ -40,7 +41,7 @@ impl EnablingCondition<State> for DrawScreenFailiureAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeScreenAction {
     pub screen: ActivePage,
 }
@@ -51,7 +52,7 @@ impl EnablingCondition<State> for ChangeScreenAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiRightKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiRightKeyPushedAction {
@@ -60,7 +61,7 @@ impl EnablingCondition<State> for TuiRightKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiLeftKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiLeftKeyPushedAction {
@@ -69,7 +70,7 @@ impl EnablingCondition<State> for TuiLeftKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiUpKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiUpKeyPushedAction {
@@ -78,7 +79,7 @@ impl EnablingCondition<State> for TuiUpKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiDownKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiDownKeyPushedAction {
@@ -87,7 +88,7 @@ impl EnablingCondition<State> for TuiDownKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiSortKeyPushedAction {
     pub modifier: KeyModifiers,
 }
@@ -98,7 +99,7 @@ impl EnablingCondition<State> for TuiSortKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiDeltaToggleKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiDeltaToggleKeyPushedAction {
@@ -107,7 +108,7 @@ impl EnablingCondition<State> for TuiDeltaToggleKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuiWidgetSelectionKeyPushedAction {}
 
 impl EnablingCondition<State> for TuiWidgetSelectionKeyPushedAction {
@@ -116,7 +117,7 @@ impl EnablingCondition<State> for TuiWidgetSelectionKeyPushedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadHeaderGetAction {}
 
 impl EnablingCondition<State> for CurrentHeadHeaderGetAction {
@@ -125,7 +126,7 @@ impl EnablingCondition<State> for CurrentHeadHeaderGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadHeaderRecievedAction {
     pub current_head_header: CurrentHeadHeader,
 }
@@ -136,7 +137,7 @@ impl EnablingCondition<State> for CurrentHeadHeaderRecievedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadHeaderChangedAction {
     pub current_head_header: CurrentHeadHeader,
 }
@@ -147,7 +148,7 @@ impl EnablingCondition<State> for CurrentHeadHeaderChangedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CycleChangedAction {
     pub new_cycle: i32,
     pub at_level: i32,
@@ -159,7 +160,7 @@ impl EnablingCondition<State> for CycleChangedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkConstantsGetAction {}
 
 impl EnablingCondition<State> for NetworkConstantsGetAction {
@@ -168,7 +169,7 @@ impl EnablingCondition<State> for NetworkConstantsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkConstantsReceivedAction {
     pub constants: NetworkConstants,
 }
@@ -179,7 +180,7 @@ impl EnablingCondition<State> for NetworkConstantsReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadMetadataGetAction {}
 
 impl EnablingCondition<State> for CurrentHeadMetadataGetAction {
@@ -188,7 +189,7 @@ impl EnablingCondition<State> for CurrentHeadMetadataGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadMetadataReceivedAction {
     pub metadata: CurrentHeadMetadata,
 }
@@ -199,7 +200,7 @@ impl EnablingCondition<State> for CurrentHeadMetadataReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentHeadMetadataChangedAction {
     pub new_metadata: CurrentHeadMetadata,
 }
@@ -210,7 +211,7 @@ impl EnablingCondition<State> for CurrentHeadMetadataChangedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BestRemoteLevelGetAction {}
 
 impl EnablingCondition<State> for BestRemoteLevelGetAction {
@@ -219,7 +220,7 @@ impl EnablingCondition<State> for BestRemoteLevelGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BestRemoteLevelReceivedAction {
     pub level: Option<i32>,
 }
@@ -230,7 +231,7 @@ impl EnablingCondition<State> for BestRemoteLevelReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BestRemoteLevelChangedAction {
     pub level: Option<i32>,
 }

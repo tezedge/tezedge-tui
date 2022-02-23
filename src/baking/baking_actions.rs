@@ -1,4 +1,5 @@
 use redux_rs::EnablingCondition;
+use serde::{Serialize, Deserialize};
 
 use crate::automaton::State;
 
@@ -6,7 +7,7 @@ use super::{BakingRightsPerLevel, BlockApplicationStatistics, PerPeerBlockStatis
 
 // ApplicationStatistics
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApplicationStatisticsGetAction {
     pub level: i32,
 }
@@ -17,7 +18,7 @@ impl EnablingCondition<State> for ApplicationStatisticsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApplicationStatisticsReceivedAction {
     pub application_statistics: Vec<BlockApplicationStatistics>,
 }
@@ -28,7 +29,7 @@ impl EnablingCondition<State> for ApplicationStatisticsReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerPeerBlockStatisticsGetAction {
     pub level: i32,
 }
@@ -39,7 +40,7 @@ impl EnablingCondition<State> for PerPeerBlockStatisticsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerPeerBlockStatisticsReceivedAction {
     pub per_peer_block_statistics: PerPeerBlockStatisticsVector,
 }
@@ -50,7 +51,7 @@ impl EnablingCondition<State> for PerPeerBlockStatisticsReceivedAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BakingRightsGetAction {
     pub cycle: i32,
 }
@@ -60,7 +61,7 @@ impl EnablingCondition<State> for BakingRightsGetAction {
         true
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BakingRightsReceivedAction {
     pub rights: Vec<BakingRightsPerLevel>,
 }

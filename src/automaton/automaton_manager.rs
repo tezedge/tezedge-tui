@@ -1,9 +1,9 @@
 use crossterm::event::KeyCode;
-use std::time::{Duration, SystemTime};
+use std::{time::{Duration, SystemTime}, fs::File, io::Write};
 use tokio::sync::mpsc;
 use url::Url;
 
-use slog::Logger;
+use slog::{Logger, info};
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
@@ -31,7 +31,7 @@ use crate::{
         TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
         TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
-    websocket::WebsocketReadAction,
+    websocket::WebsocketReadAction, extensions::AutomatonDump,
 };
 
 use super::{effects, reducer, Action, ShutdownAction, State};
@@ -246,9 +246,24 @@ impl AutomatonManager {
     }
 
     pub async fn start(&mut self) {
+        // let log = self.automaton.store.state().log.clone();
+        
+        // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
+        let init_state = self.automaton.store.state().clone();
+        // info!(log, "Init state: {}", deserialized_state);
         self.automaton
             .make_progress(&mut self.tui_event_receiver)
             .await;
+        
+        // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
+        // info!(log, "Final State: {}", deserialized_state);
+        let end_state = self.automaton.store.state();
+        let actions = &self.automaton.store.state().recorded_actions;
+
+        let dump = AutomatonDump::new(init_state, end_state.clone(), actions);
+
+        let file = File::create("automaton_dump.json").unwrap();
+        serde_json::to_writer(file, &dump).unwrap();
 
         self.automaton.store.service().tui().restore_terminal();
     }

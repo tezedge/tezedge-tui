@@ -1,6 +1,7 @@
 use derive_more::From;
 use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};
+use serde::{Serialize, Deserialize};
 
 use crate::{
     baking::{
@@ -33,7 +34,7 @@ use super::State;
 
 pub type ActionWithMeta = redux_rs::ActionWithMeta<Action>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitAction {}
 
 impl EnablingCondition<State> for InitAction {
@@ -41,7 +42,7 @@ impl EnablingCondition<State> for InitAction {
         false
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShutdownAction {}
 
 impl EnablingCondition<State> for ShutdownAction {
@@ -50,7 +51,7 @@ impl EnablingCondition<State> for ShutdownAction {
     }
 }
 
-#[derive(EnumKind, strum_macros::AsRefStr, strum_macros::IntoStaticStr, From, Debug, Clone)]
+#[derive(EnumKind, strum_macros::AsRefStr, strum_macros::IntoStaticStr, From, Debug, Clone, Serialize, Deserialize)]
 #[enum_kind(
     ActionKind,
     derive(strum_macros::EnumIter, strum_macros::Display, Hash)

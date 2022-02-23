@@ -1,10 +1,14 @@
 use crossterm::event::{KeyCode, KeyModifiers};
+use serde::{Serialize, Deserialize};
 use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
 
-#[derive(Debug, Clone, Default)]
+use crate::extensions::TableStateDef;
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UiState {
     // TUI states - states refering to the view part
+    #[serde(with = "TableStateDef")]
     pub peer_table_state: TableState,
     // pub period_info_state: PeriodInfoState,
     pub active_page: ActivePage,
@@ -13,7 +17,7 @@ pub struct UiState {
     pub screen_width: u16,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ActiveWidget {
     PeriodInfo,
     PeerTable,
@@ -24,7 +28,7 @@ pub enum ActiveWidget {
 }
 
 // TODO: make enum contain the screen struct?
-#[derive(Debug, Clone, EnumIter, Display)]
+#[derive(Debug, Clone, EnumIter, Display, Deserialize, Serialize)]
 pub enum ActivePage {
     Synchronization,
     Endorsements,
