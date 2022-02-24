@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use time::{format_description, OffsetDateTime};
@@ -109,7 +109,7 @@ pub struct OperationStats {
     /// (time_validation_finished, validation_result, prevalidation_duration)
     validation_result: Option<(i64, OperationValidationResult, Option<i64>, Option<i64>)>,
     validations: Vec<OperationValidationStats>,
-    nodes: HashMap<String, OperationNodeStats>,
+    nodes: BTreeMap<String, OperationNodeStats>,
     pub injected_timestamp: Option<u64>,
 }
 

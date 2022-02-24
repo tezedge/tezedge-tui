@@ -251,7 +251,7 @@ impl AutomatonManager {
     }
 
     pub async fn start(&mut self) {
-        // let log = self.automaton.store.state().log.clone();
+        let log = self.automaton.store.state().log.clone();
 
         // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
         let init_state = self.automaton.store.state().clone();
@@ -266,6 +266,7 @@ impl AutomatonManager {
 
         // end state without actions
         let mut end_state = self.automaton.store.state().clone();
+        info!(log, "Baking table Content: {:#?}", end_state.baking.baking_table.content);
         end_state.recorded_actions = vec![];
         let dump = AutomatonDump::new(init_state, end_state, &actions);
 

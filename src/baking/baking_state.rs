@@ -471,7 +471,6 @@ impl BakingRights {
 pub struct BakingState {
     pub application_statistics: BTreeMap<String, BlockApplicationStatistics>,
     pub per_peer_block_statistics: BTreeMap<String, PerPeerBlockStatisticsVector>,
-    #[serde(skip)]
     pub baking_table: ExtendedTable<PerPeerBlockStatisticsVector>,
     pub baking_rights: BakingRights,
     pub last_baking_summary: BakingSummary,
