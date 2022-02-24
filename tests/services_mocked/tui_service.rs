@@ -1,17 +1,13 @@
-use std::io::{self, Stdout};
-
 use tezedge_tui::services::tui_service::TuiService;
-use tui::{backend::CrosstermBackend, Terminal};
+use tui::{backend::TestBackend, Terminal};
 
 pub struct TuiServiceMocked {
-    pub terminal: Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: Terminal<TestBackend>,
 }
 
 impl TuiServiceMocked {
     pub fn new() -> Self {
-        let stdout = io::stdout();
-
-        let backend = CrosstermBackend::new(stdout);
+        let backend = TestBackend::new(400, 400);
 
         let terminal = Terminal::new(backend).expect("Error initializing terminal");
 
@@ -26,7 +22,8 @@ impl Default for TuiServiceMocked {
 }
 
 impl TuiService for TuiServiceMocked {
-    fn terminal(&mut self) -> &mut Terminal<CrosstermBackend<Stdout>> {
+    type Be = TestBackend;
+    fn terminal(&mut self) -> &mut Terminal<Self::Be> {
         &mut self.terminal
     }
 

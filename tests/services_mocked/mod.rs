@@ -1,7 +1,8 @@
 pub use redux_rs::TimeService;
 use tezedge_tui::services::{
-    rpc_service_async::RpcService, tui_service::TuiService, ws_service::WebsocketService, Service,
+    Service,
 };
+use tui::backend::TestBackend;
 
 use self::{
     rpc_service_async::RpcServiceMocked, tui_service::TuiServiceMocked,
@@ -23,6 +24,7 @@ pub struct ServiceMocked {
 impl TimeService for ServiceMocked {}
 
 impl Service for ServiceMocked {
+    type Be = TestBackend;
     type Rpc = RpcServiceMocked;
     type Tui = TuiServiceMocked;
     type Ws = WebsocketServiceMocked;

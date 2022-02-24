@@ -184,7 +184,13 @@ pub fn replay_actions() {
     // serialize then compare
     store.service().tui.restore_terminal();
     let resulting_state = store.state().clone();
-    
+
+    println!("Actions replayed succesfully");
+
+    println!();
+    println!("Comparing states (replayed state == expected state)");
+    println!();
+
     assert_eq!(resulting_state.network_constants, data.end_state.network_constants);
     println!("Network constants OK");
 
