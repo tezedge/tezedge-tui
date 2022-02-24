@@ -12,7 +12,7 @@ use tui::{
     Frame,
 };
 
-use crate::automaton::{State, ActionWithMeta, Action};
+use crate::automaton::{Action, ActionWithMeta, State};
 
 pub mod custom_border_separator;
 pub use custom_border_separator::*;
@@ -200,9 +200,9 @@ pub enum ConstraintDef {
 }
 
 mod vec_constraint {
-    use serde::{Deserialize, Serialize, Deserializer, Serializer, ser::SerializeSeq};
+    use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
     use tui::layout::Constraint;
-    
+
     use super::ConstraintDef;
 
     #[derive(Deserialize, Serialize)]
@@ -210,13 +210,12 @@ mod vec_constraint {
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Constraint>, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
-
         let v = Vec::deserialize(deserializer)?;
         Ok(v.into_iter().map(|Wrapper(a)| a).collect())
     }
-    
+
     pub fn serialize<S>(vec_constraint: &[Constraint], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -242,7 +241,7 @@ impl AutomatonDump {
         Self {
             init_state,
             end_state,
-            actions: actions.to_vec()
+            actions: actions.to_vec(),
         }
     }
 }

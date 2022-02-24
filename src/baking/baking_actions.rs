@@ -1,5 +1,5 @@
 use redux_rs::EnablingCondition;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::automaton::State;
 

@@ -31,11 +31,12 @@ pub struct EndorsementRightsWithTimePerLevel {
     pub slots: Vec<u16>,
     pub delegate: String,
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(with = "time::serde::rfc3339::option")]
     pub estimated_time: Option<OffsetDateTime>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct EndorsementRightsWithTime {
     pub rights: BTreeMap<i32, Option<OffsetDateTime>>,
 }
@@ -90,7 +91,7 @@ impl EndorsementRightsWithTime {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EndrosementsState {
     pub endorsement_rights: EndorsementRights,
     pub endoresement_status_summary: BTreeMap<EndorsementState, usize>,
@@ -226,7 +227,7 @@ pub enum EndorsementState {
     Received = 5,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct EndorsementStatusSortable {
     pub delta: Option<u64>,
     pub decoded_time: Option<u64>,
@@ -526,15 +527,15 @@ impl EndorsementState {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct EndorsementOperationSummary {
-    pub block_application: Option<i128>,
-    pub block_received: Option<i128>,
-    pub injected: Option<i128>,
-    pub validated: Option<i128>,
-    pub operation_hash_sent: Option<i128>,
-    pub operation_requested: Option<i128>,
-    pub operation_sent: Option<i128>,
+    pub block_application: Option<i64>,
+    pub block_received: Option<i64>,
+    pub injected: Option<i64>,
+    pub validated: Option<i64>,
+    pub operation_hash_sent: Option<i64>,
+    pub operation_requested: Option<i64>,
+    pub operation_sent: Option<i64>,
     pub operation_hash_received_back: Option<u64>,
 }
 
@@ -546,17 +547,17 @@ impl EndorsementOperationSummary {
     ) -> Self {
         let block_received = block_stats.clone().map(|stats| {
             let current_head_nanos = current_head_timestamp.unix_timestamp_nanos();
-            stats.receive_timestamp - current_head_nanos
+            ((stats.receive_timestamp as i128) - current_head_nanos) as i64
         });
 
         let block_application = block_stats.clone().and_then(|stats| {
             stats
                 .apply_block_end
-                .and_then(|end| stats.apply_block_start.map(|start| (end - start) as i128))
+                .and_then(|end| stats.apply_block_start.map(|start| (end - start) as i64))
         });
 
         let injected = op_stats.injected_timestamp.and_then(|inject_time| {
-            block_stats.map(|stats| (inject_time as i128) - stats.receive_timestamp)
+            block_stats.map(|stats| (inject_time as i64) - stats.receive_timestamp)
         });
 
         let validated = op_stats.validation_duration();
@@ -587,7 +588,7 @@ impl EndorsementOperationSummary {
         }
     }
 
-    pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<i128>)> {
+    pub fn to_table_data(&self) -> Vec<(Spans, StyledTime<i64>)> {
         vec![
             (
                 Spans::from("Block Received"),

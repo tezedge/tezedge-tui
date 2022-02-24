@@ -177,18 +177,21 @@ impl Renderable for EndorsementsScreen {
 
         // ======================== BAKER ENDORSING PANEL ========================
         if state.baker_address.is_some() {
-            let (endorsing_panel_title_chunk, endorsing_panel_level_chunk, endorsing_panel_inner_chunk) =
-                Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(3),
-                        Constraint::Length(2),
-                        Constraint::Min(1),
-                    ])
-                    .split(endorsing_panel_chunk)
-                    .into_iter()
-                    .collect_tuple()
-                    .unwrap();
+            let (
+                endorsing_panel_title_chunk,
+                endorsing_panel_level_chunk,
+                endorsing_panel_inner_chunk,
+            ) = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Length(2),
+                    Constraint::Min(1),
+                ])
+                .split(endorsing_panel_chunk)
+                .into_iter()
+                .collect_tuple()
+                .unwrap();
 
             // f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
             let current_head_level = state.current_head_header.level;
@@ -342,7 +345,8 @@ impl Renderable for EndorsementsScreen {
                         }
                     });
 
-                let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+                let block =
+                    Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
                 let table = Table::new(rows)
                     // .header(header)
                     .block(block)

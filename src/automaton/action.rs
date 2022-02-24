@@ -1,7 +1,7 @@
 use derive_more::From;
 use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     baking::{
@@ -51,7 +51,16 @@ impl EnablingCondition<State> for ShutdownAction {
     }
 }
 
-#[derive(EnumKind, strum_macros::AsRefStr, strum_macros::IntoStaticStr, From, Debug, Clone, Serialize, Deserialize)]
+#[derive(
+    EnumKind,
+    strum_macros::AsRefStr,
+    strum_macros::IntoStaticStr,
+    From,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
 #[enum_kind(
     ActionKind,
     derive(strum_macros::EnumIter, strum_macros::Display, Hash)

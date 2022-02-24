@@ -128,10 +128,7 @@ pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut 
             "Local Level: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ),
-        Span::styled(
-            format!("{} ", header.level),
-            block_num_style,
-        ),
+        Span::styled(format!("{} ", header.level), block_num_style),
     ]));
 
     f.render_widget(block_level, header_chunks[1]);

@@ -1,9 +1,13 @@
 use crossterm::event::KeyCode;
-use std::{time::{Duration, SystemTime}, fs::File, io::Write};
+use std::{
+    fs::File,
+    io::Write,
+    time::{Duration, SystemTime},
+};
 use tokio::sync::mpsc;
 use url::Url;
 
-use slog::{Logger, info};
+use slog::{info, Logger};
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
@@ -17,6 +21,7 @@ use crate::{
         EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
         MempoolEndorsementStatsGetAction, MempoolEndorsementStatsReceivedAction,
     },
+    extensions::AutomatonDump,
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     services::{
         rpc_service_async::{RpcResponse, RpcService, RpcServiceDefault},
@@ -31,7 +36,7 @@ use crate::{
         TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
         TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
-    websocket::WebsocketReadAction, extensions::AutomatonDump,
+    websocket::WebsocketReadAction,
 };
 
 use super::{effects, reducer, Action, ShutdownAction, State};
@@ -247,20 +252,22 @@ impl AutomatonManager {
 
     pub async fn start(&mut self) {
         // let log = self.automaton.store.state().log.clone();
-        
+
         // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
         let init_state = self.automaton.store.state().clone();
         // info!(log, "Init state: {}", deserialized_state);
         self.automaton
             .make_progress(&mut self.tui_event_receiver)
             .await;
-        
+
         // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
         // info!(log, "Final State: {}", deserialized_state);
-        let end_state = self.automaton.store.state();
-        let actions = &self.automaton.store.state().recorded_actions;
+        let actions = self.automaton.store.state().recorded_actions.clone();
 
-        let dump = AutomatonDump::new(init_state, end_state.clone(), actions);
+        // end state without actions
+        let mut end_state = self.automaton.store.state().clone();
+        end_state.recorded_actions = vec![];
+        let dump = AutomatonDump::new(init_state, end_state, &actions);
 
         let file = File::create("automaton_dump.json").unwrap();
         serde_json::to_writer(file, &dump).unwrap();

@@ -69,16 +69,10 @@ impl Renderable for BakingScreen {
         } else {
             top_panel
         };
-        
-        let (
-            summary_title_chunk,
-            summary_inner_chunk,
-        ) = Layout::default()
+
+        let (summary_title_chunk, summary_inner_chunk) = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(4),
-                Constraint::Min(17),
-            ])
+            .constraints([Constraint::Length(4), Constraint::Min(17)])
             .split(summary_panel)
             .into_iter()
             .collect_tuple()
@@ -269,7 +263,8 @@ impl Renderable for BakingScreen {
                         }
                     });
 
-                let block = Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+                let block =
+                    Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
                 let table = Table::new(rows)
                     // .header(header)
                     .block(block)

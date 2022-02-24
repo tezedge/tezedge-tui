@@ -1,5 +1,5 @@
 use crossterm::event::{KeyCode, KeyModifiers};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter};
 use tui::widgets::TableState;
 
@@ -17,7 +17,17 @@ pub struct UiState {
     pub screen_width: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl PartialEq for UiState {
+    fn eq(&self, other: &Self) -> bool {
+        self.peer_table_state.selected() == other.peer_table_state.selected()
+            && self.active_page == other.active_page
+            && self.active_widget == other.active_widget
+            && self.current_details_length == other.current_details_length
+            && self.screen_width == other.screen_width
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ActiveWidget {
     PeriodInfo,
     PeerTable,
@@ -28,7 +38,7 @@ pub enum ActiveWidget {
 }
 
 // TODO: make enum contain the screen struct?
-#[derive(Debug, Clone, EnumIter, Display, Deserialize, Serialize)]
+#[derive(Debug, Clone, EnumIter, Display, Deserialize, Serialize, PartialEq)]
 pub enum ActivePage {
     Synchronization,
     Endorsements,

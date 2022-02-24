@@ -1,6 +1,6 @@
-use tezedge_tui::{automaton::AutomatonManager, configuration};
 use clap::Parser;
 use std::error::Error;
+use tezedge_tui::{automaton::AutomatonManager, configuration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

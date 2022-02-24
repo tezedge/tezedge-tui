@@ -321,7 +321,7 @@ impl RpcCall {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct CurrentHeadHeader {
     pub level: i32,
     pub hash: String,
@@ -362,7 +362,7 @@ impl Default for CurrentHeadHeader {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct NetworkConstants {
     // we only need this one for now
     #[serde(deserialize_with = "serde_aux::prelude::deserialize_number_from_string")]
@@ -370,12 +370,12 @@ pub struct NetworkConstants {
     pub preserved_cycles: i32,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct CurrentHeadMetadata {
     pub level_info: LevelInfo,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct LevelInfo {
     pub cycle: i32,
     cycle_position: i32,

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use slog::Logger;
 
 use crate::{
@@ -34,7 +34,25 @@ pub struct State {
     #[serde(skip)]
     pub log: crate::automaton::Logger,
     #[serde(skip)]
-    pub recorded_actions: Vec<ActionWithMeta>
+    pub recorded_actions: Vec<ActionWithMeta>,
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.network_constants == other.network_constants
+            && self.last_applied_level == other.last_applied_level
+            && self.current_head_header == other.current_head_header
+            && self.current_head_metadata == other.current_head_metadata
+            && self.previous_head_header == other.previous_head_header
+            && self.best_remote_level == other.best_remote_level
+            && self.baker_address == other.baker_address
+            && self.synchronization == other.synchronization
+            && self.endorsmenents == other.endorsmenents
+            && self.operations_statistics == other.operations_statistics
+            && self.baking == other.baking
+            && self.delta_toggle == other.delta_toggle
+            && self.ui == other.ui
+    }
 }
 
 impl State {

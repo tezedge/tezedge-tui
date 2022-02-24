@@ -1,8 +1,9 @@
 use redux_rs::chain_reducers;
 
 use crate::{
-    baking::baking_reducer, endorsements::endorsementrs_reducer, operations::operations_reducer,
-    synchronization::synchronization_reducer, terminal_ui::tui_reducer, automaton::action_logger::action_logger_reducer,
+    automaton::action_logger::action_logger_reducer, baking::baking_reducer,
+    endorsements::endorsementrs_reducer, operations::operations_reducer,
+    synchronization::synchronization_reducer, terminal_ui::tui_reducer,
 };
 
 use super::{ActionWithMeta, State};

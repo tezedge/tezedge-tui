@@ -1,12 +1,12 @@
 use itertools::Itertools;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
     widgets::{Cell, Row, TableState},
 };
 
-use super::{ConstraintDef, TableStateDef, vec_constraint};
+use super::{vec_constraint, ConstraintDef, TableStateDef};
 
 const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
@@ -43,6 +43,22 @@ pub struct ExtendedTable<S: SortableByFocus> {
 
     /// Sort order
     sort_order: SortOrder,
+}
+
+impl<S: SortableByFocus + PartialEq> PartialEq for ExtendedTable<S> {
+    fn eq(&self, other: &Self) -> bool {
+        self.table_state.selected() == other.table_state.selected()
+            && self.content == other.content
+            && self.headers == other.headers
+            && self.modified_headers == other.modified_headers
+            && self.constraints == other.constraints
+            && self.rendered == other.rendered
+            && self.fixed_count == other.fixed_count
+            && self.first_rendered_index == other.first_rendered_index
+            && self.selected == other.selected
+            && self.sorted_by == other.sorted_by
+            && self.sort_order == other.sort_order
+    }
 }
 
 impl<S: SortableByFocus + Default> ExtendedTable<S> {
@@ -276,7 +292,7 @@ impl<S: SortableByFocus + Default> ExtendedTable<S> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SortOrder {
     Ascending,
     Descending,
