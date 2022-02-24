@@ -23,7 +23,7 @@ steps:
       path: /data
   commands:
     - cp /data/automaton_dump.json .
-    - cargo test --release
+    - cargo test --release -- --nocapture
 
 volumes:
   - name: data
