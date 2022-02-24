@@ -37,4 +37,4 @@ derive_more = "0.99.16"
 hdrhistogram = "7.4"
 
 [dev-dependencies]
-serde_json = { version = "1.0", features = ["arbitrary_precision", "preserve_order"] }
+pretty_assertions = "1.1"
