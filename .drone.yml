@@ -5,6 +5,7 @@ trigger:
   branch:
     - master
     - develop
+    - tests
 
 workspace:
   path: /drone/src
@@ -16,7 +17,7 @@ steps:
   pull: if-not-exists
   user: root
   environment:
-    RUST_BACKTRACE: 1
+    RUST_BACKTRACE: full
   volumes:
     - name: data
       path: /data
@@ -28,3 +29,5 @@ volumes:
   - name: data
     host:
       path: /usr/local/etc/tezedge-tui-ci/data
+
+# Test
