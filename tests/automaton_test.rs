@@ -182,8 +182,6 @@ pub fn replay_actions() {
         }
     }
     // serialize then compare
-    // let result = serde_json::to_string(store.state()).expect("Failed to serialize result");
-    // let expected = serde_json::to_string(&data.end_state).expect("Failed to serialize expected");
     store.service().tui.restore_terminal();
     let resulting_state = store.state().clone();
     
@@ -199,9 +197,8 @@ pub fn replay_actions() {
     assert_eq!(resulting_state.current_head_metadata, data.end_state.current_head_metadata);
     println!("Current head metadata OK");
 
-    // TODO: not equal, investigate
-    // assert_eq!(resulting_state.previous_head_header, data.end_state.previous_head_header);
-    // println!("Previous head OK");
+    assert_eq!(resulting_state.previous_head_header, data.end_state.previous_head_header);
+    println!("Previous head OK");
 
     assert_eq!(resulting_state.best_remote_level, data.end_state.best_remote_level);
     println!("Remote level OK");
@@ -209,7 +206,48 @@ pub fn replay_actions() {
     assert_eq!(resulting_state.baker_address, data.end_state.baker_address);
     println!("Baker address OK");
 
-    assert_eq!(resulting_state.baking, data.end_state.baking);
-    println!("BBaking state OK");
+    // println!("Endorsements state - contnet (recorded): {:#?}", data.end_state.baking.baking_table.content);
+    // println!("Endorsements state - contnet (replayed): {:#?}", resulting_state.baking.baking_table.content);
+
+    // test the baking state components individually
+    {
+        assert_eq!(resulting_state.baking.last_baked_block_hash, data.end_state.baking.last_baked_block_hash);
+        println!("Baking state - last_baked_block_hash OK");
+
+        assert_eq!(resulting_state.baking.last_baked_block_level, data.end_state.baking.last_baked_block_level);
+        println!("Baking state - last_baked_block_level OK");
+
+        assert_eq!(resulting_state.baking.last_baking_summary, data.end_state.baking.last_baking_summary);
+        println!("Baking state - last_baking_summary OK");
+
+        assert_eq!(resulting_state.baking.baking_rights, data.end_state.baking.baking_rights);
+        println!("Baking state - baking_rights OK");
+
+        assert_eq!(resulting_state.baking.application_statistics, data.end_state.baking.application_statistics);
+        println!("Baking state - application_statistics OK");
+
+        assert_eq!(resulting_state.baking.per_peer_block_statistics, data.end_state.baking.per_peer_block_statistics);
+        println!("Baking state - per_peer_block_statistics OK");
+
+        // TODO: not equal, investigate
+        // content missing in the captured state (rhs)
+        assert_eq!(resulting_state.baking.baking_table, data.end_state.baking.baking_table);
+        println!("Baking state - baking_table OK");
+    }
+
+    assert_eq!(resulting_state.endorsmenents, data.end_state.endorsmenents);
+    println!("Endorsements state OK");
+
+    // TODO: synchronization statistics is a WIP
+    // The action, that reads from the websocket is a top level action using the service
+    // Make the top level action only recieve WsRead action with the payload and than dispatch actions based on the payload
+    // assert_eq!(resulting_state.synchronization, data.end_state.synchronization);
+    // println!("Synchronization State OK");
+
+    assert_eq!(resulting_state.operations_statistics, data.end_state.operations_statistics);
+    println!("Operaions statistics State OK");
+
+    assert_eq!(resulting_state.delta_toggle, data.end_state.delta_toggle);
+    println!("Delta toggle OK");
 
 }
