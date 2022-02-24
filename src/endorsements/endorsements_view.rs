@@ -1,7 +1,5 @@
-use std::io::Stdout;
-
 use time::Duration;
-use tui::backend::CrosstermBackend;
+use tui::backend::Backend;
 use tui::layout::Corner;
 use tui::style::Modifier;
 use tui::text::{Span, Spans};
@@ -23,8 +21,8 @@ use crate::extensions::{CustomSeparator, Renderable};
 use super::{EndorsementOperationSummary, EndorsementState};
 pub struct EndorsementsScreen {}
 
-impl Renderable for EndorsementsScreen {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+impl<B: Backend> Renderable<B> for EndorsementsScreen {
+    fn draw_screen(state: &State, f: &mut Frame<B>) {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 

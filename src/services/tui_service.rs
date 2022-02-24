@@ -7,6 +7,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use tokio::sync::mpsc;
+use tui::backend::Backend;
 use tui::{backend::CrosstermBackend, Terminal};
 
 use crate::terminal_ui::TuiEvent;
@@ -16,12 +17,14 @@ pub struct TuiServiceDefault {
 }
 
 pub trait TuiService {
-    fn terminal(&mut self) -> &mut Terminal<CrosstermBackend<Stdout>>;
+    type Be: Backend;
+    fn terminal(&mut self) -> &mut Terminal<Self::Be>;
     fn restore_terminal(&mut self);
 }
 
 impl TuiService for TuiServiceDefault {
-    fn terminal(&mut self) -> &mut Terminal<CrosstermBackend<Stdout>> {
+    type Be = CrosstermBackend<Stdout>;
+    fn terminal(&mut self) -> &mut Terminal<Self::Be> {
         &mut self.terminal
     }
 

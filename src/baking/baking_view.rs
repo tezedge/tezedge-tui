@@ -1,7 +1,5 @@
-use std::io::Stdout;
-
 use itertools::Itertools;
-use tui::backend::CrosstermBackend;
+use tui::backend::{Backend};
 use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
@@ -17,8 +15,8 @@ use super::{ApplicationSummary, BakingSummary, BlockApplicationSummary};
 // TODO: will this be the actual homescreen?
 pub struct BakingScreen {}
 
-impl Renderable for BakingScreen {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+impl<B: Backend> Renderable<B> for BakingScreen {
+    fn draw_screen(state: &State, f: &mut Frame<B>) {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 

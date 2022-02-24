@@ -1,8 +1,6 @@
-use std::io::Stdout;
-
 use conv::ValueFrom;
 
-use tui::backend::CrosstermBackend;
+use tui::backend::Backend;
 use tui::style::Modifier;
 use tui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -19,8 +17,8 @@ use crate::terminal_ui::ActiveWidget;
 
 pub struct SynchronizationScreen {}
 
-impl Renderable for SynchronizationScreen {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+impl<B: Backend> Renderable<B> for SynchronizationScreen {
+    fn draw_screen(state: &State, f: &mut Frame<B>) {
         let widget_in_focus = &state.ui.active_widget;
         let delta_toggle = state.delta_toggle;
 

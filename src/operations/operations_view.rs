@@ -1,6 +1,4 @@
-use std::io::Stdout;
-
-use tui::backend::CrosstermBackend;
+use tui::backend::Backend;
 use tui::layout::Corner;
 use tui::style::Modifier;
 use tui::{
@@ -21,8 +19,8 @@ const SIDE_BY_SIDE_TABLE_THRESHOLD: u16 = 128;
 
 pub struct StatisticsScreen {}
 
-impl Renderable for StatisticsScreen {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+impl<B: Backend> Renderable<B> for StatisticsScreen {
+    fn draw_screen(state: &State, f: &mut Frame<B>) {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 

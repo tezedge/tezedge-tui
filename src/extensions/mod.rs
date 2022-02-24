@@ -1,24 +1,23 @@
 pub mod extended_table;
-use std::io::Stdout;
 
 pub use extended_table::*;
 use num::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use tui::{
-    backend::CrosstermBackend,
+    backend::Backend,
     layout::Constraint,
     style::{Color, Modifier, Style},
     widgets::TableState,
     Frame,
 };
 
-use crate::automaton::{Action, ActionWithMeta, State};
+use crate::automaton::{ActionWithMeta, State};
 
 pub mod custom_border_separator;
 pub use custom_border_separator::*;
 
-pub trait Renderable {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>);
+pub trait Renderable<B: Backend> {
+    fn draw_screen(state: &State, f: &mut Frame<B>);
 }
 
 pub fn get_time_style<T: FromPrimitive + PartialOrd>(value: T) -> Style {

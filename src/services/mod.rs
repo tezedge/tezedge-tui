@@ -1,3 +1,5 @@
+use std::io::Stdout;
+
 pub use redux_rs::TimeService;
 
 // pub mod rpc_service;
@@ -10,6 +12,7 @@ pub mod tui_service;
 
 pub mod service_async_channel;
 pub use service_async_channel::*;
+use tui::backend::{Backend, CrosstermBackend};
 
 use self::{
     // rpc_service::{RpcService, RpcServiceDefault},
@@ -19,6 +22,7 @@ use self::{
 };
 
 pub trait Service: TimeService {
+    type Be: Backend;
     type Rpc: RpcService;
     type Tui: TuiService;
     type Ws: WebsocketService;
@@ -37,6 +41,7 @@ pub struct ServiceDefault {
 impl TimeService for ServiceDefault {}
 
 impl Service for ServiceDefault {
+    type Be = CrosstermBackend<Stdout>;
     type Rpc = RpcServiceDefault;
     type Tui = TuiServiceDefault;
     type Ws = WebsocketServiceDefault;
