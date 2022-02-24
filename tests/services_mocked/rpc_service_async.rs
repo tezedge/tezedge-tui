@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use tezedge_tui::services::{rpc_service_async::{RpcService, RpcCall, RpcResponse}, RequestTrySendError};
+use tezedge_tui::services::{
+    rpc_service_async::{RpcCall, RpcResponse, RpcService},
+    RequestTrySendError,
+};
 
 #[derive(Debug)]
 pub struct RpcServiceMocked {}

@@ -1,4 +1,4 @@
-use tezedge_tui::services::ws_service::{WebsocketService, WebsocketMessage, WsRecvError};
+use tezedge_tui::services::ws_service::{WebsocketMessage, WebsocketService, WsRecvError};
 
 impl WebsocketService for WebsocketServiceMocked {
     fn message_try_recv(&mut self) -> Result<Vec<WebsocketMessage>, WsRecvError> {

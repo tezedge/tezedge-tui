@@ -1,7 +1,12 @@
 pub use redux_rs::TimeService;
-use tezedge_tui::services::{rpc_service_async::RpcService, tui_service::TuiService, ws_service::WebsocketService, Service};
+use tezedge_tui::services::{
+    rpc_service_async::RpcService, tui_service::TuiService, ws_service::WebsocketService, Service,
+};
 
-use self::{rpc_service_async::RpcServiceMocked, tui_service::TuiServiceMocked, ws_service::WebsocketServiceMocked};
+use self::{
+    rpc_service_async::RpcServiceMocked, tui_service::TuiServiceMocked,
+    ws_service::WebsocketServiceMocked,
+};
 
 pub mod rpc_service_async;
 

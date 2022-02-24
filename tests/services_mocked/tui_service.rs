@@ -1,9 +1,7 @@
-use std::io::{Stdout, self};
+use std::io::{self, Stdout};
 
 use tezedge_tui::services::tui_service::TuiService;
-use tui::{Terminal, backend::CrosstermBackend};
-
-
+use tui::{backend::CrosstermBackend, Terminal};
 
 pub struct TuiServiceMocked {
     pub terminal: Terminal<CrosstermBackend<Stdout>>,
