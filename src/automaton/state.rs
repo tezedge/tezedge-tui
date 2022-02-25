@@ -28,7 +28,6 @@ pub struct State {
     pub baking: BakingState,
 
     pub delta_toggle: bool,
-    pub record_actions: bool,
 
     pub ui: UiState,
 
@@ -36,6 +35,8 @@ pub struct State {
     pub log: crate::automaton::Logger,
     #[serde(skip)]
     pub recorded_actions: Vec<ActionWithMeta>,
+    #[serde(skip)]
+    pub record_actions: bool,
 }
 
 impl PartialEq for State {
