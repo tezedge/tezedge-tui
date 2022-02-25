@@ -1,7 +1,5 @@
 pub use redux_rs::TimeService;
-use tezedge_tui::services::{
-    Service,
-};
+use tezedge_tui::services::Service;
 use tui::backend::TestBackend;
 
 use self::{

@@ -1,5 +1,5 @@
-use std::{fs::File, time::SystemTime};
 use pretty_assertions::assert_eq;
+use std::{fs::File, time::SystemTime};
 
 use services_mocked::{
     rpc_service_async::RpcServiceMocked, tui_service::TuiServiceMocked,
@@ -7,7 +7,8 @@ use services_mocked::{
 };
 use tezedge_tui::{
     automaton::{effects, reducer, Action, Store},
-    extensions::AutomatonDump, services::tui_service::TuiService,
+    extensions::AutomatonDump,
+    services::tui_service::TuiService,
 };
 
 mod services_mocked;
@@ -191,22 +192,40 @@ pub fn replay_actions() {
     println!("Comparing states (replayed state == expected state)");
     println!();
 
-    assert_eq!(resulting_state.network_constants, data.end_state.network_constants);
+    assert_eq!(
+        resulting_state.network_constants,
+        data.end_state.network_constants
+    );
     println!("Network constants OK");
 
-    assert_eq!(resulting_state.last_applied_level, data.end_state.last_applied_level);
+    assert_eq!(
+        resulting_state.last_applied_level,
+        data.end_state.last_applied_level
+    );
     println!("Last applied level OK");
 
-    assert_eq!(resulting_state.current_head_header, data.end_state.current_head_header);
+    assert_eq!(
+        resulting_state.current_head_header,
+        data.end_state.current_head_header
+    );
     println!("Current head header OK");
 
-    assert_eq!(resulting_state.current_head_metadata, data.end_state.current_head_metadata);
+    assert_eq!(
+        resulting_state.current_head_metadata,
+        data.end_state.current_head_metadata
+    );
     println!("Current head metadata OK");
 
-    assert_eq!(resulting_state.previous_head_header, data.end_state.previous_head_header);
+    assert_eq!(
+        resulting_state.previous_head_header,
+        data.end_state.previous_head_header
+    );
     println!("Previous head OK");
 
-    assert_eq!(resulting_state.best_remote_level, data.end_state.best_remote_level);
+    assert_eq!(
+        resulting_state.best_remote_level,
+        data.end_state.best_remote_level
+    );
     println!("Remote level OK");
 
     assert_eq!(resulting_state.baker_address, data.end_state.baker_address);
@@ -217,27 +236,48 @@ pub fn replay_actions() {
 
     // test the baking state components individually
     {
-        assert_eq!(resulting_state.baking.last_baked_block_hash, data.end_state.baking.last_baked_block_hash);
+        assert_eq!(
+            resulting_state.baking.last_baked_block_hash,
+            data.end_state.baking.last_baked_block_hash
+        );
         println!("Baking state - last_baked_block_hash OK");
 
-        assert_eq!(resulting_state.baking.last_baked_block_level, data.end_state.baking.last_baked_block_level);
+        assert_eq!(
+            resulting_state.baking.last_baked_block_level,
+            data.end_state.baking.last_baked_block_level
+        );
         println!("Baking state - last_baked_block_level OK");
 
-        assert_eq!(resulting_state.baking.last_baking_summary, data.end_state.baking.last_baking_summary);
+        assert_eq!(
+            resulting_state.baking.last_baking_summary,
+            data.end_state.baking.last_baking_summary
+        );
         println!("Baking state - last_baking_summary OK");
 
-        assert_eq!(resulting_state.baking.baking_rights, data.end_state.baking.baking_rights);
+        assert_eq!(
+            resulting_state.baking.baking_rights,
+            data.end_state.baking.baking_rights
+        );
         println!("Baking state - baking_rights OK");
 
-        assert_eq!(resulting_state.baking.application_statistics, data.end_state.baking.application_statistics);
+        assert_eq!(
+            resulting_state.baking.application_statistics,
+            data.end_state.baking.application_statistics
+        );
         println!("Baking state - application_statistics OK");
 
-        assert_eq!(resulting_state.baking.per_peer_block_statistics, data.end_state.baking.per_peer_block_statistics);
+        assert_eq!(
+            resulting_state.baking.per_peer_block_statistics,
+            data.end_state.baking.per_peer_block_statistics
+        );
         println!("Baking state - per_peer_block_statistics OK");
 
         // TODO: not equal, investigate
         // content missing in the captured state (rhs)
-        assert_eq!(resulting_state.baking.baking_table, data.end_state.baking.baking_table);
+        assert_eq!(
+            resulting_state.baking.baking_table,
+            data.end_state.baking.baking_table
+        );
         println!("Baking state - baking_table OK");
     }
 
@@ -250,10 +290,12 @@ pub fn replay_actions() {
     // assert_eq!(resulting_state.synchronization, data.end_state.synchronization);
     // println!("Synchronization State OK");
 
-    assert_eq!(resulting_state.operations_statistics, data.end_state.operations_statistics);
+    assert_eq!(
+        resulting_state.operations_statistics,
+        data.end_state.operations_statistics
+    );
     println!("Operaions statistics State OK");
 
     assert_eq!(resulting_state.delta_toggle, data.end_state.delta_toggle);
     println!("Delta toggle OK");
-
 }
