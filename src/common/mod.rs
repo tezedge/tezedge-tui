@@ -15,7 +15,10 @@ use crate::{
 };
 
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
+    // Note: only the first two screens are enabled for now
+    // take(2) - takes only the first 2 variants of the enum (Endorsements, Baking)
     let titles = ActivePage::iter()
+        .take(2)
         .map(|t| {
             Spans::from(vec![
                 Span::styled(

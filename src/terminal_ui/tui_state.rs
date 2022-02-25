@@ -40,27 +40,28 @@ pub enum ActiveWidget {
 // TODO: make enum contain the screen struct?
 #[derive(Debug, Clone, EnumIter, Display, Deserialize, Serialize, PartialEq)]
 pub enum ActivePage {
-    Synchronization,
     Endorsements,
-    Statistics,
     Baking,
+    Synchronization,
+    Statistics,
+    
 }
 
 impl ActivePage {
     pub fn to_index(&self) -> usize {
         match self {
-            ActivePage::Synchronization => 0,
-            ActivePage::Endorsements => 1,
+            ActivePage::Endorsements => 0,
+            ActivePage::Baking => 1,
             ActivePage::Statistics => 2,
-            ActivePage::Baking => 3,
+            ActivePage::Synchronization => 3,
         }
     }
     pub fn hotkey(&self) -> String {
         match self {
-            ActivePage::Synchronization => String::from("F1"),
-            ActivePage::Endorsements => String::from("F2"),
+            ActivePage::Endorsements => String::from("F1"),
+            ActivePage::Baking => String::from("F2"),
             ActivePage::Statistics => String::from("F3"),
-            ActivePage::Baking => String::from("F4"),
+            ActivePage::Synchronization => String::from("F4"),
         }
     }
 }

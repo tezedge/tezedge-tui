@@ -90,25 +90,26 @@ impl<Serv: Service> Automaton<Serv> {
                             }
                             KeyCode::F(1) => {
                                 self.store.dispatch(ChangeScreenAction {
-                                    screen: ActivePage::Synchronization,
+                                    screen: ActivePage::Endorsements,
                                 });
                             }
                             KeyCode::F(2) => {
                                 self.store.dispatch(ChangeScreenAction {
-                                    screen: ActivePage::Endorsements,
-                                });
-                            }
-                            KeyCode::F(3) => {
-                                self.store.dispatch(OperationsStatisticsGetAction {});
-                                self.store.dispatch(ChangeScreenAction {
-                                    screen: ActivePage::Statistics,
-                                });
-                            }
-                            KeyCode::F(4) => {
-                                self.store.dispatch(ChangeScreenAction {
                                     screen: ActivePage::Baking,
                                 });
                             }
+                            // Dissable for now
+                            // KeyCode::F(3) => {
+                            //     self.store.dispatch(OperationsStatisticsGetAction {});
+                            //     self.store.dispatch(ChangeScreenAction {
+                            //         screen: ActivePage::Statistics,
+                            //     });
+                            // }
+                            // KeyCode::F(4) => {
+                            //     self.store.dispatch(ChangeScreenAction {
+                            //         screen: ActivePage::Synchronization,
+                            //     });
+                            // }
                             KeyCode::Tab => {
                                 self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
                             }
