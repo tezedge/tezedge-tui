@@ -24,26 +24,41 @@ If you have already built the TezEdge node from sources, you can skip these step
 
 ## Build and run
 
-First thing should be reading the included help to help undirstand the options the terminal UI can run with
-```
-cargo run --release -- -h
-```
+- First thing should be reading the included help to help undirstand the options the terminal UI can run with
+    ```
+    cargo run --release -- -h
+    ```
 
-To connect to the default localhost node with default port in the default mode (without baker-address specified):
+- To connect to the default localhost node with default port in the default mode (without baker-address specified):
+    ```
+    cargo run --release
+    ```
 
-```
-cargo run --release
-```
+- If you are running a baking and endorsing stack with the TezEdge node, you can specify your tezos account as baker address
+    ```
+    cargo run --release -- --baker-address tz1iFzuDWaP7eKbdBgmcdtz5FAJzDuQqcucm
+    ```
 
-If you are running a baking and endorsing stack with the TezEdge node, you can specify your tezos account as baker address
-```
-cargo run --release -- --baker-address tz1iFzuDWaP7eKbdBgmcdtz5FAJzDuQqcucm
-```
+- To connect to our test run with TezEdge and baker/endorser:
+    ```
+    cargo run --release -- --node http://mempool.tezedge.com:18732/ --websocket ws://mempool.tezedge.com:4927/ --baker-address tz1Mkb2MQyHnVybEru6iTgTGQaZikyg4fBhr
+    ```
 
-To connect to our test run with TezEdge and baker/endorser:
-```
-cargo run --release -- --node http://mempool.tezedge.com:18732/ --websocket ws://mempool.tezedge.com:4927/ --baker-address tz1Mkb2MQyHnVybEru6iTgTGQaZikyg4fBhr
-```
+## Test
+
+Test the tezedge tui statemachine
+
+1. Record actions
+    ```
+    cargo run --release -- --baker-address tz1iFzuDWaP7eKbdBgmcdtz5FAJzDuQqcucm --record-actions
+    ```
+This will create an automaton_dump.json file in the root directory
+
+2. Run the test
+    ```
+    cargo test -- --nocapture 
+    ```
+
 
 ## Shortcuts
 
