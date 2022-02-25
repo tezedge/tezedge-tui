@@ -19,6 +19,7 @@ use crate::{
 };
 
 pub type PerPeerBlockStatisticsVector = Vec<PerPeerBlockStatistics>;
+pub type PerPeerBlockStatisticsExtendedVector = Vec<PerPeerBlockStatisticsExtended>;
 
 #[derive(Deserialize, Debug, Default, Clone, Serialize, PartialEq)]
 pub struct BlockApplicationStatistics {
@@ -141,7 +142,7 @@ pub struct BakingSummary {
     pub level: i32,
     pub injected: Option<u64>,
     pub block_application_summary: BlockApplicationSummary,
-    pub per_peer: PerPeerBlockStatisticsVector,
+    pub per_peer: PerPeerBlockStatisticsExtendedVector,
 }
 
 impl BakingSummary {
@@ -150,7 +151,7 @@ impl BakingSummary {
         block_delay: i32,
         previous_head_header: CurrentHeadHeader,
         block_application_summary: BlockApplicationSummary,
-        per_peer: PerPeerBlockStatisticsVector,
+        per_peer: PerPeerBlockStatisticsExtendedVector,
     ) -> Self {
         let injected = block_application_summary
             .injected
@@ -311,17 +312,84 @@ pub struct PerPeerBlockStatistics {
     pub operations_send_end_time: Option<u64>,
 }
 
-impl SortableByFocus for PerPeerBlockStatisticsVector {
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PerPeerBlockStatisticsExtended {
+    pub address: String,
+    pub block_hash: String,
+    pub node_id: String,
+    pub received_time: Option<u64>,
+    pub received_time_delta: Option<u64>,
+    pub sent_end_time: Option<u64>,
+    pub get_operations_recv_end_time: Option<u64>,
+    pub get_operations_recv_delta: Option<u64>,
+    pub operations_send_end_time: Option<u64>,
+    pub operations_send_delta: Option<u64>,
+}
+
+impl From<PerPeerBlockStatistics> for PerPeerBlockStatisticsExtended {
+    fn from(stats: PerPeerBlockStatistics) -> Self {
+        let mut received_time_delta = stats.received_time.and_then(|received| {
+            stats
+                .operations_send_end_time
+                .map(|op_sent| received.saturating_sub(op_sent))
+        });
+
+        // baking case (we receive back the timestamp after we sent the ops)
+        if let Some(0) = received_time_delta {
+            received_time_delta = stats.received_time;
+        }
+
+        // non-baking case
+        if received_time_delta.is_none() {
+            received_time_delta = stats.received_time;
+        }
+
+        let get_operations_recv_delta = stats
+            .get_operations_recv_end_time
+            .and_then(|get_ops_rec| stats.sent_end_time.map(|sent_end| get_ops_rec - sent_end));
+        let operations_send_delta = stats.operations_send_end_time.and_then(|op_send_end| {
+            stats
+                .get_operations_recv_end_time
+                .map(|get_ops_rec| op_send_end - get_ops_rec)
+        });
+
+        Self {
+            received_time_delta,
+            get_operations_recv_delta,
+            operations_send_delta,
+            address: stats.address,
+            node_id: stats.node_id,
+            received_time: stats.received_time,
+            sent_end_time: stats.sent_end_time,
+            get_operations_recv_end_time: stats.get_operations_recv_end_time,
+            operations_send_end_time: stats.operations_send_end_time,
+            block_hash: stats.block_hash,
+        }
+    }
+}
+
+impl SortableByFocus for PerPeerBlockStatisticsExtendedVector {
     fn sort_by_focus(&mut self, focus_index: usize, delta_toogle: bool) {
-        match focus_index {
-            0 => self.sort_by_key(|s| s.address.clone()),
-            1 => self.sort_by_key(|s| s.node_id.clone()),
-            2 => self.sort_by_key(|s| s.received_time),
-            3 => self.sort_by_key(|s| s.sent_time),
-            // TODO: fix this with delta toggle
-            4 => self.sort_by_key(|s| s.get_operations_recv_end_time),
-            5 => self.sort_by_key(|s| s.operations_send_end_time),
-            _ => {}
+        if delta_toogle {
+            match focus_index {
+                0 => self.sort_by_key(|s| s.address.clone()),
+                1 => self.sort_by_key(|s| s.node_id.clone()),
+                2 => self.sort_by_key(|s| s.received_time_delta),
+                3 => self.sort_by_key(|s| s.sent_end_time),
+                4 => self.sort_by_key(|s| s.get_operations_recv_delta),
+                5 => self.sort_by_key(|s| s.operations_send_delta),
+                _ => {}
+            }
+        } else {
+            match focus_index {
+                0 => self.sort_by_key(|s| s.address.clone()),
+                1 => self.sort_by_key(|s| s.node_id.clone()),
+                2 => self.sort_by_key(|s| s.received_time),
+                3 => self.sort_by_key(|s| s.sent_end_time),
+                4 => self.sort_by_key(|s| s.get_operations_recv_end_time),
+                5 => self.sort_by_key(|s| s.operations_send_end_time),
+                _ => {}
+            }
         }
     }
 
@@ -330,30 +398,53 @@ impl SortableByFocus for PerPeerBlockStatisticsVector {
     }
 }
 
-impl TuiTableData for PerPeerBlockStatistics {
-    fn construct_tui_table_data(&self, _: bool) -> Vec<(String, Style)> {
+impl TuiTableData for PerPeerBlockStatisticsExtended {
+    fn construct_tui_table_data(&self, delta_toggle: bool) -> Vec<(String, Style)> {
         let style = Style::default().fg(Color::Gray).add_modifier(Modifier::DIM);
 
-        vec![
-            (self.address.clone(), style),
-            (self.node_id.clone(), style),
-            (
-                convert_time_to_unit_string_option(self.received_time),
-                style,
-            ),
-            (
-                convert_time_to_unit_string_option(self.sent_end_time),
-                style,
-            ),
-            (
-                convert_time_to_unit_string_option(self.get_operations_recv_end_time),
-                style,
-            ),
-            (
-                convert_time_to_unit_string_option(self.operations_send_end_time),
-                style,
-            ),
-        ]
+        if delta_toggle {
+            vec![
+                (self.address.clone(), style),
+                (self.node_id.clone(), style),
+                (
+                    convert_time_to_unit_string_option(self.received_time_delta),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.sent_end_time),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.get_operations_recv_delta),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.operations_send_delta),
+                    style,
+                ),
+            ]
+        } else {
+            vec![
+                (self.address.clone(), style),
+                (self.node_id.clone(), style),
+                (
+                    convert_time_to_unit_string_option(self.received_time),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.sent_end_time),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.get_operations_recv_end_time),
+                    style,
+                ),
+                (
+                    convert_time_to_unit_string_option(self.operations_send_end_time),
+                    style,
+                ),
+            ]
+        }
     }
 }
 
@@ -375,8 +466,8 @@ impl ApplicationSummary {
     }
 }
 
-impl From<PerPeerBlockStatisticsVector> for ApplicationSummary {
-    fn from(stats: PerPeerBlockStatisticsVector) -> Self {
+impl From<PerPeerBlockStatisticsExtendedVector> for ApplicationSummary {
+    fn from(stats: PerPeerBlockStatisticsExtendedVector) -> Self {
         let send_block_header = stats.iter().filter_map(|stat| stat.sent_end_time).min();
         let block_operations_requested = stats
             .iter()
@@ -470,8 +561,8 @@ impl BakingRights {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BakingState {
     pub application_statistics: BTreeMap<String, BlockApplicationStatistics>,
-    pub per_peer_block_statistics: BTreeMap<String, PerPeerBlockStatisticsVector>,
-    pub baking_table: ExtendedTable<PerPeerBlockStatisticsVector>,
+    pub per_peer_block_statistics: BTreeMap<String, PerPeerBlockStatisticsExtendedVector>,
+    pub baking_table: ExtendedTable<PerPeerBlockStatisticsExtendedVector>,
     pub baking_rights: BakingRights,
     pub last_baking_summary: BakingSummary,
     pub last_baked_block_level: Option<i32>,
