@@ -10,6 +10,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tui_args.node,
         tui_args.websocket,
         tui_args.baker_address,
+        tui_args.record_actions,
         create_file_logger("tui.log"),
     );
     automaton_manager.start().await;

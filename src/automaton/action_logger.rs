@@ -1,12 +1,10 @@
 // This module is temporary and will be removed
 
-use slog::info;
-
-use crate::automaton::{Action, ActionWithMeta, State};
+use crate::automaton::{ActionWithMeta, State};
 
 pub fn action_logger_reducer(state: &mut State, action: &ActionWithMeta) {
     // capture only top level actions
-    if action.depth == 0 {
+    if state.record_actions && action.depth == 0 {
         state.recorded_actions.push(action.clone());
     }
 }

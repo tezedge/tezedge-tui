@@ -216,6 +216,7 @@ where
 
 pub struct AutomatonManager {
     automaton: Automaton<ServiceDefault>,
+    record_actions: bool,
     tui_event_receiver: mpsc::Receiver<TuiEvent>,
 }
 
@@ -226,6 +227,7 @@ impl AutomatonManager {
         rpc_url: Url,
         websocket_url: Url,
         baker_address: Option<String>,
+        record_actions: bool,
         log: Logger,
     ) -> Self {
         let rpc_service = RpcServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, rpc_url, &log);
@@ -240,12 +242,13 @@ impl AutomatonManager {
             ws: websocket_service,
         };
 
-        let initial_state = State::new(baker_address, log.clone());
+        let initial_state = State::new(baker_address, record_actions, log.clone());
 
         let automaton = Automaton::new(initial_state, service);
 
         Self {
             automaton,
+            record_actions,
             tui_event_receiver,
         }
     }
@@ -253,25 +256,22 @@ impl AutomatonManager {
     pub async fn start(&mut self) {
         let log = self.automaton.store.state().log.clone();
 
-        // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
         let init_state = self.automaton.store.state().clone();
-        // info!(log, "Init state: {}", deserialized_state);
         self.automaton
             .make_progress(&mut self.tui_event_receiver)
             .await;
 
-        // let deserialized_state = serde_json::to_string(self.automaton.store.state()).unwrap_or_default();
-        // info!(log, "Final State: {}", deserialized_state);
         let actions = self.automaton.store.state().recorded_actions.clone();
 
-        // end state without actions
-        let mut end_state = self.automaton.store.state().clone();
-        info!(log, "Baking table Content: {:#?}", end_state.baking.baking_table.content);
-        end_state.recorded_actions = vec![];
-        let dump = AutomatonDump::new(init_state, end_state, &actions);
+        if self.record_actions {
+            info!(log, "Dumping recorded actions to automaton_dump.json");
+            let end_state = self.automaton.store.state().clone();
+            let dump = AutomatonDump::new(init_state, end_state, &actions);
 
-        let file = File::create("automaton_dump.json").unwrap();
-        serde_json::to_writer(file, &dump).unwrap();
+            // TODO: unwraps!
+            let file = File::create("automaton_dump.json").unwrap();
+            serde_json::to_writer(file, &dump).unwrap();
+        }
 
         self.automaton.store.service().tui().restore_terminal();
     }

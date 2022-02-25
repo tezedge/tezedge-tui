@@ -16,4 +16,8 @@ pub struct TuiArgs {
     /// Optional address of your baker/endorser
     #[clap(long)]
     pub baker_address: Option<String>,
+
+    /// (Debug) Record automaton actions
+    #[clap(long)]
+    pub record_actions: bool,
 }

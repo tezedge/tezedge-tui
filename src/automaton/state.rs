@@ -28,6 +28,7 @@ pub struct State {
     pub baking: BakingState,
 
     pub delta_toggle: bool,
+    pub record_actions: bool,
 
     pub ui: UiState,
 
@@ -56,10 +57,11 @@ impl PartialEq for State {
 }
 
 impl State {
-    pub fn new(baker_address: Option<String>, log: Logger) -> Self {
+    pub fn new(baker_address: Option<String>, record_actions: bool, log: Logger) -> Self {
         Self {
             log: crate::automaton::Logger(log),
             baker_address,
+            record_actions,
             delta_toggle: true,
             current_head_header: Default::default(),
             current_head_metadata: Default::default(),
