@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use tui::backend::{Backend};
+use tui::backend::Backend;
 use tui::layout::{Constraint, Corner, Direction, Layout};
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
