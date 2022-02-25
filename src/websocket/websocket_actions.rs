@@ -1,8 +1,9 @@
 use redux_rs::EnablingCondition;
+use serde::{Deserialize, Serialize};
 
 use crate::{automaton::State, services::ws_service::WebsocketMessage};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebsocketReadAction {}
 
 impl EnablingCondition<State> for WebsocketReadAction {
@@ -11,7 +12,7 @@ impl EnablingCondition<State> for WebsocketReadAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebsocketMessageReceivedAction {
     pub websocket_message: Vec<WebsocketMessage>,
 }

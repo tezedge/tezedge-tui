@@ -1,26 +1,39 @@
 use crossterm::event::KeyCode;
-use std::time::{Duration, SystemTime};
+use std::{
+    fs::File,
+    time::{Duration, SystemTime},
+};
 use tokio::sync::mpsc;
 use url::Url;
 
-use slog::Logger;
+use slog::{info, Logger};
 
 pub use crate::services::{Service, ServiceDefault};
 use crate::{
-    endorsements::{
-        CurrentHeadHeaderGetAction, EndorsementsRightsGetAction, EndorsementsStatusesGetAction,
+    baking::{
+        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction,
+        BakingRightsReceivedAction, PerPeerBlockStatisticsGetAction,
+        PerPeerBlockStatisticsReceivedAction,
     },
-    operations::OperationsStatisticsGetAction,
-    rpc::RpcResponseReadAction,
+    endorsements::{
+        EndorsementsRightsReceivedAction, EndorsementsRightsWithTimeReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
+        MempoolEndorsementStatsGetAction, MempoolEndorsementStatsReceivedAction,
+    },
+    extensions::AutomatonDump,
+    operations::OperationsStatisticsReceivedAction,
     services::{
-        rpc_service::RpcServiceDefault,
+        rpc_service_async::{RpcResponse, RpcService, RpcServiceDefault},
         tui_service::{TuiService, TuiServiceDefault},
         ws_service::WebsocketServiceDefault,
     },
     terminal_ui::{
-        ActivePage, ChangeScreenAction, DrawScreenAction, TuiDeltaToggleKeyPushedAction,
-        TuiDownKeyPushedAction, TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
-        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
+        ActivePage, BestRemoteLevelGetAction, BestRemoteLevelReceivedAction, ChangeScreenAction,
+        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, CurrentHeadMetadataGetAction,
+        CurrentHeadMetadataReceivedAction, DrawScreenAction, NetworkConstantsGetAction,
+        NetworkConstantsReceivedAction, TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction,
+        TuiEvent, TuiLeftKeyPushedAction, TuiRightKeyPushedAction, TuiSortKeyPushedAction,
+        TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::WebsocketReadAction,
 };
@@ -41,65 +54,151 @@ impl<Serv: Service> Automaton<Serv> {
     }
 
     pub async fn make_progress(&mut self, events: &mut mpsc::Receiver<TuiEvent>) {
+        self.store.dispatch(NetworkConstantsGetAction {});
         loop {
-            self.store.dispatch(RpcResponseReadAction {});
+            // TODO: clean this up (create handler functions)
             self.store.dispatch(DrawScreenAction {});
-            match events.recv().await {
-                Some(TuiEvent::Tick) => {
-                    self.store.dispatch(WebsocketReadAction {});
-                    self.store.dispatch(CurrentHeadHeaderGetAction {});
-                    self.store.dispatch(EndorsementsRightsGetAction {
-                        block: self.store.state().current_head_header.hash.clone(),
-                        level: self.store.state().current_head_header.level,
-                    });
-                    self.store.dispatch(EndorsementsStatusesGetAction {});
+            tokio::select! {
+                tui_event = events.recv() => {
+                    match tui_event {
+                        Some(TuiEvent::Tick) => {
+                            self.store.dispatch(WebsocketReadAction {});
+                            self.store.dispatch(BestRemoteLevelGetAction {});
+                            self.store.dispatch(CurrentHeadHeaderGetAction {});
+                            self.store.dispatch(CurrentHeadMetadataGetAction {});
+
+                            self.store.dispatch(EndorsementsStatusesGetAction {});
+                            self.store.dispatch(ApplicationStatisticsGetAction {
+                                level: self.store.state().current_head_header.level,
+                            });
+                            self.store.dispatch(PerPeerBlockStatisticsGetAction {
+                                level: self.store.state().current_head_header.level,
+                            });
+                            self.store.dispatch(MempoolEndorsementStatsGetAction {});
+                        }
+                        Some(TuiEvent::Input(key, modifier)) => match key {
+                            KeyCode::F(10) => {
+                                self.store.dispatch(ShutdownAction {});
+                                return;
+                            }
+                            KeyCode::Char('s') => {
+                                self.store.dispatch(TuiSortKeyPushedAction { modifier });
+                            }
+                            KeyCode::Char('d') => {
+                                self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
+                            }
+                            KeyCode::F(1) => {
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Endorsements,
+                                });
+                            }
+                            KeyCode::F(2) => {
+                                self.store.dispatch(ChangeScreenAction {
+                                    screen: ActivePage::Baking,
+                                });
+                            }
+                            // Dissable for now
+                            // KeyCode::F(3) => {
+                            //     self.store.dispatch(OperationsStatisticsGetAction {});
+                            //     self.store.dispatch(ChangeScreenAction {
+                            //         screen: ActivePage::Statistics,
+                            //     });
+                            // }
+                            // KeyCode::F(4) => {
+                            //     self.store.dispatch(ChangeScreenAction {
+                            //         screen: ActivePage::Synchronization,
+                            //     });
+                            // }
+                            KeyCode::Tab => {
+                                self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
+                            }
+                            KeyCode::Right => {
+                                self.store.dispatch(TuiRightKeyPushedAction {});
+                            }
+                            KeyCode::Left => {
+                                self.store.dispatch(TuiLeftKeyPushedAction {});
+                            }
+                            KeyCode::Down => {
+                                self.store.dispatch(TuiDownKeyPushedAction {});
+                            }
+                            KeyCode::Up => {
+                                self.store.dispatch(TuiUpKeyPushedAction {});
+                            }
+                            _ => {}
+                        },
+                        _ => {}
+                    }
                 }
-                Some(TuiEvent::Input(key, modifier)) => match key {
-                    KeyCode::F(10) => {
-                        self.store.dispatch(ShutdownAction {});
-                        return;
+                rpc_response = self.store.service().rpc().response_recv() => {
+                    if let Some(resp) = rpc_response {
+                        match resp {
+                            RpcResponse::EndorsementRights(rights) => {
+                                self.store.dispatch(EndorsementsRightsReceivedAction {
+                                    endorsement_rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::EndorsementsStatus(endorsements_statuses) => {
+                                self.store.dispatch(EndorsementsStatusesReceivedAction {
+                                    endorsements_statuses: endorsements_statuses.clone(),
+                                });
+                            }
+                            RpcResponse::CurrentHeadHeader(current_head_header) => {
+                                self.store.dispatch(CurrentHeadHeaderRecievedAction {
+                                    current_head_header: current_head_header.clone(),
+                                });
+                            }
+                            RpcResponse::OperationsStats(operations_statistics) => {
+                                self.store.dispatch(OperationsStatisticsReceivedAction {
+                                    operations_statistics: operations_statistics.clone(),
+                                });
+                            }
+                            RpcResponse::ApplicationStatistics(application_stats) => {
+                                self.store.dispatch(ApplicationStatisticsReceivedAction {
+                                    application_statistics: application_stats.clone(),
+                                });
+                            }
+                            RpcResponse::PerPeerBlockStatistics(per_peer_stats) => {
+                                self.store.dispatch(PerPeerBlockStatisticsReceivedAction {
+                                    per_peer_block_statistics: per_peer_stats.clone(),
+                                });
+                            }
+                            RpcResponse::BakingRights(rights) => {
+                                self.store.dispatch(BakingRightsReceivedAction {
+                                    rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::EndorsementRightsWithTime(rights) => {
+                                self.store.dispatch(EndorsementsRightsWithTimeReceivedAction {
+                                    rights: rights.clone(),
+                                });
+                            }
+                            RpcResponse::MempoolEndorsementStats(stats) => {
+                                self.store.dispatch(MempoolEndorsementStatsReceivedAction {
+                                    stats: stats.clone(),
+                                });
+                            }
+                            RpcResponse::NetworkConstants(constants) => {
+                                self.store.dispatch(NetworkConstantsReceivedAction {
+                                    constants: constants.clone(),
+                                });
+                            }
+                            RpcResponse::CurrentHeadMetadata(meta) => {
+                                self.store.dispatch(CurrentHeadMetadataReceivedAction {
+                                    metadata: meta.clone()
+                                });
+                            }
+                            RpcResponse::BestRemoteLevel(level) => {
+                                self.store.dispatch(BestRemoteLevelReceivedAction {
+                                    level
+                                });
+                            }
+                        }
                     }
-                    KeyCode::Char('s') => {
-                        self.store.dispatch(TuiSortKeyPushedAction { modifier });
-                    }
-                    KeyCode::Char('d') => {
-                        self.store.dispatch(TuiDeltaToggleKeyPushedAction {});
-                    }
-                    KeyCode::F(1) => {
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Synchronization,
-                        });
-                    }
-                    KeyCode::F(2) => {
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Endorsements,
-                        });
-                    }
-                    KeyCode::F(3) => {
-                        self.store.dispatch(OperationsStatisticsGetAction {});
-                        self.store.dispatch(ChangeScreenAction {
-                            screen: ActivePage::Statistics,
-                        });
-                    }
-                    KeyCode::Tab => {
-                        self.store.dispatch(TuiWidgetSelectionKeyPushedAction {});
-                    }
-                    KeyCode::Right => {
-                        self.store.dispatch(TuiRightKeyPushedAction {});
-                    }
-                    KeyCode::Left => {
-                        self.store.dispatch(TuiLeftKeyPushedAction {});
-                    }
-                    KeyCode::Down => {
-                        self.store.dispatch(TuiDownKeyPushedAction {});
-                    }
-                    KeyCode::Up => {
-                        self.store.dispatch(TuiUpKeyPushedAction {});
-                    }
-                    _ => {}
-                },
-                _ => {}
+                }
             }
+            // match events.recv().await {
+
+            // }
         }
     }
 }
@@ -117,18 +216,25 @@ where
 
 pub struct AutomatonManager {
     automaton: Automaton<ServiceDefault>,
+    record_actions: bool,
     tui_event_receiver: mpsc::Receiver<TuiEvent>,
 }
 
 impl AutomatonManager {
     const MPCS_QUEUE_MAX_CAPACITY: usize = 4096;
 
-    pub fn new(rpc_url: Url, websocket_url: Url, log: Logger) -> Self {
+    pub fn new(
+        rpc_url: Url,
+        websocket_url: Url,
+        baker_address: Option<String>,
+        record_actions: bool,
+        log: Logger,
+    ) -> Self {
         let rpc_service = RpcServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, rpc_url, &log);
         let websocket_service =
             WebsocketServiceDefault::new(Self::MPCS_QUEUE_MAX_CAPACITY, websocket_url, &log);
         let tui_service = TuiServiceDefault::new();
-        let tui_event_receiver = TuiServiceDefault::start(Duration::from_secs(1));
+        let tui_event_receiver = TuiServiceDefault::start(Duration::from_millis(1000));
 
         let service = ServiceDefault {
             rpc: rpc_service,
@@ -136,20 +242,36 @@ impl AutomatonManager {
             ws: websocket_service,
         };
 
-        let initial_state = State::new(log.clone());
+        let initial_state = State::new(baker_address, record_actions, log.clone());
 
         let automaton = Automaton::new(initial_state, service);
 
         Self {
             automaton,
+            record_actions,
             tui_event_receiver,
         }
     }
 
     pub async fn start(&mut self) {
+        let log = self.automaton.store.state().log.clone();
+
+        let init_state = self.automaton.store.state().clone();
         self.automaton
             .make_progress(&mut self.tui_event_receiver)
             .await;
+
+        let actions = self.automaton.store.state().recorded_actions.clone();
+
+        if self.record_actions {
+            info!(log, "Dumping recorded actions to automaton_dump.json");
+            let end_state = self.automaton.store.state().clone();
+            let dump = AutomatonDump::new(init_state, end_state, &actions);
+
+            // TODO: unwraps!
+            let file = File::create("automaton_dump.json").unwrap();
+            serde_json::to_writer(file, &dump).unwrap();
+        }
 
         self.automaton.store.service().tui().restore_terminal();
     }

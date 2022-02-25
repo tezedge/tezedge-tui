@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use time::{format_description, OffsetDateTime};
 use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
@@ -15,12 +15,14 @@ pub type OperationsStats = BTreeMap<String, OperationStats>;
 pub type OperationsStatsSortable = Vec<OperationStatsSortable>;
 pub type OperationDetailsSortable = Vec<OperationDetailSortable>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct OperationsStatisticsState {
     pub operations_statistics: OperationsStats,
 
     // ui specific states
+    #[serde(skip)]
     pub main_operation_statistics_table: ExtendedTable<OperationsStatsSortable>,
+    #[serde(skip)]
     pub details_operation_statistics_table: ExtendedTable<OperationDetailsSortable>,
 }
 
@@ -95,7 +97,7 @@ impl Default for OperationsStatisticsState {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Default, Serialize, PartialEq)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationStats {
     kind: Option<OperationKind>,
@@ -103,48 +105,58 @@ pub struct OperationStats {
     /// from this point.
     min_time: Option<u64>,
     first_block_timestamp: Option<u64>,
-    validation_started: Option<i128>,
+    validation_started: Option<i64>,
     /// (time_validation_finished, validation_result, prevalidation_duration)
-    validation_result: Option<(i128, OperationValidationResult, Option<i128>, Option<i128>)>,
+    validation_result: Option<(i64, OperationValidationResult, Option<i64>, Option<i64>)>,
     validations: Vec<OperationValidationStats>,
-    nodes: HashMap<String, OperationNodeStats>,
+    nodes: BTreeMap<String, OperationNodeStats>,
+    pub injected_timestamp: Option<u64>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize, PartialEq)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeStats {
     received: Vec<OperationNodeCurrentHeadStats>,
     sent: Vec<OperationNodeCurrentHeadStats>,
 
-    content_requested: Vec<i128>,
-    content_received: Vec<i128>,
+    content_requested: Vec<i64>,
+    content_received: Vec<i64>,
 
-    content_requested_remote: Vec<i128>,
-    content_sent: Vec<i128>,
+    content_requested_remote: Vec<i64>,
+    content_sent: Vec<i64>,
 }
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone, Default, Serialize, PartialEq)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationNodeCurrentHeadStats {
     /// Latency from first time we have seen that operation.
-    latency: i128,
+    latency: i64,
     block_level: i32,
     block_timestamp: i64,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize, PartialEq)]
 #[allow(dead_code)] // TODO: make BE send only the relevant data
 pub struct OperationValidationStats {
-    started: Option<i128>,
-    finished: Option<i128>,
-    preapply_started: Option<i128>,
-    preapply_ended: Option<i128>,
+    started: Option<i64>,
+    finished: Option<i64>,
+    preapply_started: Option<i64>,
+    preapply_ended: Option<i64>,
     current_head_level: Option<i32>,
     result: Option<OperationValidationResult>,
 }
 
 #[derive(
-    Deserialize, Debug, Clone, Copy, strum_macros::Display, PartialEq, Eq, PartialOrd, Ord,
+    Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    strum_macros::Display,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
 )]
 pub enum OperationKind {
     Endorsement,
@@ -171,7 +183,7 @@ impl Default for OperationKind {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display)]
+#[derive(Deserialize, Debug, Clone, Copy, strum_macros::Display, Serialize, PartialEq)]
 pub enum OperationValidationResult {
     Applied,
     Refused,
@@ -183,12 +195,12 @@ pub enum OperationValidationResult {
     Default,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OperationDetailSortable {
     pub node_id: String,
-    pub first_received: Option<i128>,
-    pub first_content_received: Option<i128>,
-    pub first_sent: Option<i128>,
+    pub first_received: Option<i64>,
+    pub first_content_received: Option<i64>,
+    pub first_sent: Option<i64>,
     pub received: usize,
     pub content_received: usize,
     pub sent: usize,
@@ -198,7 +210,9 @@ impl TuiTableData for OperationDetailSortable {
     fn construct_tui_table_data(&self, _delta_toggle: bool) -> Vec<(String, Style)> {
         let mut final_vec = Vec::with_capacity(7);
         let missing_value = (String::from('-'), Style::default().fg(Color::DarkGray));
-        let default_style = Style::default().fg(Color::White).add_modifier(Modifier::DIM);
+        let default_style = Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::DIM);
 
         final_vec.push((self.node_id.clone(), default_style));
 
@@ -231,30 +245,30 @@ impl TuiTableData for OperationDetailSortable {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OperationStatsSortable {
     pub datetime: u64,
     pub hash: String,
     pub nodes: usize,
-    pub delta: Option<i128>,
-    pub received: Option<i128>,
-    pub content_received: Option<i128>,
-    pub validation_started: Option<i128>,
-    pub preapply_started: Option<i128>,
-    pub preapply_ended: Option<i128>,
-    pub validation_finished: Option<i128>,
+    pub delta: Option<i64>,
+    pub received: Option<i64>,
+    pub content_received: Option<i64>,
+    pub validation_started: Option<i64>,
+    pub preapply_started: Option<i64>,
+    pub preapply_ended: Option<i64>,
+    pub validation_finished: Option<i64>,
     pub validations_length: usize,
-    pub sent: Option<i128>,
+    pub sent: Option<i64>,
     pub kind: Option<OperationKind>,
 
     // Deltas
-    pub content_received_delta: Option<i128>,
-    pub validation_started_delta: Option<i128>,
+    pub content_received_delta: Option<i64>,
+    pub validation_started_delta: Option<i64>,
 
-    pub preapply_started_delta: Option<i128>,
-    pub preapply_ended_delta: Option<i128>,
-    pub validation_finished_delta: Option<i128>,
-    pub sent_delta: Option<i128>,
+    pub preapply_started_delta: Option<i64>,
+    pub preapply_ended_delta: Option<i64>,
+    pub validation_finished_delta: Option<i64>,
+    pub sent_delta: Option<i64>,
 }
 
 impl OperationStats {
@@ -272,17 +286,7 @@ impl OperationStats {
             })
             .min();
 
-        let first_sent = self
-            .nodes
-            .clone()
-            .into_iter()
-            .filter_map(|(_, v)| {
-                v.sent
-                    .into_iter()
-                    .min_by_key(|v| v.latency)
-                    .map(|v| v.latency)
-            })
-            .min();
+        let first_sent = self.first_sent();
 
         let delta = if let (Some(first_received), Some(first_sent)) = (first_received, first_sent) {
             Some(first_sent - first_received)
@@ -416,6 +420,48 @@ impl OperationStats {
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
+
+    pub fn is_injected(&self) -> bool {
+        self.injected_timestamp.is_some()
+    }
+
+    pub fn validation_duration(&self) -> Option<i64> {
+        self.validation_started
+            .and_then(|start| self.validation_result.map(|(end, _, _, _)| end - start))
+    }
+
+    pub fn validation_ended(&self) -> Option<i64> {
+        self.validation_result.map(|(end, _, _, _)| end)
+    }
+
+    pub fn first_sent(&self) -> Option<i64> {
+        self.nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| {
+                v.sent
+                    .into_iter()
+                    .min_by_key(|v| v.latency)
+                    .map(|v| v.latency)
+            })
+            .min()
+    }
+
+    pub fn first_content_requested_remote(&self) -> Option<i64> {
+        self.nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| v.content_requested_remote.into_iter().min())
+            .min()
+    }
+
+    pub fn first_content_sent(&self) -> Option<i64> {
+        self.nodes
+            .clone()
+            .into_iter()
+            .filter_map(|(_, v)| v.content_sent.into_iter().min())
+            .min()
+    }
 }
 
 impl TuiTableData for OperationStatsSortable {
@@ -426,11 +472,16 @@ impl TuiTableData for OperationStatsSortable {
             .fg(Color::White)
             .add_modifier(Modifier::DIM);
 
-        let datetime =
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
-                .format("%H:%M:%S, %Y-%m-%d");
+        // let datetime =
+        //     DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(self.datetime as i64, 0), Utc)
+        //         .format("%H:%M:%S, %Y-%m-%d");
+        let format_desc = format_description::parse("[hour]:[minute]:[second]").unwrap_or_default();
 
-        final_vec.push((datetime.to_string(), default_style));
+        let datetime = OffsetDateTime::from_unix_timestamp(self.datetime as i64)
+            .ok()
+            .and_then(|dt| dt.format(&format_desc).ok());
+
+        final_vec.push((datetime.unwrap_or_default(), default_style));
         final_vec.push((self.hash.clone(), default_style));
         final_vec.push((
             self.nodes.to_string(),

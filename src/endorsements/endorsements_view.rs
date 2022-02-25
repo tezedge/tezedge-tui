@@ -1,9 +1,9 @@
-use std::io::Stdout;
-
-use tui::backend::CrosstermBackend;
+use time::Duration;
+use tui::backend::Backend;
 use tui::layout::Corner;
 use tui::style::Modifier;
 use tui::text::{Span, Spans};
+use tui::widgets::Cell;
 use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
@@ -16,13 +16,13 @@ use strum::IntoEnumIterator;
 
 use crate::automaton::State;
 use crate::common::{create_header_bar, create_help_bar, create_pages_tabs, create_quit};
-use crate::extensions::{Renderable, CustomSeparator};
+use crate::extensions::{CustomSeparator, Renderable};
 
-use super::EndorsementState;
+use super::{EndorsementOperationSummary, EndorsementState};
 pub struct EndorsementsScreen {}
 
-impl Renderable for EndorsementsScreen {
-    fn draw_screen(state: &State, f: &mut Frame<CrosstermBackend<Stdout>>) {
+impl<B: Backend> Renderable<B> for EndorsementsScreen {
+    fn draw_screen(state: &State, f: &mut Frame<B>) {
         let size = f.size();
         let delta_toggle = state.delta_toggle;
 
@@ -34,12 +34,11 @@ impl Renderable for EndorsementsScreen {
             .constraints([Constraint::Min(5), Constraint::Length(1)])
             .split(size);
 
-        let (header_chunk, summary_chunk, help_chunk, endorsements_chunk) = Layout::default()
+        let (header_chunk, summary_chunk, endorsements_chunk) = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(2),
                 Constraint::Length(1),
-                Constraint::Length(2),
                 Constraint::Min(1),
             ])
             .split(page_chunks[0])
@@ -47,9 +46,16 @@ impl Renderable for EndorsementsScreen {
             .collect_tuple()
             .unwrap(); // safe as we specify 3 elements in constraints and collecting into tuple of size 3
 
+        let (endorsement_table_chunk, endorsing_panel_chunk) = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
+            .split(endorsements_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
         // ======================== HEADER ========================
-        let header = &state.current_head_header;
-        create_header_bar(header_chunk, header, f);
+        create_header_bar(header_chunk, state, f);
 
         // ======================== SUMARY ========================
         let separator = Span::styled(
@@ -98,7 +104,21 @@ impl Renderable for EndorsementsScreen {
         f.render_widget(summary_paragraph, summary_chunk);
 
         // ======================== HELP BAR ========================
-        create_help_bar(help_chunk, f, delta_toggle);
+        // if no baker address is given, use the whole sreen for the table
+        let table_chunk = if state.baker_address.is_some() {
+            endorsement_table_chunk
+        } else {
+            endorsements_chunk
+        };
+        let (endorsement_table_help_chunk, endorsement_table_inner_chunk) = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(2), Constraint::Min(1)])
+            .split(table_chunk)
+            .into_iter()
+            .collect_tuple()
+            .unwrap();
+
+        create_help_bar(endorsement_table_help_chunk, f, delta_toggle);
 
         // ======================== ENDORSERS ========================
 
@@ -135,19 +155,207 @@ impl Renderable for EndorsementsScreen {
             .widths(&renderable_constraints);
         f.render_stateful_widget(
             table,
-            endorsements_chunk,
+            endorsement_table_inner_chunk,
             &mut state.endorsmenents.endorsement_table.table_state.clone(),
         );
 
         // overlap the block corners with special separators to make flush transition to the table block
-        let vertical_left_separator = CustomSeparator::default().separator("├").corner(Corner::TopLeft);
-        f.render_widget(vertical_left_separator, endorsements_chunk);
+        let vertical_left_separator = CustomSeparator::default()
+            .separator("├")
+            .corner(Corner::TopLeft);
+        f.render_widget(vertical_left_separator, endorsement_table_inner_chunk);
 
-        let vertical_right_separator = CustomSeparator::default().separator("┤").corner(Corner::TopRight);
-        f.render_widget(vertical_right_separator, endorsements_chunk);
+        let vertical_right_separator = CustomSeparator::default()
+            .separator("┤")
+            .corner(Corner::TopRight);
+        f.render_widget(vertical_right_separator, endorsement_table_inner_chunk);
 
         // let block = Block::default().borders(Borders::ALL).title("Endorsements");
         // f.render_widget(block, endorsements_chunk);
+
+        // ======================== BAKER ENDORSING PANEL ========================
+        if state.baker_address.is_some() {
+            let (
+                endorsing_panel_title_chunk,
+                endorsing_panel_level_chunk,
+                endorsing_panel_inner_chunk,
+            ) = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Length(2),
+                    Constraint::Min(1),
+                ])
+                .split(endorsing_panel_chunk)
+                .into_iter()
+                .collect_tuple()
+                .unwrap();
+
+            // f.render_widget(endorser_panel_title, endorsing_panel_title_chunk);
+            let current_head_level = state.current_head_header.level;
+            let current_head_timestamp = &state.current_head_header.timestamp;
+            // TODO: constant
+            // We need to get the next endorsement even when have endorsed in the current head
+            let next_endorsing = state
+                .endorsmenents
+                .endorsement_rights_with_time
+                .next_endorsing(
+                    current_head_level + 1,
+                    current_head_timestamp.saturating_add(Duration::seconds(
+                        state.network_constants.minimal_block_delay.into(),
+                    )),
+                    state.network_constants.minimal_block_delay,
+                );
+
+            let (next_endorsing_time_label, next_endorsing_delta_label) =
+                if let Some((level, time)) = next_endorsing {
+                    let blocks_delta = level - current_head_level;
+                    (
+                        Span::styled(format!("{} ", level), Style::default().fg(Color::White)),
+                        Span::styled(
+                            format!("{} ({} blocks)", time, blocks_delta),
+                            Style::default().fg(Color::White),
+                        ),
+                    )
+                } else {
+                    (
+                        Span::styled(
+                            "No rights found",
+                            Style::default()
+                                .fg(Color::White)
+                                .add_modifier(Modifier::DIM),
+                        ),
+                        Span::from(""),
+                    )
+                };
+
+            let summary_dimmed_text_style = Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::DIM);
+
+            let summary_title = Paragraph::new(Spans::from(vec![
+                Span::styled(" ENDORSING PROGRESS - ", Style::default().fg(Color::White)),
+                Span::styled("Next endorsing at level ", summary_dimmed_text_style),
+                next_endorsing_time_label,
+                Span::styled("in ", summary_dimmed_text_style),
+                next_endorsing_delta_label,
+            ]))
+            .block(Block::default().borders(Borders::TOP | Borders::LEFT | Borders::RIGHT));
+
+            f.render_widget(summary_title, endorsing_panel_title_chunk);
+
+            // let last_endorsed_block_level_label =
+            //     if let Some(last_endorsed_block_level) = state.endorsmenents.last_endrosement_operation_level {
+            //         last_baked_block_level.to_string()
+            //     } else {
+            //         String::from(" - ")
+            //     };
+
+            // check whether the baker has rights for the current head
+            let next_endorsing = state
+                .endorsmenents
+                .endorsement_rights_with_time
+                .next_endorsing(
+                    current_head_level,
+                    *current_head_timestamp,
+                    state.network_constants.minimal_block_delay,
+                );
+
+            let last_endorsement_level_string = if let Some((level, _)) = next_endorsing {
+                if level == current_head_level {
+                    current_head_level.to_string()
+                } else {
+                    state
+                        .endorsmenents
+                        .last_endrosement_operation_level
+                        .to_string()
+                }
+            } else {
+                String::from("-")
+            };
+
+            let last_baked_block_label = Paragraph::new(Spans::from(vec![
+                Span::styled(
+                    " LAST ENDORSEMENT OPERTAION IN LEVEL ",
+                    Style::default().fg(Color::White),
+                ),
+                Span::styled(
+                    last_endorsement_level_string,
+                    Style::default().fg(Color::White),
+                ),
+            ]))
+            .block(Block::default().borders(Borders::LEFT | Borders::RIGHT));
+
+            f.render_widget(last_baked_block_label, endorsing_panel_level_chunk);
+
+            if let Some((level, _)) = next_endorsing {
+                let endorsement_summary = if level == current_head_level {
+                    // we receive the operation stats from node earlier than the block statistics
+                    // so only display the full stats when everything is ready. This would confuse the user
+                    if let Some(block_stats) = state
+                        .baking
+                        .application_statistics
+                        .get(&state.current_head_header.hash)
+                        .cloned()
+                    {
+                        let op_stats = state
+                            .endorsmenents
+                            .injected_endorsement_stats
+                            .get(&current_head_level)
+                            .cloned()
+                            .unwrap_or_default();
+                        EndorsementOperationSummary::new(
+                            *current_head_timestamp,
+                            op_stats,
+                            Some(block_stats),
+                        )
+                    } else {
+                        EndorsementOperationSummary::default()
+                    }
+                } else {
+                    state
+                        .endorsmenents
+                        .last_injected_endorsement_summary
+                        .clone()
+                };
+
+                let selected_style = Style::default()
+                    .remove_modifier(Modifier::DIM)
+                    .bg(Color::Black);
+
+                let rows = endorsement_summary
+                    .to_table_data()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, (tag, styled_time))| {
+                        let sequence_num_cell = Cell::from(index.to_string());
+                        let tag_cell = Cell::from(tag);
+                        let value_cell = Cell::from(styled_time.get_string_representation())
+                            .style(styled_time.get_style().remove_modifier(Modifier::DIM));
+
+                        // stripes to differentiate between lines
+                        if index % 2 == 0 {
+                            Row::new(vec![sequence_num_cell, tag_cell, value_cell])
+                                .height(1)
+                                .style(selected_style)
+                        } else {
+                            Row::new(vec![sequence_num_cell, tag_cell, value_cell]).height(1)
+                        }
+                    });
+
+                let block =
+                    Block::default().borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT);
+                let table = Table::new(rows)
+                    // .header(header)
+                    .block(block)
+                    .widths(&[
+                        Constraint::Length(2),
+                        Constraint::Percentage(75),
+                        Constraint::Percentage(25),
+                    ]);
+                f.render_widget(table, endorsing_panel_inner_chunk);
+            }
+        }
 
         // ======================== PAGES TABS ========================
         let tabs = create_pages_tabs(&state.ui);

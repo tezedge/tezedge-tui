@@ -1,10 +1,11 @@
 use redux_rs::EnablingCondition;
+use serde::{Deserialize, Serialize};
 
 use crate::automaton::State;
 
 use super::OperationsStats;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperationsStatisticsGetAction {}
 
 impl EnablingCondition<State> for OperationsStatisticsGetAction {
@@ -13,7 +14,7 @@ impl EnablingCondition<State> for OperationsStatisticsGetAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperationsStatisticsReceivedAction {
     pub operations_statistics: OperationsStats,
 }

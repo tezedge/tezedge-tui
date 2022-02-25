@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
-use serde::Deserialize;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use slog::{info, warn, Logger};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -16,60 +17,66 @@ use crate::{
     operations::OperationsStats,
 };
 
-use super::{
-    worker_channel, RequestTrySendError, ResponseTryRecvError, ServiceWorkerAsyncRequester,
-    ServiceWorkerAsyncResponder,
-};
+use super::RequestTrySendError;
 
 pub type RpcRecvError = mpsc::error::TryRecvError;
 
-type RpcWorkerRequester = ServiceWorkerAsyncRequester<RpcCall, RpcResponse>;
-type RpcWorkerResponder = ServiceWorkerAsyncResponder<RpcCall, RpcResponse>;
-
+#[async_trait]
 pub trait RpcService {
     fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>>;
-    fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError>;
+    async fn response_recv(&mut self) -> Option<RpcResponse>;
 }
 
 #[derive(Debug)]
 pub struct RpcServiceDefault {
-    worker_channel: RpcWorkerRequester,
+    sender: mpsc::Sender<RpcCall>,
+    receiver: mpsc::Receiver<RpcResponse>,
     _url: Url,
 }
 
 impl RpcServiceDefault {
     pub fn new(bound: usize, url: Url, log: &Logger) -> Self {
-        let (requester, responder) = worker_channel(bound);
+        let (call_tx, call_rx) = mpsc::channel(bound);
+        let (response_tx, response_rx) = mpsc::channel(bound);
 
         let t_url = url.clone();
         let t_log = log.clone();
 
-        tokio::task::spawn(async move { Self::run_worker(responder, &t_url, &t_log).await });
+        tokio::task::spawn(
+            async move { Self::run_worker(call_rx, response_tx, &t_url, &t_log).await },
+        );
 
         Self {
-            worker_channel: requester,
+            sender: call_tx,
+            receiver: response_rx,
             _url: url,
         }
     }
 }
 
+#[async_trait]
 impl RpcService for RpcServiceDefault {
     fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>> {
-        self.worker_channel.try_send(req)
+        self.sender.try_send(req)
     }
 
-    fn response_try_recv(&mut self) -> Result<RpcResponse, ResponseTryRecvError> {
-        self.worker_channel.try_recv()
+    async fn response_recv(&mut self) -> Option<RpcResponse> {
+        self.receiver.recv().await
     }
 }
 
 impl RpcServiceDefault {
-    async fn run_worker(mut channel: RpcWorkerResponder, url: &Url, log: &Logger) {
+    async fn run_worker(
+        mut call_receiver: mpsc::Receiver<RpcCall>,
+        response_sender: mpsc::Sender<RpcResponse>,
+        url: &Url,
+        log: &Logger,
+    ) {
         info!(log, "Rpc service started. Rpc url: {}", url);
-        while let Ok(req) = channel.recv().await {
+        while let Some(req) = call_receiver.recv().await {
             match Self::call_rpc(req, url).await {
                 Ok(response) => {
-                    let _ = channel.send(response).await;
+                    let _ = response_sender.send(response).await;
                 }
                 Err(e) => {
                     warn!(log, "Rpc failed: {}", e)
@@ -159,6 +166,20 @@ impl RpcServiceDefault {
                     .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
                 Ok(RpcResponse::NetworkConstants(constants))
             }
+            RpcTarget::CurrentHeadMetadata => {
+                let metadata: CurrentHeadMetadata = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::CurrentHeadMetadata(metadata))
+            }
+            RpcTarget::BestRemoteLevel => {
+                let level: Option<i32> = response
+                    .json()
+                    .await
+                    .map_err(|e| RpcError::RequestErrorDetailed(request, e))?;
+                Ok(RpcResponse::BestRemoteLevel(level))
+            }
         }
     }
 }
@@ -173,7 +194,7 @@ pub enum RpcError {
     DeserializationError(#[from] serde_json::Error),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RpcCall {
     pub target: RpcTarget,
     query_arg: Option<String>,
@@ -185,7 +206,7 @@ impl RpcCall {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum RpcTarget {
     EndorsementRights,
     EndersementsStatus,
@@ -197,9 +218,11 @@ pub enum RpcTarget {
     EndorsementRightsWithTime,
     MempoolEndorsementStats,
     NetworkConstants,
+    CurrentHeadMetadata,
+    BestRemoteLevel,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum RpcResponse {
     EndorsementRights(EndorsementRights),
@@ -212,6 +235,8 @@ pub enum RpcResponse {
     EndorsementRightsWithTime(Vec<EndorsementRightsWithTimePerLevel>),
     MempoolEndorsementStats(MempoolEndorsementStats),
     NetworkConstants(NetworkConstants),
+    CurrentHeadMetadata(CurrentHeadMetadata),
+    BestRemoteLevel(Option<i32>),
 }
 
 impl Display for RpcCall {
@@ -263,6 +288,12 @@ impl Display for RpcCall {
             RpcTarget::NetworkConstants => {
                 write!(f, "NetworkConstants - Query args: {:?}", self.query_arg)
             }
+            RpcTarget::CurrentHeadMetadata => {
+                write!(f, "CurrentHeadMetadata - Query args: {:?}", self.query_arg)
+            }
+            RpcTarget::BestRemoteLevel => {
+                write!(f, "BestRemoteLevel - Query args: {:?}", self.query_arg)
+            }
         }
     }
 }
@@ -284,11 +315,13 @@ impl RpcCall {
             }
             RpcTarget::MempoolEndorsementStats => "dev/shell/automaton/stats/mempool/endorsements",
             RpcTarget::NetworkConstants => "chains/main/blocks/head/context/constants",
+            RpcTarget::CurrentHeadMetadata => "chains/main/blocks/head/metadata",
+            RpcTarget::BestRemoteLevel => "dev/peers/best_remote_level",
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct CurrentHeadHeader {
     pub level: i32,
     pub hash: String,
@@ -329,9 +362,24 @@ impl Default for CurrentHeadHeader {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct NetworkConstants {
     // we only need this one for now
     #[serde(deserialize_with = "serde_aux::prelude::deserialize_number_from_string")]
     pub minimal_block_delay: i32,
+    pub preserved_cycles: i32,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct CurrentHeadMetadata {
+    pub level_info: LevelInfo,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct LevelInfo {
+    pub cycle: i32,
+    cycle_position: i32,
+    expected_commitment: bool,
+    pub level: i32,
+    level_position: i32,
 }

@@ -1,11 +1,12 @@
 use redux_rs::EnablingCondition;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     automaton::State,
-    services::rpc_service::{RpcCall, RpcResponse},
+    services::rpc_service_async::{RpcCall, RpcResponse},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RpcRequestAction {
     pub call: RpcCall,
 }
@@ -16,7 +17,7 @@ impl EnablingCondition<State> for RpcRequestAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RpcResponseAction {
     pub response: RpcResponse,
 }
@@ -27,7 +28,7 @@ impl EnablingCondition<State> for RpcResponseAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RpcResponseReadAction {}
 
 impl EnablingCondition<State> for RpcResponseReadAction {

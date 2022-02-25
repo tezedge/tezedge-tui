@@ -8,12 +8,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tui = { version = "0.16", features = ["crossterm"]}
+tui = { version = "0.16", features = ["crossterm", "serde"]}
 clap = { version = "3.0", features = ["derive"]}
-crossterm ="0.22"
+crossterm = { version = "0.22", features = ["serde"] }
 warp = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde-aux = "3.0"
 tokio = { version = "1.12", features = ["full"] }
 tokio-tungstenite = "0.15"
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
@@ -22,7 +23,7 @@ thiserror = "1.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 url = "2.2"
 itertools = "0.10"
-chrono = "0.4"
+time = { version = "0.3", features = ["serde", "serde-well-known"] }
 slog = { version = "2.7", features = ["max_level_trace", "release_max_level_debug"] }
 slog-async = "2.6"
 slog-term = "2.8"
@@ -33,3 +34,7 @@ redux-rs = { git = "https://github.com/tezedge/redux-rs.git", tag = "tezedge-v1.
 async-trait = "0.1"
 enum-kinds = "0.5.1"
 derive_more = "0.99.16"
+hdrhistogram = "7.4"
+
+[dev-dependencies]
+pretty_assertions = "1.1"

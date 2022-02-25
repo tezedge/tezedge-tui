@@ -1,18 +1,6 @@
-use automaton::AutomatonManager;
 use clap::Parser;
 use std::error::Error;
-
-pub mod automaton;
-pub mod common;
-pub mod configuration;
-pub mod endorsements;
-pub mod extensions;
-pub mod operations;
-pub mod rpc;
-pub mod services;
-pub mod synchronization;
-pub mod terminal_ui;
-pub mod websocket;
+use tezedge_tui::{automaton::AutomatonManager, configuration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -21,6 +9,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut automaton_manager = AutomatonManager::new(
         tui_args.node,
         tui_args.websocket,
+        tui_args.baker_address,
+        tui_args.record_actions,
         create_file_logger("tui.log"),
     );
     automaton_manager.start().await;

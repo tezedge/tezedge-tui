@@ -1,9 +1,9 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tui::widgets::TableState;
 
 pub type PeerTableData = Vec<[String; 4]>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct SynchronizationState {
     // info for the syncing and apllication blocks
     pub incoming_transfer: IncomingTransferMetrics,
@@ -16,11 +16,25 @@ pub struct SynchronizationState {
     pub cycle_data: Vec<Cycle>,
 
     // ui specific states
+    #[serde(skip)]
     pub peer_table_state: TableState,
     pub period_info_state: PeriodInfoState,
 }
 
-#[derive(Debug, Clone, Default)]
+impl PartialEq for SynchronizationState {
+    fn eq(&self, other: &Self) -> bool {
+        let table_state_eq = self.peer_table_state.selected() == other.peer_table_state.selected();
+        self.incoming_transfer == other.incoming_transfer
+            && self.aplication_status == other.aplication_status
+            && self.peer_metrics == other.peer_metrics
+            && self.block_metrics == other.block_metrics
+            && self.cycle_data == other.cycle_data
+            && self.period_info_state == other.period_info_state
+            && table_state_eq
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
 #[allow(dead_code)]
 pub struct PeriodInfoState {
     pub container_count: usize,
@@ -51,7 +65,7 @@ impl PeriodInfoState {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone, Default, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IncomingTransferMetrics {
     pub eta: Option<f32>,
@@ -64,7 +78,7 @@ pub struct IncomingTransferMetrics {
     pub header_average_download_rate: f32,
 }
 
-#[derive(Clone, Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockApplicationStatus {
     pub current_application_speed: f32,
@@ -72,14 +86,14 @@ pub struct BlockApplicationStatus {
     pub last_applied_block: Option<BlockInfo>,
 }
 
-#[derive(Clone, Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockInfo {
     pub hash: String,
     pub level: i32,
 }
 
-#[derive(Clone, Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
 pub struct PeerMetrics {
@@ -101,7 +115,7 @@ impl PeerMetrics {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockStatus {
     pub group: i32,
@@ -117,7 +131,7 @@ impl BlockStatus {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Cycle {
     // cycle id
@@ -144,7 +158,7 @@ impl Cycle {
     }
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainStatus {
     pub chain: Vec<Cycle>,

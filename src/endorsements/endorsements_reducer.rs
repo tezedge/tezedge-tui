@@ -3,7 +3,8 @@ use std::collections::BTreeMap;
 use crate::automaton::{Action, ActionWithMeta, State};
 
 use super::{
-    EndorsementState, EndorsementStatus, EndorsementStatusSortable, EndorsementStatusSortableVec,
+    EndorsementOperationSummary, EndorsementRightsWithTime, EndorsementState, EndorsementStatus,
+    EndorsementStatusSortable, EndorsementStatusSortableVec,
 };
 
 pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
@@ -12,9 +13,6 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
     match &action.action {
         Action::EndorsementsRightsReceived(action) => {
             state.endorsmenents.endorsement_rights = action.endorsement_rights.clone();
-        }
-        Action::CurrentHeadHeaderReceived(action) => {
-            state.current_head_header = action.current_head_header.clone();
         }
         Action::EndorsementsStatusesReceived(action) => {
             let slot_mapped: BTreeMap<u32, EndorsementStatus> = action
@@ -58,6 +56,63 @@ pub fn endorsementrs_reducer(state: &mut State, action: &ActionWithMeta) {
                     .endorsmenents
                     .endorsement_table
                     .sort_content(delta_toggle);
+            }
+        }
+        Action::EndorsementsRightsWithTimeReceived(action) => {
+            state.endorsmenents.endorsement_rights_with_time =
+                EndorsementRightsWithTime::new(&action.rights);
+        }
+        Action::MempoolEndorsementStatsReceived(stats) => {
+            // let injected_endorsement_stats = stats.stats.iter().find(|(oph, stats)| stats.is_injected());
+
+            if let Some((_, injected_endrosement_stats)) =
+                stats.stats.iter().find(|(_, stats)| stats.is_injected())
+            {
+                let current_level = state.current_head_header.level;
+                // TODO: simple insert would suffice, rigth?
+                let injected_stat = state
+                    .endorsmenents
+                    .injected_endorsement_stats
+                    .entry(current_level)
+                    .or_default();
+                *injected_stat = injected_endrosement_stats.clone();
+            }
+        }
+        Action::CurrentHeadHeaderChanged(_action) => {
+            // we update the last summary AFTER the endorsement happened, so we use the notion of the previous head to get the stored data
+            if let Some((endorsing_level, _)) = state
+                .endorsmenents
+                .endorsement_rights_with_time
+                .next_endorsing(
+                    state.previous_head_header.level,
+                    state.previous_head_header.timestamp,
+                    state.network_constants.minimal_block_delay,
+                )
+            {
+                if endorsing_level == state.previous_head_header.level {
+                    state.endorsmenents.last_endrosement_operation_level = endorsing_level;
+
+                    let block_stats = state
+                        .baking
+                        .application_statistics
+                        .get(&state.previous_head_header.hash)
+                        .cloned();
+
+                    let op_stats = state
+                        .endorsmenents
+                        .injected_endorsement_stats
+                        .get(&state.previous_head_header.level)
+                        .cloned()
+                        .unwrap_or_default();
+                    let injected_endorsement_summary = EndorsementOperationSummary::new(
+                        state.previous_head_header.timestamp,
+                        op_stats,
+                        block_stats,
+                    );
+
+                    state.endorsmenents.last_injected_endorsement_summary =
+                        injected_endorsement_summary;
+                }
             }
         }
         _ => {}

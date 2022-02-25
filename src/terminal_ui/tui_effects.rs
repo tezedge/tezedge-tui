@@ -1,13 +1,22 @@
 use crate::{
     automaton::{Action, ActionWithMeta, Store},
+    baking::BakingScreen,
     endorsements::EndorsementsScreen,
     extensions::Renderable,
     operations::StatisticsScreen,
-    services::{tui_service::TuiService, Service},
+    rpc::RpcRequestAction,
+    services::{
+        rpc_service_async::{RpcCall, RpcTarget},
+        tui_service::TuiService,
+        Service,
+    },
     synchronization::SynchronizationScreen,
 };
 
-use super::{ActivePage, DrawScreenSuccessAction};
+use super::{
+    ActivePage, BestRemoteLevelChangedAction, CurrentHeadHeaderChangedAction,
+    CurrentHeadMetadataChangedAction, CycleChangedAction, DrawScreenSuccessAction,
+};
 
 pub fn tui_effects<S>(store: &mut Store<S>, action: &ActionWithMeta)
 where
@@ -41,6 +50,14 @@ where
                         .terminal()
                         .draw(|f| StatisticsScreen::draw_screen(&state, f))
                 }
+                ActivePage::Baking => {
+                    let state = store.state().clone();
+                    store
+                        .service()
+                        .tui()
+                        .terminal()
+                        .draw(|f| BakingScreen::draw_screen(&state, f))
+                }
             };
             match res {
                 Ok(_) => {
@@ -50,6 +67,66 @@ where
                     });
                 }
                 Err(_) => todo!(),
+            }
+        }
+        Action::CurrentHeadHeaderReceived(action) => {
+            if store.state().current_head_header.level < action.current_head_header.level {
+                store.dispatch(CurrentHeadHeaderChangedAction {
+                    current_head_header: action.current_head_header.clone(),
+                });
+            }
+        }
+        Action::CurrentHeadHeaderGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::CurrentHeadHeader, None),
+            });
+        }
+        Action::NetworkConstantsGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::NetworkConstants, None),
+            });
+        }
+        Action::CurrentHeadMetadataGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::CurrentHeadMetadata, None),
+            });
+        }
+        Action::BestRemoteLevelGet(_) => {
+            store.dispatch(RpcRequestAction {
+                call: RpcCall::new(RpcTarget::BestRemoteLevel, None),
+            });
+        }
+        Action::CurrentHeadMetadataReceived(action) => {
+            if store.state().current_head_metadata.level_info.level
+                < action.metadata.level_info.level
+            {
+                store.dispatch(CurrentHeadMetadataChangedAction {
+                    new_metadata: action.metadata.clone(),
+                });
+            }
+
+            if store.state().current_head_metadata.level_info.cycle
+                < action.metadata.level_info.cycle
+            {
+                store.dispatch(CycleChangedAction {
+                    new_cycle: action.metadata.level_info.cycle,
+                    at_level: action.metadata.level_info.level,
+                });
+            }
+        }
+        Action::BestRemoteLevelReceived(action) => {
+            if let Some(new_best_level) = action.level {
+                if let Some(current_best_level) = store.state().best_remote_level {
+                    if current_best_level < new_best_level {
+                        store.dispatch(BestRemoteLevelChangedAction {
+                            level: Some(new_best_level),
+                        });
+                    }
+                } else {
+                    store.dispatch(BestRemoteLevelChangedAction {
+                        level: Some(new_best_level),
+                    });
+                }
             }
         }
         Action::Shutdown(_) => {}

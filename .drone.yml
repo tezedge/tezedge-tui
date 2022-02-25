@@ -1,0 +1,33 @@
+kind: pipeline
+name: automaton-test
+
+trigger:
+  branch:
+    - master
+    - develop
+    - tests
+
+workspace:
+  path: /drone/src
+
+steps:
+
+- name: run-automaton-tests
+  image: tezedge/tezedge-ci-builder:rust-1.58.1-v11.0-octez
+  pull: if-not-exists
+  user: root
+  environment:
+    RUST_BACKTRACE: full
+  volumes:
+    - name: data
+      path: /data
+  commands:
+    - cp /data/automaton_dump.json .
+    - cargo test --release -- --nocapture
+
+volumes:
+  - name: data
+    host:
+      path: /usr/local/etc/tezedge-tui-ci/data
+
+# Test

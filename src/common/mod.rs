@@ -1,4 +1,5 @@
 use strum::IntoEnumIterator;
+use time::Duration;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -9,12 +10,15 @@ use tui::{
 };
 
 use crate::{
-    services::rpc_service::CurrentHeadHeader,
+    automaton::State,
     terminal_ui::{ActivePage, UiState},
 };
 
 pub fn create_pages_tabs(ui_state: &UiState) -> Tabs {
+    // Note: only the first two screens are enabled for now
+    // take(2) - takes only the first 2 variants of the enum (Endorsements, Baking)
     let titles = ActivePage::iter()
+        .take(2)
         .map(|t| {
             Spans::from(vec![
                 Span::styled(
@@ -76,11 +80,9 @@ pub fn create_help_bar<B: Backend>(help_chunk: Rect, f: &mut Frame<B>, delta_tog
     f.render_widget(help_paragraph, help_chunk);
 }
 
-pub fn create_header_bar<B: Backend>(
-    header_chunk: Rect,
-    header: &CurrentHeadHeader,
-    f: &mut Frame<B>,
-) {
+pub fn create_header_bar<B: Backend>(header_chunk: Rect, state: &State, f: &mut Frame<B>) {
+    let header = &state.current_head_header;
+    let remote_level = state.best_remote_level.unwrap_or_default();
     // wrap the header info in borders
     let block = Block::default()
         .borders(Borders::BOTTOM)
@@ -90,37 +92,62 @@ pub fn create_header_bar<B: Backend>(
     let header_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(62),
-            Constraint::Length(16),
+            Constraint::Length(23),
+            Constraint::Length(22),
+            Constraint::Length(23),
             Constraint::Length(18),
+            Constraint::Min(50),
         ])
         .split(header_chunk);
 
+    let block_hash_short = if !header.hash.is_empty() {
+        let start = header.hash.chars().take(6).collect::<String>();
+        let end = header.hash.chars().rev().take(6).collect::<String>();
+        format!("{}..{}", start, end)
+    } else {
+        String::from("")
+    };
     let block_hash = Paragraph::new(Spans::from(vec![
         Span::styled(
             " Block: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ),
         Span::styled(
-            format!("{} ", header.hash),
+            format!("{} ", block_hash_short),
             Style::default().fg(Color::White),
         ),
     ]));
 
     f.render_widget(block_hash, header_chunks[0]);
 
+    let block_num_style = if header.level >= remote_level {
+        Style::default().fg(Color::Green)
+    } else {
+        Style::default().fg(Color::Red)
+    };
+
     let block_level = Paragraph::new(Spans::from(vec![
         Span::styled(
-            "Level: ",
+            "Local Level: ",
+            Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+        ),
+        Span::styled(format!("{} ", header.level), block_num_style),
+    ]));
+
+    f.render_widget(block_level, header_chunks[1]);
+
+    let remote_level_paragraph = Paragraph::new(Spans::from(vec![
+        Span::styled(
+            "Remote Level: ",
             Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ),
         Span::styled(
-            format!("{} ", header.level),
+            format!("{} ", state.best_remote_level.unwrap_or_default()),
             Style::default().fg(Color::White),
         ),
     ]));
 
-    f.render_widget(block_level, header_chunks[1]);
+    f.render_widget(remote_level_paragraph, header_chunks[2]);
 
     // show only the shorter version of the protocol
     let protocol_short = if !header.protocol.is_empty() {
@@ -140,7 +167,69 @@ pub fn create_header_bar<B: Backend>(
         ),
     ]));
 
-    f.render_widget(block_protocol, header_chunks[2]);
+    f.render_widget(block_protocol, header_chunks[3]);
+
+    let baker_info_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(21), Constraint::Length(26)])
+        .split(header_chunks[4]);
+
+    // render next baking endorsements if we have baker address specified
+    if state.baker_address.is_some() {
+        // Baking in 59 minutes
+        // Endorsement in 59 minutes
+
+        let baking_in = if let Some((_, time)) = state.baking.baking_rights.next_baking(
+            header.level,
+            &header.timestamp,
+            state.network_constants.minimal_block_delay,
+        ) {
+            time
+        } else {
+            String::from("Never")
+        };
+
+        let baking = Paragraph::new(Spans::from(vec![
+            Span::styled(
+                "Baking in ",
+                Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+            ),
+            Span::styled(format!("{} ", baking_in), Style::default().fg(Color::White)),
+        ]))
+        .alignment(Alignment::Right);
+
+        f.render_widget(baking, baker_info_chunks[0]);
+
+        let endorsing_in = if let Some((_, time)) = state
+            .endorsmenents
+            .endorsement_rights_with_time
+            .next_endorsing(
+                header.level + 1,
+                header.timestamp.saturating_add(Duration::seconds(
+                    state.network_constants.minimal_block_delay.into(),
+                )),
+                state.network_constants.minimal_block_delay,
+            ) {
+            time
+        } else {
+            String::from("Never")
+        };
+
+        // TODO
+        let endorsing = Paragraph::new(Spans::from(vec![
+            Span::styled(
+                "Endorsement in ",
+                Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
+            ),
+            Span::styled(
+                format!("{} ", endorsing_in),
+                Style::default().fg(Color::White),
+            ),
+        ]))
+        .alignment(Alignment::Right);
+
+        f.render_widget(endorsing, baker_info_chunks[1]);
+    }
 }
 
 pub fn create_quit<B: Backend>(last_chunk: Rect, f: &mut Frame<B>) {

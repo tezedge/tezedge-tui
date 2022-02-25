@@ -1,20 +1,31 @@
 use derive_more::From;
 use enum_kinds::EnumKind;
 pub use redux_rs::{ActionId, EnablingCondition};
+use serde::{Deserialize, Serialize};
 
 use crate::{
+    baking::{
+        ApplicationStatisticsGetAction, ApplicationStatisticsReceivedAction, BakingRightsGetAction,
+        BakingRightsReceivedAction, PerPeerBlockStatisticsGetAction,
+        PerPeerBlockStatisticsReceivedAction,
+    },
     endorsements::{
-        CurrentHeadHeaderGetAction, CurrentHeadHeaderRecievedAction, EndorsementsRightsGetAction,
-        EndorsementsRightsReceivedAction, EndorsementsStatusesGetAction,
-        EndorsementsStatusesReceivedAction,
+        EndorsementsRightsGetAction, EndorsementsRightsReceivedAction,
+        EndorsementsRightsWithTimeGetAction, EndorsementsRightsWithTimeReceivedAction,
+        EndorsementsStatusesGetAction, EndorsementsStatusesReceivedAction,
+        MempoolEndorsementStatsGetAction, MempoolEndorsementStatsReceivedAction,
     },
     operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
     rpc::{RpcRequestAction, RpcResponseAction, RpcResponseReadAction},
     terminal_ui::{
-        ChangeScreenAction, DrawScreenAction, DrawScreenFailiureAction, DrawScreenSuccessAction,
-        TuiDeltaToggleKeyPushedAction, TuiDownKeyPushedAction, TuiLeftKeyPushedAction,
-        TuiRightKeyPushedAction, TuiSortKeyPushedAction, TuiUpKeyPushedAction,
-        TuiWidgetSelectionKeyPushedAction,
+        BestRemoteLevelChangedAction, BestRemoteLevelGetAction, BestRemoteLevelReceivedAction,
+        ChangeScreenAction, CurrentHeadHeaderChangedAction, CurrentHeadHeaderGetAction,
+        CurrentHeadHeaderRecievedAction, CurrentHeadMetadataChangedAction,
+        CurrentHeadMetadataGetAction, CurrentHeadMetadataReceivedAction, CycleChangedAction,
+        DrawScreenAction, DrawScreenFailiureAction, DrawScreenSuccessAction,
+        NetworkConstantsGetAction, NetworkConstantsReceivedAction, TuiDeltaToggleKeyPushedAction,
+        TuiDownKeyPushedAction, TuiLeftKeyPushedAction, TuiRightKeyPushedAction,
+        TuiSortKeyPushedAction, TuiUpKeyPushedAction, TuiWidgetSelectionKeyPushedAction,
     },
     websocket::{WebsocketMessageReceivedAction, WebsocketReadAction},
 };
@@ -23,7 +34,7 @@ use super::State;
 
 pub type ActionWithMeta = redux_rs::ActionWithMeta<Action>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitAction {}
 
 impl EnablingCondition<State> for InitAction {
@@ -31,7 +42,7 @@ impl EnablingCondition<State> for InitAction {
         false
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShutdownAction {}
 
 impl EnablingCondition<State> for ShutdownAction {
@@ -40,7 +51,16 @@ impl EnablingCondition<State> for ShutdownAction {
     }
 }
 
-#[derive(EnumKind, strum_macros::AsRefStr, strum_macros::IntoStaticStr, From, Debug, Clone)]
+#[derive(
+    EnumKind,
+    strum_macros::AsRefStr,
+    strum_macros::IntoStaticStr,
+    From,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
 #[enum_kind(
     ActionKind,
     derive(strum_macros::EnumIter, strum_macros::Display, Hash)
@@ -60,11 +80,33 @@ pub enum Action {
     EndorsementsRightsReceived(EndorsementsRightsReceivedAction),
     EndorsementsStatusesGet(EndorsementsStatusesGetAction),
     EndorsementsStatusesReceived(EndorsementsStatusesReceivedAction),
+    EndorsementsRightsWithTimeGet(EndorsementsRightsWithTimeGetAction),
+    EndorsementsRightsWithTimeReceived(EndorsementsRightsWithTimeReceivedAction),
+    MempoolEndorsementStatsGet(MempoolEndorsementStatsGetAction),
+    MempoolEndorsementStatsReceived(MempoolEndorsementStatsReceivedAction),
+
     CurrentHeadHeaderGet(CurrentHeadHeaderGetAction),
     CurrentHeadHeaderReceived(CurrentHeadHeaderRecievedAction),
+    CurrentHeadHeaderChanged(CurrentHeadHeaderChangedAction),
+    CycleChanged(CycleChangedAction),
+    NetworkConstantsGet(NetworkConstantsGetAction),
+    NetworkConstantsReceived(NetworkConstantsReceivedAction),
+    CurrentHeadMetadataGet(CurrentHeadMetadataGetAction),
+    CurrentHeadMetadataReceived(CurrentHeadMetadataReceivedAction),
+    CurrentHeadMetadataChanged(CurrentHeadMetadataChangedAction),
+    BestRemoteLevelGet(BestRemoteLevelGetAction),
+    BestRemoteLevelReceived(BestRemoteLevelReceivedAction),
+    BestRemoteLevelChanged(BestRemoteLevelChangedAction),
 
     OperationsStatisticsGet(OperationsStatisticsGetAction),
     OperationsStatisticsReceived(OperationsStatisticsReceivedAction),
+
+    ApplicationStatisticsGet(ApplicationStatisticsGetAction),
+    ApplicationStatisticsReceived(ApplicationStatisticsReceivedAction),
+    PerPeerBlockStatisticsGet(PerPeerBlockStatisticsGetAction),
+    PerPeerBlockStatisticsReceived(PerPeerBlockStatisticsReceivedAction),
+    BakingRightsReceived(BakingRightsReceivedAction),
+    BakingRightsGet(BakingRightsGetAction),
 
     ChangeScreen(ChangeScreenAction),
     DrawScreen(DrawScreenAction),
