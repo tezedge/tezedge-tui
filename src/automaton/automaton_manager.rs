@@ -1,7 +1,6 @@
 use crossterm::event::KeyCode;
 use std::{
     fs::File,
-    io::Write,
     time::{Duration, SystemTime},
 };
 use tokio::sync::mpsc;
@@ -22,7 +21,7 @@ use crate::{
         MempoolEndorsementStatsGetAction, MempoolEndorsementStatsReceivedAction,
     },
     extensions::AutomatonDump,
-    operations::{OperationsStatisticsGetAction, OperationsStatisticsReceivedAction},
+    operations::OperationsStatisticsReceivedAction,
     services::{
         rpc_service_async::{RpcResponse, RpcService, RpcServiceDefault},
         tui_service::{TuiService, TuiServiceDefault},

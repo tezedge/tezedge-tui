@@ -10,7 +10,7 @@ impl WebsocketService for WebsocketServiceMocked {
 pub struct WebsocketServiceMocked {}
 
 impl WebsocketServiceMocked {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Self {}
     }
 }

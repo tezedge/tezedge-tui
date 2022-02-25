@@ -8,14 +8,14 @@ use tezedge_tui::services::{
 pub struct RpcServiceMocked {}
 
 impl RpcServiceMocked {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Self {}
     }
 }
 
 #[async_trait]
 impl RpcService for RpcServiceMocked {
-    fn request_send(&mut self, req: RpcCall) -> Result<(), RequestTrySendError<RpcCall>> {
+    fn request_send(&mut self, _: RpcCall) -> Result<(), RequestTrySendError<RpcCall>> {
         Ok(())
     }
 

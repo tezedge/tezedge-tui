@@ -87,7 +87,6 @@ impl<B: Backend> Renderable<B> for BakingScreen {
         let selected_style = Style::default()
             .remove_modifier(Modifier::DIM)
             .bg(Color::Black);
-        let normal_style = Style::default().fg(Color::White);
 
         let mut application_stats_table_data = application_summary.to_table_data();
 

@@ -44,7 +44,6 @@ pub enum ActivePage {
     Baking,
     Synchronization,
     Statistics,
-    
 }
 
 impl ActivePage {

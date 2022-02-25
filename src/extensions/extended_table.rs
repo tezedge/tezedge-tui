@@ -6,7 +6,7 @@ use tui::{
     widgets::{Cell, Row, TableState},
 };
 
-use super::{vec_constraint, ConstraintDef, TableStateDef};
+use super::{vec_constraint, TableStateDef};
 
 const SIDE_PADDINGS: u16 = 1;
 const INITIAL_PADDING: u16 = 2;
